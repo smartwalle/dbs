@@ -5,7 +5,7 @@ Golang 数据库操作工具集, 目前只提供了一个将 sql.Rows 映射到 
 
 #### Bind
 
-适用于开发者自己拼写 SQL 的场景, 可以很简单地将查询数据映射到 Struct。
+适用于开发者自己拼写 SQL 的场景, 将查询结果映射到 Struct。
 
 Bind(rows *sql.Rows, result interface{}) (err error)
 
