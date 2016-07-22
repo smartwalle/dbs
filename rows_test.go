@@ -39,26 +39,13 @@ func getDB() *sql.DB {
 func TestBind(t *testing.T) {
 	var db = getDB()
 
-	//stmt, err := db.Prepare()
-	//if err != nil {
-	//	fmt.Println("Prepare", err)
-	//	return
-	//}
-	//defer stmt.Close()
-
-	//rows, err := stmt.Query()
-	//if err != nil {
-	//	fmt.Println("Query", err)
-	//	return
-	//}
-
 	var rows, err = Query(db, "SELECT h.id, h.name, h.gender, h.birthday, t.id as tid, t.name as tname from human as h LEFT JOIN h_type as t ON h.type=t.id")
 	if err != nil {
 		return
 	}
 
 	var hList []*Human
-	err = Bind(rows, &hList)
+	err = Scan(rows, &hList)
 	if err != nil {
 		fmt.Println("Bind", err)
 		return

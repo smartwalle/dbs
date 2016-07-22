@@ -11,7 +11,7 @@ const (
 	k_SQL_NO_TAG = "-"
 )
 
-func Bind(rows *sql.Rows, result interface{}) (err error) {
+func Scan(rows *sql.Rows, result interface{}) (err error) {
 	if rows == nil {
 		return errors.New("sql: rows is closed")
 	}
@@ -59,7 +59,7 @@ func Bind(rows *sql.Rows, result interface{}) (err error) {
 		for rows.Next() {
 			var obj = reflect.New(sliceValue.Type().Elem())
 
-			err = _bind(rows, columns, obj.Interface())
+			err = _scan(rows, columns, obj.Interface())
 			if err != nil {
 				return err
 			}
@@ -68,14 +68,14 @@ func Bind(rows *sql.Rows, result interface{}) (err error) {
 		objValue.Set(sliceValue)
 	} else {
 		for rows.Next() {
-			return _bind(rows, columns, result)
+			return _scan(rows, columns, result)
 		}
 	}
 
 	return err
 }
 
-func _bind(rows *sql.Rows, columns []string, result interface{}) (err error) {
+func _scan(rows *sql.Rows, columns []string, result interface{}) (err error) {
 	var objType = reflect.TypeOf(result)
 	var objValue = reflect.ValueOf(result)
 	var objValueKind = objValue.Kind()
