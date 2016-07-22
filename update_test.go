@@ -5,7 +5,6 @@ import (
 	"fmt"
 )
 
-
 func TestUpdate(t *testing.T) {
 	var db = getDB()
 	var _, err = Update(db, "human", map[string]interface{}{"name": "testname"}, NewWhere("id=?", 1))
