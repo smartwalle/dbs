@@ -6,17 +6,9 @@ import (
 	"strings"
 )
 
-func Update(db StmtPrepare, tblName string, data map[string]interface{}, where *Where) (sql.Result, error) {
+func Update(s StmtPrepare, tblName string, data map[string]interface{}, where *Where) (sql.Result, error) {
 	var query, values = BuildUpdateStmt(tblName, data, where)
-
-	stmt, err := db.Prepare(query)
-	if err != nil {
-		return nil, err
-	}
-	defer stmt.Close()
-
-	result, err := stmt.Exec(values...)
-	return result, err
+	return Exec(s, query, values...)
 }
 
 func BuildUpdateStmt(tblName string, data map[string]interface{}, where *Where) (query string, values []interface{}) {

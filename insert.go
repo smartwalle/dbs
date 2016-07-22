@@ -6,17 +6,9 @@ import (
 	"database/sql"
 )
 
-func Insert(db StmtPrepare, tblName string, data map[string]interface{}) (sql.Result, error) {
+func Insert(s StmtPrepare, tblName string, data map[string]interface{}) (sql.Result, error) {
 	var query, values = BuildInsertStmt(tblName, data)
-
-	stmt, err := db.Prepare(query)
-	if err != nil {
-		return nil, err
-	}
-	defer stmt.Close()
-
-	result, err := stmt.Exec(values...)
-	return result, err
+	return Exec(s, query, values...)
 }
 
 func BuildInsertStmt(tblName string, data map[string]interface{}) (query string, values []interface{}) {
