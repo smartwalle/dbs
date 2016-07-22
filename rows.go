@@ -68,6 +68,7 @@ func Scan(rows *sql.Rows, result interface{}) (err error) {
 		for rows.Next() {
 			return _scan(rows, columns, result)
 		}
+		return errors.New("sql: no rows in result set")
 	}
 
 	return err
