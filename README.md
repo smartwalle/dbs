@@ -19,7 +19,8 @@ type Human struct {
 
 映射单条数据
 ```
-var rows, _ = sql.Open(...).Query("SELECT id, name, sex as gender FROM human where id = ?", 1)
+var db, _ = sql.Open(...) 
+var rows, _ = db.Query("SELECT id, name, gender FROM human where id = ? ", 1)
 var h *Human
 Bind(rows, &h)
 
@@ -27,7 +28,8 @@ Bind(rows, &h)
 
 映射多条数据
 ```
-var rows, _ = sql.Open(...).Query("SELECT id, name, gender FROM human where id > ? ", 1)
+var db, _ = sql.Open(...) 
+var rows, _ = db.Query("SELECT id, name, gender FROM human where id > ? ", 1)
 var hList []*Human
 Bind(rows, &hList)
 ```
