@@ -55,6 +55,7 @@ func Scan(rows *sql.Rows, result interface{}) (err error) {
 		}
 		var sliceValue = objValue
 
+		var hasData = false
 		for rows.Next() {
 			var obj = reflect.New(sliceValue.Type().Elem())
 
@@ -62,9 +63,15 @@ func Scan(rows *sql.Rows, result interface{}) (err error) {
 			if err != nil {
 				return err
 			}
+			hasData = true
 			sliceValue = reflect.Append(sliceValue, obj.Elem())
 		}
-		objValue.Set(sliceValue)
+		if hasData {
+			objValue.Set(sliceValue)
+		} else {
+			return errors.New("sql: no rows in result set")
+		}
+
 	} else {
 		for rows.Next() {
 			return _scan(rows, columns, result)
