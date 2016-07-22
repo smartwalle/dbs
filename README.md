@@ -1,6 +1,6 @@
 ## DBA
 
-Golang 数据库操作工具集, 目前只提供了一个将 sql.Rows 映射到 Struct 的工具。
+Golang 数据库操作工具集。
 
 
 #### Bind
