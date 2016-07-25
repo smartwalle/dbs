@@ -29,6 +29,90 @@ func Scan(rows *sql.Rows, result interface{}) (err error) {
 		return errors.New("rows: result argument is nil")
 	}
 
+	// 获取查询的列
+	columns, err := rows.Columns()
+	if err != nil {
+		return err
+	}
+
+	var hasData = false
+	var isInit = false
+	var isSlice = false
+	var sliceValue reflect.Value
+
+	for rows.Next() {
+		hasData = true
+
+		if !isInit {
+			for {
+				if objValueKind == reflect.Ptr && objValue.IsNil() {
+					objValue.Set(reflect.New(objType.Elem()))
+				}
+
+				if objValueKind == reflect.Ptr {
+					objValue = objValue.Elem()
+					objType = objType.Elem()
+					objValueKind = objValue.Kind()
+					continue
+				}
+				break
+			}
+			isInit = true
+
+			if objValueKind == reflect.Slice {
+				isSlice = true
+
+				if objValue.IsValid() {
+					objValue.Set(reflect.MakeSlice(objType, 0, 0))
+				}
+
+				sliceValue = objValue
+			}
+		}
+
+		if isSlice {
+			var obj = reflect.New(sliceValue.Type().Elem())
+
+			err = _scan(rows, columns, obj.Interface())
+			if err != nil {
+				return err
+			}
+
+			sliceValue = reflect.Append(sliceValue, obj.Elem())
+		} else {
+			return _scan(rows, columns, result)
+		}
+	}
+
+	if isSlice {
+		objValue.Set(sliceValue)
+	}
+
+	if !hasData {
+		err = errors.New("rows: no rows in result set")
+	}
+
+	return err
+}
+
+func scan(rows *sql.Rows, result interface{}) (err error) {
+	if rows == nil {
+		return errors.New("rows: rows is closed")
+	}
+	defer rows.Close()
+
+	var objType = reflect.TypeOf(result)
+	var objValue = reflect.ValueOf(result)
+	var objValueKind = objValue.Kind()
+
+	if objValueKind == reflect.Struct {
+		return errors.New("rows: result argument is struct")
+	}
+
+	if objValue.IsNil() {
+		return errors.New("rows: result argument is nil")
+	}
+
 	for {
 		if objValueKind == reflect.Ptr && objValue.IsNil() {
 			objValue.Set(reflect.New(objType.Elem()))
