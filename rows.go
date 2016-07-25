@@ -13,7 +13,7 @@ const (
 
 func Scan(rows *sql.Rows, result interface{}) (err error) {
 	if rows == nil {
-		return errors.New("sql: rows is closed")
+		return errors.New("rows: rows is closed")
 	}
 	defer rows.Close()
 
@@ -22,11 +22,11 @@ func Scan(rows *sql.Rows, result interface{}) (err error) {
 	var objValueKind = objValue.Kind()
 
 	if objValueKind == reflect.Struct {
-		return errors.New("result argument is struct")
+		return errors.New("rows: result argument is struct")
 	}
 
 	if objValue.IsNil() {
-		return errors.New("result argument is nil")
+		return errors.New("rows: result argument is nil")
 	}
 
 	for {
@@ -69,14 +69,14 @@ func Scan(rows *sql.Rows, result interface{}) (err error) {
 		if hasData {
 			objValue.Set(sliceValue)
 		} else {
-			return errors.New("sql: no rows in result set")
+			return errors.New("rows: no rows in result set")
 		}
 
 	} else {
 		for rows.Next() {
 			return _scan(rows, columns, result)
 		}
-		return errors.New("sql: no rows in result set")
+		return errors.New("rows: no rows in result set")
 	}
 
 	return err
@@ -88,11 +88,11 @@ func _scan(rows *sql.Rows, columns []string, result interface{}) (err error) {
 	var objValueKind = objValue.Kind()
 
 	if objValueKind == reflect.Struct {
-		return errors.New("result argument is struct")
+		return errors.New("rows: result argument is struct")
 	}
 
 	if objValue.IsNil() {
-		return errors.New("result argument is nil")
+		return errors.New("rows: result argument is nil")
 	}
 
 	for {

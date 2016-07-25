@@ -39,7 +39,7 @@ func getDB() *sql.DB {
 func TestBind(t *testing.T) {
 	var db = getDB()
 
-	var rows, err = Query(db, "SELECT * FROM human where id =1")
+	var rows, err = Query(db, "SELECT id, name, gender, birthday FROM human where id > ?", 1)
 	if err != nil {
 		return
 	}
