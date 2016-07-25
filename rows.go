@@ -88,13 +88,18 @@ func Scan(rows *sql.Rows, result interface{}) (err error) {
 		objValue.Set(sliceValue)
 	}
 
+	if e := rows.Err(); e != nil {
+		return e
+	}
+
 	if !hasData {
-		err = errors.New("rows: no rows in result set")
+		return errors.New("rows: no rows in result set")
 	}
 
 	return err
 }
 
+// scan 弃用
 func scan(rows *sql.Rows, result interface{}) (err error) {
 	if rows == nil {
 		return errors.New("rows: rows is closed")
