@@ -218,7 +218,9 @@ func _scan(rows *sql.Rows, columns []string, result interface{}) (err error) {
 		}
 	}
 
-	rows.Scan(valueList...)
+	if err = rows.Scan(valueList...); err != nil {
+		return err
+	}
 
 	for index, f := range selectedFields {
 		var v = reflect.ValueOf(valueList[index]).Elem().Elem()
