@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"reflect"
+	"time"
 )
 
 const (
@@ -225,7 +226,11 @@ func _scan(rows *sql.Rows, columns []string, result interface{}) (err error) {
 	for index, f := range selectedFields {
 		var v = reflect.ValueOf(valueList[index]).Elem().Elem()
 		if v.IsValid() {
-			f.Value.Set(v)
+			if f.Value.Kind() == reflect.Ptr {
+				f.Value.Set(v.Addr())
+			} else {
+				f.Value.Set(v)
+			}
 		}
 	}
 
@@ -247,6 +252,9 @@ func getFields(fields map[string]*field, objType reflect.Type, objValue reflect.
 
 		if tag == "" {
 			if fieldValue.Kind() == reflect.Ptr {
+				if fieldValue.Type() == reflect.TypeOf(&time.Time{}) {
+					continue
+				}
 				if fieldValue.IsNil() {
 					fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
 				}
@@ -254,10 +262,12 @@ func getFields(fields map[string]*field, objType reflect.Type, objValue reflect.
 			}
 
 			if fieldValue.Kind() == reflect.Struct {
+				if fieldValue.Type() == reflect.TypeOf(time.Time{}) {
+					continue
+				}
 				getFields(fields, fieldValue.Type(), fieldValue)
 				continue
 			}
-
 			tag = fieldStruct.Name
 		}
 
