@@ -14,7 +14,7 @@ type Human struct {
 	Name     string    `sql:"name"`
 	Gender   int       `sql:"gender"`
 	Birthday time.Time `sql:"birthday"`
-	Type     Type
+	Type     *Type
 }
 
 type Type struct {
@@ -39,7 +39,7 @@ func getDB() *sql.DB {
 func TestBind(t *testing.T) {
 	var db = getDB()
 
-	var rows, err = Query(db, "SELECT id, name, gender, birthday FROM human where id > ?", 100)
+	var rows, err = Query(db, "SELECT h.id, h.name, h.gender, h.birthday, ht.id as tid, ht.name as tname FROM human as h LEFT JOIN h_type as ht ON h.type=ht.id where h.id > ?", 0)
 	if err != nil {
 		return
 	}
@@ -56,7 +56,7 @@ func TestBind(t *testing.T) {
 	}
 
 	for _, h := range hList {
-		fmt.Println(h.Id, h.Name, h.Gender, h.Birthday, h.Type.Name, h.Type.Id)
+		fmt.Println(h.Id, h.Name, h.Gender, h.Birthday, h.Type.Id, h.Type.Name)
 	}
 }
 
