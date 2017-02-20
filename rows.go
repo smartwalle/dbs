@@ -36,13 +36,13 @@ func Scan(rows *sql.Rows, result interface{}) (err error) {
 		return err
 	}
 
-	var hasData = false
+	//var hasData = false
 	var isInit = false
 	var isSlice = false
 	var sliceValue reflect.Value
 
 	for rows.Next() {
-		hasData = true
+		//hasData = true
 
 		if !isInit {
 			for {
@@ -93,9 +93,9 @@ func Scan(rows *sql.Rows, result interface{}) (err error) {
 		return e
 	}
 
-	if !hasData {
-		return errors.New("rows: no rows in result set")
-	}
+	//if !hasData {
+	//	return errors.New("rows: no rows in result set")
+	//}
 
 	return err
 }
@@ -159,14 +159,16 @@ func scan(rows *sql.Rows, result interface{}) (err error) {
 		if hasData {
 			objValue.Set(sliceValue)
 		} else {
-			return errors.New("rows: no rows in result set")
+			//return errors.New("rows: no rows in result set")
+			return nil
 		}
 
 	} else {
 		for rows.Next() {
 			return _scan(rows, columns, result)
 		}
-		return errors.New("rows: no rows in result set")
+		//return errors.New("rows: no rows in result set")
+		return nil
 	}
 
 	return err
