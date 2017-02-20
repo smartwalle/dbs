@@ -18,7 +18,8 @@ func BuildUpdateStmt(tblName string, data map[string]interface{}, where *Where) 
 
 	var keys = make([]string, 0, 0)
 	for key, value := range data {
-		keys = append(keys, key+"=?")
+		//keys = append(keys, key+"=?")
+		keys = append(keys, fmt.Sprintf("`%s`=?", key))
 		values = append(values, value)
 	}
 

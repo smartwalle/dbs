@@ -19,7 +19,7 @@ func BuildInsertStmt(tblName string, data map[string]interface{}) (query string,
 	var keys = make([]string, 0, 0)
 	var params = make([]string, 0, 0)
 	for key, value := range data {
-		keys = append(keys, key)
+		keys = append(keys, fmt.Sprintf("`%s`", key))
 		params = append(params, "?")
 		values = append(values, value)
 	}
