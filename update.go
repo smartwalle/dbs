@@ -24,7 +24,7 @@ func BuildUpdateStmt(tblName string, data map[string]interface{}, where *Where) 
 
 	var wc string
 	var wq string
-	if where != nil {
+	if where != nil && strings.TrimSpace(where.condition) != "" {
 		wq = "WHERE "
 		wc = where.condition
 		values = append(values, where.args...)
