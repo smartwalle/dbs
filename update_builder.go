@@ -4,17 +4,24 @@ import (
 	"strings"
 	"strconv"
 	"bytes"
+	"github.com/smartwalle/errors"
+	"fmt"
 )
 
 type UpdateBuilder struct {
 	prefixes     expressions
 	options      expressions
 	tables       []string
-	sets         expressions
+	//sets         expressions
+	columns      []string
+	values       []interface{}
 	wheres       whereExpressions
 	orderBys     expressions
 	limit        uint64
 	updateLimit  bool
+	offset       uint64
+	updateOffset bool
+	suffixes     expressions
 }
 
 func (this *UpdateBuilder) Prefix(sql string, args ...interface{}) *UpdateBuilder {
@@ -34,8 +41,9 @@ func (this *UpdateBuilder) Table(from ...string) *UpdateBuilder {
 	return this
 }
 
-func (this *UpdateBuilder) SET(set string, args ...interface{}) *UpdateBuilder {
-	this.sets = append(this.sets, Expression(set, args...))
+func (this *UpdateBuilder) SET(column string, value interface{}) *UpdateBuilder {
+	this.columns = append(this.columns, column)
+	this.values = append(this.values, value)
 	return this
 }
 
@@ -55,7 +63,27 @@ func (this *UpdateBuilder) Limit(limit uint64) *UpdateBuilder {
 	return this
 }
 
+func (this *UpdateBuilder) Offset(offset uint64) *UpdateBuilder {
+	this.offset = offset
+	this.updateOffset = true
+	return this
+}
+
+func (this *UpdateBuilder) Suffix(sql string, args ...interface{}) *UpdateBuilder {
+	this.suffixes = append(this.suffixes, Expression(sql, args...))
+	return this
+}
+
 func (this *UpdateBuilder) ToSQL() (sql string, args []interface{}, err error) {
+	if len(this.tables) == 0 {
+		err = errors.New("update statements must specify a table")
+		return "", nil, err
+	}
+	if len(this.columns) == 0 {
+		err = errors.New("update statements must have at least one Set")
+		return "", nil, err
+	}
+
 	var sqlBuffer = &bytes.Buffer{}
 	if len(this.prefixes) > 0 {
 		args, _ = this.prefixes.appendToSQL(sqlBuffer, " ", args)
@@ -75,8 +103,14 @@ func (this *UpdateBuilder) ToSQL() (sql string, args []interface{}, err error) {
 
 	sqlBuffer.WriteString(" SET ")
 
-	if len(this.sets) > 0 {
-		args, _ = this.sets.appendToSQL(sqlBuffer, ", ", args)
+	if len(this.columns) > 0 {
+		//args, _ = this.sets.appendToSQL(sqlBuffer, ", ", args)
+		var cs []string
+		for _, c := range this.columns {
+			cs = append(cs, fmt.Sprintf("%s=?", c))
+		}
+		sqlBuffer.WriteString(strings.Join(cs, ", "))
+		args = append(args, this.values...)
 	}
 
 	if len(this.wheres) > 0 {
@@ -92,6 +126,16 @@ func (this *UpdateBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	if this.updateLimit {
 		sqlBuffer.WriteString(" LIMIT ")
 		sqlBuffer.WriteString(strconv.FormatUint(this.limit, 10))
+	}
+
+	if this.updateOffset {
+		sqlBuffer.WriteString(" OFFSET ")
+		sqlBuffer.WriteString(strconv.FormatUint(this.offset, 10))
+	}
+
+	if len(this.suffixes) > 0 {
+		sqlBuffer.WriteString(" ")
+		args, _ = this.suffixes.appendToSQL(sqlBuffer, " ", args)
 	}
 
 	sql = sqlBuffer.String()

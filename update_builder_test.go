@@ -8,6 +8,7 @@ import (
 func TestUpdateBuilder_ToSQL(t *testing.T) {
 	var ub = NewUpdateBuilder()
 	ub.Table("t")
-	ub.SET("a=?", "a")
+	ub.SET("a", "a")
+	ub.SET("b", "ddd")
 	fmt.Println(ub.ToSQL())
 }

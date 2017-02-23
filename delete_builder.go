@@ -132,6 +132,16 @@ func (this *DeleteBuilder) ToSQL() (sql string, args []interface{}, err error) {
 		sqlBuffer.WriteString(strconv.FormatUint(this.limit, 10))
 	}
 
+	if this.updateOffset {
+		sqlBuffer.WriteString(" OFFSET ")
+		sqlBuffer.WriteString(strconv.FormatUint(this.offset, 10))
+	}
+
+	if len(this.suffixes) > 0 {
+		sqlBuffer.WriteString(" ")
+		args, _ = this.suffixes.appendToSQL(sqlBuffer, " ", args)
+	}
+
 	sql = sqlBuffer.String()
 
 	return sql, args, err
