@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"github.com/smartwalle/errors"
 	"fmt"
+	"database/sql"
 )
 
 type UpdateBuilder struct {
@@ -140,6 +141,14 @@ func (this *UpdateBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	sql = sqlBuffer.String()
 
 	return sql, args, err
+}
+
+func (this *UpdateBuilder) Exec(s StmtPrepare) (sql.Result, error) {
+	sql, args, err := this.ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	return Exec(s, sql, args...)
 }
 
 func NewUpdateBuilder() *UpdateBuilder {

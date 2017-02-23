@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"strings"
 	"fmt"
+	"database/sql"
 )
 
 type InsertBuilder struct {
@@ -108,6 +109,14 @@ func (this *InsertBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	sql = sqlBuffer.String()
 
 	return sql, args, err
+}
+
+func (this *InsertBuilder) Exec(s StmtPrepare) (sql.Result, error) {
+	sql, args, err := this.ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	return Exec(s, sql, args...)
 }
 
 func NewInsertBuilder() *InsertBuilder {

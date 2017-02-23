@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"database/sql"
 )
 
 type SelectBuilder struct {
@@ -183,6 +184,23 @@ func (this *SelectBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	sql = sqlBuffer.String()
 
 	return sql, args, err
+}
+
+func (this *SelectBuilder) Query(s StmtPrepare) (*sql.Rows, error) {
+	sql, args, err := this.ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	return Query(s, sql, args...)
+}
+
+func (this *SelectBuilder) Scan(s StmtPrepare, result interface{}) (err error) {
+	rows, err := this.Query(s)
+	if err != nil {
+		return err
+	}
+	err = Scan(rows, result)
+	return err
 }
 
 func NewSelectBuilder() *SelectBuilder {

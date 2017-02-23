@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strings"
 	"strconv"
+	"database/sql"
 )
 
 type DeleteBuilder struct {
@@ -145,6 +146,14 @@ func (this *DeleteBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	sql = sqlBuffer.String()
 
 	return sql, args, err
+}
+
+func (this *DeleteBuilder) Exec(s StmtPrepare) (sql.Result, error) {
+	sql, args, err := this.ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	return Exec(s, sql, args...)
 }
 
 func NewDeleteBuilder() *DeleteBuilder {
