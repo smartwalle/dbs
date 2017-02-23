@@ -13,7 +13,7 @@ type DeleteBuilder struct {
 	using        string
 	joins        []string
 	wheres       whereExpressions
-	orderBys     expressions
+	orderBys     []string
 	limit        uint64
 	updateLimit  bool
 	offset       uint64
@@ -65,8 +65,8 @@ func (this *DeleteBuilder) Where(sql string, args ...interface{}) *DeleteBuilder
 	return this
 }
 
-func (this *DeleteBuilder) OrderBy(sql string, args ...interface{}) *DeleteBuilder {
-	this.orderBys = append(this.orderBys, Expression(sql, args...))
+func (this *DeleteBuilder) OrderBy(sql ...string) *DeleteBuilder {
+	this.orderBys = append(this.orderBys, sql...)
 	return this
 }
 
@@ -124,7 +124,7 @@ func (this *DeleteBuilder) ToSQL() (sql string, args []interface{}, err error) {
 
 	if len(this.orderBys) > 0 {
 		sqlBuffer.WriteString(" ORDER BY ")
-		args, _ = this.orderBys.appendToSQL(sqlBuffer, ", ", args)
+		sqlBuffer.WriteString(strings.Join(this.orderBys, ", "))
 	}
 
 	if this.updateLimit {

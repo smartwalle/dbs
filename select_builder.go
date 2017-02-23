@@ -17,7 +17,7 @@ type SelectBuilder struct {
 	wheres       whereExpressions
 	groupBys     []string
 	havings      expressions
-	orderBys     expressions
+	orderBys     []string
 	limit        uint64
 	updateLimit  bool
 	offset       uint64
@@ -90,8 +90,8 @@ func (this *SelectBuilder) Having(sql string, args ...interface{}) *SelectBuilde
 	return this
 }
 
-func (this *SelectBuilder) OrderBy(sql string, args ...interface{}) *SelectBuilder {
-	this.orderBys = append(this.orderBys, Expression(sql, args...))
+func (this *SelectBuilder) OrderBy(sql ...string, ) *SelectBuilder {
+	this.orderBys = append(this.orderBys, sql...)
 	return this
 }
 
@@ -162,7 +162,7 @@ func (this *SelectBuilder) ToSQL() (sql string, args []interface{}, err error) {
 
 	if len(this.orderBys) > 0 {
 		sqlBuffer.WriteString(" ORDER BY ")
-		args, _ = this.orderBys.appendToSQL(sqlBuffer, ", ", args)
+		sqlBuffer.WriteString(strings.Join(this.orderBys, ", "))
 	}
 
 	if this.updateLimit {

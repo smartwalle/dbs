@@ -12,11 +12,10 @@ type UpdateBuilder struct {
 	prefixes     expressions
 	options      expressions
 	tables       []string
-	//sets         expressions
 	columns      []string
 	values       []interface{}
 	wheres       whereExpressions
-	orderBys     expressions
+	orderBys     []string
 	limit        uint64
 	updateLimit  bool
 	offset       uint64
@@ -52,8 +51,8 @@ func (this *UpdateBuilder) Where(sql string, args ...interface{}) *UpdateBuilder
 	return this
 }
 
-func (this *UpdateBuilder) OrderBy(sql string, args ...interface{}) *UpdateBuilder {
-	this.orderBys = append(this.orderBys, Expression(sql, args...))
+func (this *UpdateBuilder) OrderBy(sql ...string) *UpdateBuilder {
+	this.orderBys = append(this.orderBys, sql...)
 	return this
 }
 
@@ -120,7 +119,7 @@ func (this *UpdateBuilder) ToSQL() (sql string, args []interface{}, err error) {
 
 	if len(this.orderBys) > 0 {
 		sqlBuffer.WriteString(" ORDER BY ")
-		args, _ = this.orderBys.appendToSQL(sqlBuffer, ", ", args)
+		sqlBuffer.WriteString(strings.Join(this.orderBys, ", "))
 	}
 
 	if this.updateLimit {
