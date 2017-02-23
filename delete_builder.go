@@ -33,7 +33,7 @@ func (this *DeleteBuilder) Options(options ...string) *DeleteBuilder {
 	return this
 }
 
-func (this *DeleteBuilder) From(from ...string) *DeleteBuilder {
+func (this *DeleteBuilder) Table(from ...string) *DeleteBuilder {
 	this.tables = from
 	return this
 }
