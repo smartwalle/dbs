@@ -38,7 +38,7 @@ func (this *InsertBuilder) Column(column string) *InsertBuilder {
 	return this
 }
 
-func (this *InsertBuilder) Insert(table string) *InsertBuilder {
+func (this *InsertBuilder) Table(table string) *InsertBuilder {
 	this.table = table
 	return this
 }
