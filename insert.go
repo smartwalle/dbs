@@ -78,14 +78,14 @@ func (this *InsertBuilder) ToSQL() (sql string, args []interface{}, err error) {
 		sqlBuffer.WriteString(" ")
 	}
 
-	sqlBuffer.WriteString("INTO ")
+	sqlBuffer.WriteString("INTO `")
 	sqlBuffer.WriteString(this.table)
-	sqlBuffer.WriteString(" ")
+	sqlBuffer.WriteString("` ")
 
 	if len(this.columns) > 0 {
-		sqlBuffer.WriteString("(")
-		sqlBuffer.WriteString(strings.Join(this.columns, ", "))
-		sqlBuffer.WriteString(")")
+		sqlBuffer.WriteString("(`")
+		sqlBuffer.WriteString(strings.Join(this.columns, "`, `"))
+		sqlBuffer.WriteString("`)")
 	}
 
 	sqlBuffer.WriteString(" VALUES ")
@@ -97,7 +97,7 @@ func (this *InsertBuilder) ToSQL() (sql string, args []interface{}, err error) {
 			valuePlaceholder[i] = "?"
 			args = append(args, v)
 		}
-		valuesPlaceholder[index] = fmt.Sprintf("(%s)", strings.Join(valuePlaceholder, " ,"))
+		valuesPlaceholder[index] = fmt.Sprintf("(%s)", strings.Join(valuePlaceholder, ","))
 	}
 	sqlBuffer.WriteString(strings.Join(valuesPlaceholder, ", "))
 
