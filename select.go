@@ -46,8 +46,8 @@ func (this *SelectBuilder) Selects(columns ...string) *SelectBuilder {
 	return this
 }
 
-func (this *SelectBuilder) Select(sql string, args ...interface{}) *SelectBuilder {
-	this.columns = append(this.columns, Expression(sql, args...))
+func (this *SelectBuilder) Select(column string, args ...interface{}) *SelectBuilder {
+	this.columns = append(this.columns, Expression(column, args...))
 	return this
 }
 
