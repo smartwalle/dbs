@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"database/sql"
+	"fmt"
 )
 
 type SelectBuilder struct {
@@ -50,11 +51,12 @@ func (this *SelectBuilder) Select(sql string, args ...interface{}) *SelectBuilde
 	return this
 }
 
-func (this *SelectBuilder) From(froms ...string) *SelectBuilder {
-	this.from = nil
-	for _, f := range froms {
-		this.from = append(this.from, Expression(f))
-	}
+func (this *SelectBuilder) From(table string, args ...string) *SelectBuilder {
+	var ts []string
+	ts = append(ts, fmt.Sprintf("`%s`", table))
+	ts = append(ts, args...)
+	this.from = make(expressions, 1)
+	this.from[0] = Expression(strings.Join(ts, " "))
 	return this
 }
 
