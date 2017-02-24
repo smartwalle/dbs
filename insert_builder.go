@@ -97,7 +97,7 @@ func (this *InsertBuilder) ToSQL() (sql string, args []interface{}, err error) {
 			valuePlaceholder[i] = "?"
 			args = append(args, v)
 		}
-		valuesPlaceholder[index] = fmt.Sprintf("(%s)", strings.Join(valuePlaceholder, ","))
+		valuesPlaceholder[index] = fmt.Sprintf("(%s)", strings.Join(valuePlaceholder, " ,"))
 	}
 	sqlBuffer.WriteString(strings.Join(valuesPlaceholder, ", "))
 
@@ -116,7 +116,21 @@ func (this *InsertBuilder) Exec(s StmtPrepare) (sql.Result, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(sql, args)
 	return Exec(s, sql, args...)
+}
+
+func Insert(s StmtPrepare, table string, data map[string]interface{}) (sql.Result, error) {
+	var in = NewInsertBuilder()
+	in.Table(table)
+
+	var values []interface{}
+	for k, v := range data {
+		in.Column(k)
+		values = append(values, v)
+	}
+	in.Values(values...)
+	return in.Exec(s)
 }
 
 func NewInsertBuilder() *InsertBuilder {

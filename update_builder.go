@@ -36,8 +36,8 @@ func (this *UpdateBuilder) Options(options ...string) *UpdateBuilder {
 	return this
 }
 
-func (this *UpdateBuilder) Table(from ...string) *UpdateBuilder {
-	this.tables = from
+func (this *UpdateBuilder) Table(tables ...string) *UpdateBuilder {
+	this.tables = tables
 	return this
 }
 
