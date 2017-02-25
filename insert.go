@@ -116,7 +116,6 @@ func (this *InsertBuilder) Exec(s StmtPrepare) (sql.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(sql, args)
 	return Exec(s, sql, args...)
 }
 
