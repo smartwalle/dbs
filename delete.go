@@ -5,6 +5,7 @@ import (
 	"strings"
 	"strconv"
 	"database/sql"
+	"fmt"
 )
 
 type DeleteBuilder struct {
@@ -57,7 +58,7 @@ func (this *DeleteBuilder) LeftJoin(table string) *DeleteBuilder {
 }
 
 func (this *DeleteBuilder) join(join, table string) *DeleteBuilder {
-	this.joins = append(this.joins, join, table)
+	this.joins = append(this.joins, join, fmt.Sprintf("`%s`", table))
 	return this
 }
 

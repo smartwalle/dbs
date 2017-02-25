@@ -73,7 +73,7 @@ func (this *SelectBuilder) LeftJoin(table, suffix string, args ...interface{}) *
 }
 
 func (this *SelectBuilder) join(join, table, suffix string, args ...interface{}) *SelectBuilder {
-	this.joins = append(this.joins, join, table, suffix)
+	this.joins = append(this.joins, join, fmt.Sprintf("`%s`", table), suffix)
 	this.joinsArg = append(this.joinsArg, args...)
 	return this
 }
