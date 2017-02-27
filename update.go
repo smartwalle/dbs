@@ -12,7 +12,7 @@ import (
 type UpdateBuilder struct {
 	prefixes     expressions
 	options      expressions
-	tables       []string
+	tables       expressions
 	columns      []string
 	values       []interface{}
 	wheres       whereExpressions
@@ -36,14 +36,25 @@ func (this *UpdateBuilder) Options(options ...string) *UpdateBuilder {
 	return this
 }
 
-func (this *UpdateBuilder) Table(tables ...string) *UpdateBuilder {
-	this.tables = tables
+func (this *UpdateBuilder) Table(table string, args ...string) *UpdateBuilder {
+	var ts []string
+	ts = append(ts, fmt.Sprintf("`%s`", table))
+	ts = append(ts, args...)
+	this.tables = append(this.tables, Expression(strings.Join(ts, " ")))
 	return this
 }
 
 func (this *UpdateBuilder) SET(column string, value interface{}) *UpdateBuilder {
 	this.columns = append(this.columns, column)
 	this.values = append(this.values, value)
+	return this
+}
+
+func (this *UpdateBuilder) SetMap(data map[string]interface{}) *UpdateBuilder {
+	for k, v := range data {
+		this.columns = append(this.columns, k)
+		this.values = append(this.values, v)
+	}
 	return this
 }
 
@@ -98,7 +109,7 @@ func (this *UpdateBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	}
 
 	if len(this.tables) > 0 {
-		sqlBuffer.WriteString(strings.Join(this.tables, ", "))
+		args, _ = this.tables.appendToSQL(sqlBuffer, ", ", args)
 	}
 
 	sqlBuffer.WriteString(" SET ")
