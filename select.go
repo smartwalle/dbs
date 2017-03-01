@@ -55,8 +55,7 @@ func (this *SelectBuilder) From(table string, args ...string) *SelectBuilder {
 	var ts []string
 	ts = append(ts, fmt.Sprintf("`%s`", table))
 	ts = append(ts, args...)
-	this.from = make(expressions, 1)
-	this.from[0] = Expression(strings.Join(ts, " "))
+	this.from = append(this.from, Expression(strings.Join(ts, " ")))
 	return this
 }
 
@@ -139,7 +138,7 @@ func (this *SelectBuilder) ToSQL() (sql string, args []interface{}, err error) {
 
 	if len(this.from) > 0 {
 		sqlBuffer.WriteString(" FROM ")
-		args, _ = this.from.appendToSQL(sqlBuffer, " ", args)
+		args, _ = this.from.appendToSQL(sqlBuffer, ", ", args)
 	}
 
 	if len(this.joins) > 0 {
