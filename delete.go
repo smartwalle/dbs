@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"database/sql"
 	"fmt"
+	"errors"
 )
 
 type DeleteBuilder struct {
@@ -90,6 +91,10 @@ func (this *DeleteBuilder) Suffix(sql string, args ...interface{}) *DeleteBuilde
 }
 
 func (this *DeleteBuilder) ToSQL() (sql string, args []interface{}, err error) {
+	if len(this.tables) == 0 {
+		return "", nil, errors.New("delete statements must specify a table")
+	}
+
 	var sqlBuffer = &bytes.Buffer{}
 	if len(this.prefixes) > 0 {
 		args, _ = this.prefixes.appendToSQL(sqlBuffer, " ", args)
@@ -117,6 +122,10 @@ func (this *DeleteBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	if len(this.joins) > 0 {
 		sqlBuffer.WriteString(" ")
 		sqlBuffer.WriteString(strings.Join(this.joins, " "))
+	}
+
+	if len(this.wheres) == 0 {
+		return "", nil, errors.New("delete statements must have WHERE condition")
 	}
 
 	if len(this.wheres) > 0 {

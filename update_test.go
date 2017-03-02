@@ -7,9 +7,10 @@ import (
 
 func TestUpdateBuilder_ToSQL(t *testing.T) {
 	var ub = NewUpdateBuilder()
-	ub.Table("t", "AS tt")
-	ub.Table("t2", "AS t2")
-	ub.SET("a", "a")
-	ub.SET("b", "ddd")
+	ub.Table("user")
+	ub.SET("username", "test")
+	ub.SET("email", "test@qq.com")
+	ub.Where("id=?", 10)
+	ub.Limit(1)
 	fmt.Println(ub.ToSQL())
 }

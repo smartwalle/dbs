@@ -7,6 +7,6 @@ import (
 
 func TestSelectBuilder_Select(t *testing.T) {
 	var sb = NewSelectBuilder()
-	sb.Selects("a", "b").Select("c").From("test", "AS t").From("haha").LeftJoin("db_name", "AS dn").Where("p.a=?", 1).OrderBy("haha DES", "test ASC")
+	sb.Selects("id", "name").Select("email").From("user").Where("id=?", 1)
 	fmt.Println(sb.ToSQL())
 }

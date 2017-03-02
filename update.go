@@ -87,12 +87,10 @@ func (this *UpdateBuilder) Suffix(sql string, args ...interface{}) *UpdateBuilde
 
 func (this *UpdateBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	if len(this.tables) == 0 {
-		err = errors.New("update statements must specify a table")
-		return "", nil, err
+		return "", nil, errors.New("update statements must specify a table")
 	}
 	if len(this.columns) == 0 {
-		err = errors.New("update statements must have at least one Set")
-		return "", nil, err
+		return "", nil, errors.New("update statements must have at least one Set")
 	}
 
 	var sqlBuffer = &bytes.Buffer{}
@@ -122,6 +120,10 @@ func (this *UpdateBuilder) ToSQL() (sql string, args []interface{}, err error) {
 		}
 		sqlBuffer.WriteString(strings.Join(cs, ", "))
 		args = append(args, this.values...)
+	}
+
+	if len(this.wheres) == 0 {
+		return "", nil, errors.New("update statements must have WHERE condition")
 	}
 
 	if len(this.wheres) > 0 {
