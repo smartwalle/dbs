@@ -94,6 +94,11 @@ func (this *InsertBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	for index, value := range this.values {
 		var valuePlaceholder = make([]string, len(value))
 		for i, v := range value {
+			if rs, ok := v.(rawSQL); ok {
+				valuePlaceholder[i] = rs.sql
+				args = append(args, rs.args...)
+				continue
+			}
 			valuePlaceholder[i] = "?"
 			args = append(args, v)
 		}

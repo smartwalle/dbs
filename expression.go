@@ -5,6 +5,17 @@ import (
 	"strings"
 )
 
+// --------------------------------------------------------------------------------
+type rawSQL struct {
+	sql string
+	args []interface{}
+}
+
+func RawSQL(sql string, args ...interface{}) rawSQL {
+	return rawSQL{sql, args}
+}
+
+// --------------------------------------------------------------------------------
 type expression struct {
 	sql  string
 	args []interface{}
@@ -33,6 +44,7 @@ func (this expressions) appendToSQL(w io.Writer, sep string, args []interface{})
 	return args, nil
 }
 
+// --------------------------------------------------------------------------------
 type whereExpression struct {
 	sql  string
 	args []interface{}
@@ -71,6 +83,7 @@ func (this whereExpressions) appendToSQL(w io.Writer, sep string, args []interfa
 	return args, nil
 }
 
+// --------------------------------------------------------------------------------
 func Placeholders(count int) string {
 	if count <= 0 {
 		return ""
