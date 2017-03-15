@@ -1,5 +1,7 @@
 package dba
 
+import "fmt"
+
 // --------------------------------------------------------------------------------
 type SQLer interface {
 	ToSQL() (sql string, args []interface{}, err error)
@@ -25,5 +27,33 @@ func (this *rawSQL) ToSQL() (sql string, args []interface{}, err error) {
 	case nil:
 	default:
 	}
+	return
+}
+
+// --------------------------------------------------------------------------------
+type setStmt struct {
+	column string
+	value  interface{}
+}
+
+func NewSet(column string, value interface{}) SQLer {
+	return &setStmt{column, value}
+}
+
+func (this *setStmt) ToSQL() (vSQL string, vArgs []interface{}, vErr error) {
+	var p = ""
+	switch vt := this.value.(type) {
+	case SQLer:
+		cSQL, cArgs, vErr := vt.ToSQL()
+		if vErr != nil {
+			return "", nil, vErr
+		}
+		p = cSQL
+		vArgs = append(vArgs, cArgs...)
+	default:
+		p = "?"
+		vArgs = append(vArgs, vt)
+	}
+	vSQL = fmt.Sprintf("%s=%s", this.column, p)
 	return
 }

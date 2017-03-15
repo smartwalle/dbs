@@ -13,8 +13,7 @@ type UpdateBuilder struct {
 	prefixes     expressions
 	options      expressions
 	tables       expressions
-	columns      []string
-	values       []interface{}
+	columns      []SQLer
 	wheres       whereExpressions
 	orderBys     []string
 	limit        uint64
@@ -45,15 +44,17 @@ func (this *UpdateBuilder) Table(table string, args ...string) *UpdateBuilder {
 }
 
 func (this *UpdateBuilder) SET(column string, value interface{}) *UpdateBuilder {
-	this.columns = append(this.columns, column)
-	this.values = append(this.values, value)
+	this.columns = append(this.columns, NewSet(column, value))
+	//this.columns = append(this.columns, column)
+	//this.values = append(this.values, value)
 	return this
 }
 
 func (this *UpdateBuilder) SetMap(data map[string]interface{}) *UpdateBuilder {
 	for k, v := range data {
-		this.columns = append(this.columns, k)
-		this.values = append(this.values, v)
+		//this.columns = append(this.columns, k)
+		//this.values = append(this.values, v)
+		this.SET(k, v)
 	}
 	return this
 }
@@ -114,12 +115,23 @@ func (this *UpdateBuilder) ToSQL() (sql string, args []interface{}, err error) {
 
 	if len(this.columns) > 0 {
 		//args, _ = this.sets.appendToSQL(sqlBuffer, ", ", args)
+		//var cs []string
+		//for _, c := range this.columns {
+		//	cs = append(cs, fmt.Sprintf("%s=?", c))
+		//}
+		//sqlBuffer.WriteString(strings.Join(cs, ", "))
+		//args = append(args, this.values...)
+
 		var cs []string
 		for _, c := range this.columns {
-			cs = append(cs, fmt.Sprintf("%s=?", c))
+			vSQL, vArgs, vErr := c.ToSQL()
+			if vErr != nil {
+				return "", nil, vErr
+			}
+			cs = append(cs, vSQL)
+			args = append(args, vArgs...)
 		}
 		sqlBuffer.WriteString(strings.Join(cs, ", "))
-		args = append(args, this.values...)
 	}
 
 	if len(this.wheres) == 0 {
