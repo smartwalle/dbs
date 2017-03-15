@@ -13,7 +13,7 @@ type rawSQL struct {
 	args []interface{}
 }
 
-func RawSQL(sql interface{}, args ...interface{}) SQLer {
+func SQL(sql interface{}, args ...interface{}) SQLer {
 	return &rawSQL{sql, args}
 }
 
