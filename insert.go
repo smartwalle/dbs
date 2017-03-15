@@ -94,15 +94,20 @@ func (this *InsertBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	for index, value := range this.values {
 		var valuePlaceholder = make([]string, len(value))
 		for i, v := range value {
-			if rs, ok := v.(rawSQL); ok {
-				valuePlaceholder[i] = rs.sql
-				args = append(args, rs.args...)
-				continue
+			switch vt := v.(type) {
+			case SQLer:
+				vSQL, vArgs, err := vt.ToSQL()
+				if err != nil {
+					return "", nil, err
+				}
+				valuePlaceholder[i] = vSQL
+				args = append(args, vArgs...)
+			default:
+				valuePlaceholder[i] = "?"
+				args = append(args, v)
 			}
-			valuePlaceholder[i] = "?"
-			args = append(args, v)
 		}
-		valuesPlaceholder[index] = fmt.Sprintf("(%s)", strings.Join(valuePlaceholder, ","))
+		valuesPlaceholder[index] = fmt.Sprintf("(%s)", strings.Join(valuePlaceholder, ", "))
 	}
 	sqlBuffer.WriteString(strings.Join(valuesPlaceholder, ", "))
 

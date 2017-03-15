@@ -6,16 +6,6 @@ import (
 )
 
 // --------------------------------------------------------------------------------
-type rawSQL struct {
-	sql string
-	args []interface{}
-}
-
-func RawSQL(sql string, args ...interface{}) rawSQL {
-	return rawSQL{sql, args}
-}
-
-// --------------------------------------------------------------------------------
 type expression struct {
 	sql  string
 	args []interface{}
