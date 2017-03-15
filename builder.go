@@ -3,6 +3,7 @@ package dba
 import (
 	"bytes"
 	"database/sql"
+	"fmt"
 )
 
 type Builder struct {
@@ -20,6 +21,12 @@ func (this *Builder) Append(sql string, args ...interface{}) {
 	this.sql.WriteString(sql)
 	this.sql.WriteString(" ")
 	this.args = append(this.args, args...)
+}
+
+func (this *Builder) Format(format string, args ...interface{}) {
+	var v = fmt.Sprintf(format, args...)
+	this.sql.WriteString(v)
+	this.sql.WriteString(" ")
 }
 
 func (this *Builder) ToSQL() (string, []interface{}, error) {
