@@ -17,16 +17,23 @@ func NewBuilder() *Builder {
 	return b
 }
 
-func (this *Builder) Append(sql string, args ...interface{}) {
+func (this *Builder) Append(sql string, args ...interface{}) *Builder {
 	this.sql.WriteString(sql)
 	this.sql.WriteString(" ")
 	this.args = append(this.args, args...)
+	return this
 }
 
-func (this *Builder) Format(format string, args ...interface{}) {
+func (this *Builder) Format(format string, args ...interface{}) *Builder {
 	var v = fmt.Sprintf(format, args...)
 	this.sql.WriteString(v)
 	this.sql.WriteString(" ")
+	return this
+}
+
+func (this *Builder) Params(args ...interface{}) *Builder {
+	this.args = append(this.args, args...)
+	return this
 }
 
 func (this *Builder) ToSQL() (string, []interface{}, error) {
