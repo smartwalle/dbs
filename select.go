@@ -187,6 +187,80 @@ func (this *SelectBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	return sql, args, err
 }
 
+func (this *SelectBuilder) CountSQL() (sql string, args []interface{}, err error) {
+	if len(this.columns) == 0 {
+		return "", nil, errors.New("SELECT statements must have at least on result column")
+	}
+
+	var sqlBuffer = &bytes.Buffer{}
+	if len(this.prefixes) > 0 {
+		args, _ = this.prefixes.appendToSQL(sqlBuffer, " ", args)
+		sqlBuffer.WriteString(" ")
+	}
+
+	sqlBuffer.WriteString("SELECT ")
+
+	if len(this.options) > 0 {
+		args, _ = this.options.appendToSQL(sqlBuffer, " ", args)
+		sqlBuffer.WriteString(" ")
+	}
+
+	//if len(this.columns) > 0 {
+	//	args, _ = this.columns.appendToSQL(sqlBuffer, ", ", args)
+	//}
+	sqlBuffer.WriteString("COUNT(*) AS total")
+
+	if len(this.from) > 0 {
+		sqlBuffer.WriteString(" FROM ")
+		args, _ = this.from.appendToSQL(sqlBuffer, ", ", args)
+	}
+
+	if len(this.joins) > 0 {
+		sqlBuffer.WriteString(" ")
+		sqlBuffer.WriteString(strings.Join(this.joins, " "))
+		args = append(args, this.joinsArg...)
+	}
+
+	if len(this.wheres) > 0 {
+		sqlBuffer.WriteString(" WHERE ")
+		args, _ = this.wheres.appendToSQL(sqlBuffer, " ", args)
+	}
+
+	if len(this.groupBys) > 0 {
+		sqlBuffer.WriteString(" GROUP BY ")
+		sqlBuffer.WriteString(strings.Join(this.groupBys, ", "))
+	}
+
+	if len(this.havings) > 0 {
+		sqlBuffer.WriteString(" HAVING ")
+		args, _ = this.havings.appendToSQL(sqlBuffer, " ", args)
+	}
+
+	if len(this.orderBys) > 0 {
+		sqlBuffer.WriteString(" ORDER BY ")
+		sqlBuffer.WriteString(strings.Join(this.orderBys, ", "))
+	}
+
+	//if this.updateLimit {
+	//	sqlBuffer.WriteString(" LIMIT ")
+	//	sqlBuffer.WriteString(strconv.FormatUint(this.limit, 10))
+	//}
+	//
+	//if this.updateOffset {
+	//	sqlBuffer.WriteString(" OFFSET ")
+	//	sqlBuffer.WriteString(strconv.FormatUint(this.offset, 10))
+	//}
+
+	if len(this.suffixes) > 0 {
+		sqlBuffer.WriteString(" ")
+		args, _ = this.suffixes.appendToSQL(sqlBuffer, " ", args)
+	}
+
+	sql = sqlBuffer.String()
+
+	return sql, args, err
+}
+
 func (this *SelectBuilder) Query(s StmtPrepare) (*sql.Rows, error) {
 	sql, args, err := this.ToSQL()
 	if err != nil {
