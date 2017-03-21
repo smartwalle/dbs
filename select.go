@@ -269,6 +269,25 @@ func (this *SelectBuilder) Query(s StmtPrepare) (*sql.Rows, error) {
 	return Query(s, sql, args...)
 }
 
+func (this *SelectBuilder) Count(s StmtPrepare) (count int64) {
+	sql, args, err := this.CountSQL()
+	if err != nil {
+		return 0
+	}
+	rows, err := Query(s, sql, args...)
+	if err != nil {
+		return 0
+	}
+
+	if rows.Next() {
+		err = rows.Scan(&count)
+		if err != nil {
+			return 0
+		}
+	}
+	return count
+}
+
 func (this *SelectBuilder) Scan(s StmtPrepare, result interface{}) (err error) {
 	rows, err := this.Query(s)
 	if err != nil {
