@@ -56,12 +56,12 @@ func (this *Tx) AppendDeleteBuilder(rb *DeleteBuilder) (err error) {
 	return nil
 }
 
-func (this *Tx) AppendBuilder(b *Builder) (err error) {
+func (this *Tx) AppendBuilder(b *Builder, results interface{}) (err error) {
 	sql, args, err := b.ToSQL()
 	if err != nil {
 		return err
 	}
-	this.Append(sql, args, nil)
+	this.Append(sql, args, results)
 	return nil
 }
 
