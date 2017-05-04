@@ -54,6 +54,17 @@ func (this *InsertBuilder) Suffix(sql string, args ...interface{}) *InsertBuilde
 	return this
 }
 
+func (this *InsertBuilder) SET(column string, value interface{}) *InsertBuilder {
+	this.columns = append(this.columns, column)
+	if len(this.values) == 0 {
+		this.values = append(this.values, make([]interface{}, 0, 0))
+	}
+	var vList = this.values[0]
+	vList = append(vList, value)
+	this.values[0] = vList
+	return this
+}
+
 func (this *InsertBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	if len(this.table) == 0 {
 		err = errors.New("insert statements must specify a table")
