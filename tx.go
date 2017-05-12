@@ -107,13 +107,12 @@ func (this *Tx) Commit() (err error) {
 	return err
 }
 
-func NewTx(db *sql.DB) (tx *Tx) {
+func NewTx(db *sql.DB) (tx *Tx, err error) {
 	tx = &Tx{}
 	tx.db = db
-	var err error
 	tx.tx, err = db.Begin()
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return tx
+	return tx, nil
 }
