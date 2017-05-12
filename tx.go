@@ -20,21 +20,36 @@ func (this *Tx) Tx() *sql.Tx {
 	return this.tx
 }
 
-func (this *Tx) Exec(SQLStr string, args []interface{}, results interface{}) (result sql.Result, err error) {
-	//stmt, err := this.tx.Prepare(SQLStr)
-	//if err != nil {
-	//	this.tx.Rollback()
-	//	return nil, err
-	//}
+func (this *Tx) Query(query string, args ...interface{}) (*sql.Rows, error) {
+	rows, err := this.tx.Query(query, args...)
+	if err != nil {
+		this.tx.Rollback()
+	}
+	return rows, err
+}
 
+func (this *Tx) Exec(query string, args ...interface{}) (sql.Result, error) {
+	result, err := this.tx.Exec(query, args...)
+	if err != nil {
+		this.tx.Rollback()
+	}
+	return result, err
+}
+
+func (this *Tx) QueryEx(query string, args []interface{}, results interface{}) (err error) {
+	_, err = this.exec(query, args, results)
+	return err
+}
+
+func (this *Tx) exec(query string, args []interface{}, results interface{}) (result sql.Result, err error) {
 	if results != nil {
 		var rows *sql.Rows
-		rows, err = this.tx.Query(SQLStr, args...)
+		rows, err = this.tx.Query(query, args...)
 		if rows != nil {
 			err = Scan(rows, results)
 		}
 	} else {
-		result, err = this.tx.Exec(SQLStr, args...)
+		result, err = this.tx.Exec(query, args...)
 	}
 	if err != nil {
 		this.tx.Rollback()
@@ -48,7 +63,7 @@ func (this *Tx) ExecSelectBuilder(sb *SelectBuilder, results interface{}) (err e
 	if err != nil {
 		return err
 	}
-	_, err = this.Exec(sql, args, results)
+	_, err = this.exec(sql, args, results)
 	return err
 }
 
@@ -57,7 +72,7 @@ func (this *Tx) ExecInsertBuilder(ib *InsertBuilder) (result sql.Result, err err
 	if err != nil {
 		return nil, err
 	}
-	return this.Exec(sql, args, nil)
+	return this.exec(sql, args, nil)
 }
 
 func (this *Tx) ExecUpdateBuilder(ub *UpdateBuilder) (result sql.Result, err error) {
@@ -65,7 +80,7 @@ func (this *Tx) ExecUpdateBuilder(ub *UpdateBuilder) (result sql.Result, err err
 	if err != nil {
 		return nil, err
 	}
-	return this.Exec(sql, args, nil)
+	return this.exec(sql, args, nil)
 }
 
 func (this *Tx) ExecDeleteBuilder(rb *DeleteBuilder) (result sql.Result, err error) {
@@ -73,7 +88,7 @@ func (this *Tx) ExecDeleteBuilder(rb *DeleteBuilder) (result sql.Result, err err
 	if err != nil {
 		return nil, err
 	}
-	return this.Exec(sql, args, nil)
+	return this.exec(sql, args, nil)
 }
 
 func (this *Tx) ExecBuilder(b *Builder, results interface{}) (result sql.Result, err error) {
@@ -81,44 +96,10 @@ func (this *Tx) ExecBuilder(b *Builder, results interface{}) (result sql.Result,
 	if err != nil {
 		return nil, err
 	}
-	return this.Exec(sql, args, results)
+	return this.exec(sql, args, results)
 }
 
 func (this *Tx) Commit() (err error) {
-	//tx, err := this.db.Begin()
-	//if err != nil {
-	//	tx.Rollback()
-	//	return err
-	//}
-	//
-	//for _, ts := range this.stmtList {
-	//	stmt, err := tx.Prepare(ts.sql)
-	//	if err != nil {
-	//		tx.Rollback()
-	//		return err
-	//	}
-	//
-	//	var rows *sql.Rows
-	//	if ts.results != nil {
-	//		rows, err = stmt.Query(ts.args...)
-	//	} else {
-	//		_, err = stmt.Exec(ts.args...)
-	//	}
-	//
-	//	if err != nil {
-	//		tx.Rollback()
-	//		return err
-	//	}
-	//
-	//	if rows != nil {
-	//		err = Scan(rows, ts.results)
-	//		if err != nil {
-	//			tx.Rollback()
-	//			return err
-	//		}
-	//	}
-	//}
-
 	err = this.tx.Commit()
 	if err != nil {
 		this.tx.Rollback()
