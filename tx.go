@@ -16,7 +16,11 @@ type Tx struct {
 	stmtList []*txStmt
 }
 
-func (this *Tx) Append(SQLStr string, args []interface{}, results interface{}) (result sql.Result, err error) {
+func (this *Tx) Tx() *sql.Tx {
+	return this.tx
+}
+
+func (this *Tx) Exec(SQLStr string, args []interface{}, results interface{}) (result sql.Result, err error) {
 	stmt, err := this.tx.Prepare(SQLStr)
 	if err != nil {
 		this.tx.Rollback()
@@ -38,45 +42,45 @@ func (this *Tx) Append(SQLStr string, args []interface{}, results interface{}) (
 	return result, nil
 }
 
-func (this *Tx) AppendSelectBuilder(sb *SelectBuilder, results interface{}) (err error) {
+func (this *Tx) ExecSelectBuilder(sb *SelectBuilder, results interface{}) (err error) {
 	sql, args, err := sb.ToSQL()
 	if err != nil {
 		return err
 	}
-	_, err = this.Append(sql, args, results)
+	_, err = this.Exec(sql, args, results)
 	return err
 }
 
-func (this *Tx) AppendInsertBuilder(ib *InsertBuilder) (result sql.Result, err error) {
+func (this *Tx) ExecInsertBuilder(ib *InsertBuilder) (result sql.Result, err error) {
 	sql, args, err := ib.ToSQL()
 	if err != nil {
 		return nil, err
 	}
-	return this.Append(sql, args, nil)
+	return this.Exec(sql, args, nil)
 }
 
-func (this *Tx) AppendUpdateBuilder(ub *UpdateBuilder) (result sql.Result, err error) {
+func (this *Tx) ExecUpdateBuilder(ub *UpdateBuilder) (result sql.Result, err error) {
 	sql, args, err := ub.ToSQL()
 	if err != nil {
 		return nil, err
 	}
-	return this.Append(sql, args, nil)
+	return this.Exec(sql, args, nil)
 }
 
-func (this *Tx) AppendDeleteBuilder(rb *DeleteBuilder) (result sql.Result, err error) {
+func (this *Tx) ExecDeleteBuilder(rb *DeleteBuilder) (result sql.Result, err error) {
 	sql, args, err := rb.ToSQL()
 	if err != nil {
 		return nil, err
 	}
-	return this.Append(sql, args, nil)
+	return this.Exec(sql, args, nil)
 }
 
-func (this *Tx) AppendBuilder(b *Builder, results interface{}) (result sql.Result, err error) {
+func (this *Tx) ExecBuilder(b *Builder, results interface{}) (result sql.Result, err error) {
 	sql, args, err := b.ToSQL()
 	if err != nil {
 		return nil, err
 	}
-	return this.Append(sql, args, results)
+	return this.Exec(sql, args, results)
 }
 
 func (this *Tx) Commit() (err error) {
