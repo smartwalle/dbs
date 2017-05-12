@@ -261,7 +261,7 @@ func (this *SelectBuilder) CountSQL() (sql string, args []interface{}, err error
 	return sql, args, err
 }
 
-func (this *SelectBuilder) Query(s StmtPrepare) (*sql.Rows, error) {
+func (this *SelectBuilder) Query(s SQLExecutor) (*sql.Rows, error) {
 	sql, args, err := this.ToSQL()
 	if err != nil {
 		return nil, err
@@ -269,7 +269,7 @@ func (this *SelectBuilder) Query(s StmtPrepare) (*sql.Rows, error) {
 	return Query(s, sql, args...)
 }
 
-func (this *SelectBuilder) Count(s StmtPrepare) (count int64) {
+func (this *SelectBuilder) Count(s SQLExecutor) (count int64) {
 	sql, args, err := this.CountSQL()
 	if err != nil {
 		return 0
@@ -288,7 +288,7 @@ func (this *SelectBuilder) Count(s StmtPrepare) (count int64) {
 	return count
 }
 
-func (this *SelectBuilder) Scan(s StmtPrepare, result interface{}) (err error) {
+func (this *SelectBuilder) Scan(s SQLExecutor, result interface{}) (err error) {
 	rows, err := this.Query(s)
 	if err != nil {
 		return err

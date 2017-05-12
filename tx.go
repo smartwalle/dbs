@@ -21,19 +21,20 @@ func (this *Tx) Tx() *sql.Tx {
 }
 
 func (this *Tx) Exec(SQLStr string, args []interface{}, results interface{}) (result sql.Result, err error) {
-	stmt, err := this.tx.Prepare(SQLStr)
-	if err != nil {
-		this.tx.Rollback()
-		return nil, err
-	}
+	//stmt, err := this.tx.Prepare(SQLStr)
+	//if err != nil {
+	//	this.tx.Rollback()
+	//	return nil, err
+	//}
+
 	if results != nil {
 		var rows *sql.Rows
-		rows, err = stmt.Query(args...)
+		rows, err = this.tx.Query(SQLStr, args...)
 		if rows != nil {
 			err = Scan(rows, results)
 		}
 	} else {
-		result, err = stmt.Exec(args...)
+		result, err = this.tx.Exec(SQLStr, args...)
 	}
 	if err != nil {
 		this.tx.Rollback()

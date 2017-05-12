@@ -41,7 +41,7 @@ func (this *Builder) ToSQL() (string, []interface{}, error) {
 	return sqlStr, this.args, nil
 }
 
-func (this *Builder) Exec(s StmtPrepare) (sql.Result, error) {
+func (this *Builder) Exec(s SQLExecutor) (sql.Result, error) {
 	sql, args, err := this.ToSQL()
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func (this *Builder) Exec(s StmtPrepare) (sql.Result, error) {
 	return Exec(s, sql, args...)
 }
 
-func (this *Builder) Query(s StmtPrepare) (*sql.Rows, error) {
+func (this *Builder) Query(s SQLExecutor) (*sql.Rows, error) {
 	sql, args, err := this.ToSQL()
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func (this *Builder) Query(s StmtPrepare) (*sql.Rows, error) {
 	return Query(s, sql, args...)
 }
 
-func (this *Builder) Scan(s StmtPrepare, result interface{}) (err error) {
+func (this *Builder) Scan(s SQLExecutor, result interface{}) (err error) {
 	rows, err := this.Query(s)
 	if err != nil {
 		return err

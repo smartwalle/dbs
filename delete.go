@@ -158,7 +158,7 @@ func (this *DeleteBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	return sql, args, err
 }
 
-func (this *DeleteBuilder) Exec(s StmtPrepare) (sql.Result, error) {
+func (this *DeleteBuilder) Exec(s SQLExecutor) (sql.Result, error) {
 	sql, args, err := this.ToSQL()
 	if err != nil {
 		return nil, err

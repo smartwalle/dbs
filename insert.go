@@ -132,7 +132,7 @@ func (this *InsertBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	return sql, args, err
 }
 
-func (this *InsertBuilder) Exec(s StmtPrepare) (sql.Result, error) {
+func (this *InsertBuilder) Exec(s SQLExecutor) (sql.Result, error) {
 	sql, args, err := this.ToSQL()
 	if err != nil {
 		return nil, err
@@ -140,7 +140,7 @@ func (this *InsertBuilder) Exec(s StmtPrepare) (sql.Result, error) {
 	return Exec(s, sql, args...)
 }
 
-func Insert(s StmtPrepare, table string, data map[string]interface{}) (sql.Result, error) {
+func Insert(s SQLExecutor, table string, data map[string]interface{}) (sql.Result, error) {
 	var in = NewInsertBuilder()
 	in.Table(table)
 

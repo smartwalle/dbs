@@ -4,28 +4,30 @@ import (
 	"database/sql"
 )
 
-type StmtPrepare interface {
-	Prepare(query string) (*sql.Stmt, error)
+type SQLExecutor interface {
+	//Prepare(query string) (*sql.Stmt, error)
+
+	Exec(query string, args ...interface{}) (sql.Result, error)
+
+	Query(query string, args ...interface{}) (*sql.Rows, error)
 }
 
-func Exec(s StmtPrepare, query string, args ...interface{}) (sql.Result, error) {
-	stmt, err := s.Prepare(query)
-	if err != nil {
-		return nil, err
-	}
-	defer stmt.Close()
+func Exec(s SQLExecutor, query string, args ...interface{}) (sql.Result, error) {
+	//stmt, err := s.Prepare(query)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//defer stmt.Close()
 
-	result, err := stmt.Exec(args...)
-	return result, err
+	return s.Exec(query, args...)
 }
 
-func Query(s StmtPrepare, query string, args ...interface{}) (*sql.Rows, error) {
-	stmt, err := s.Prepare(query)
-	if err != nil {
-		return nil, err
-	}
-	defer stmt.Close()
+func Query(s SQLExecutor, query string, args ...interface{}) (*sql.Rows, error) {
+	//stmt, err := s.Prepare(query)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//defer stmt.Close()
 
-	rows, err := stmt.Query(args...)
-	return rows, err
+	return s.Query(query, args...)
 }

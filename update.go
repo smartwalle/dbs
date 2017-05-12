@@ -168,7 +168,7 @@ func (this *UpdateBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	return sql, args, err
 }
 
-func (this *UpdateBuilder) Exec(s StmtPrepare) (sql.Result, error) {
+func (this *UpdateBuilder) Exec(s SQLExecutor) (sql.Result, error) {
 	sql, args, err := this.ToSQL()
 	if err != nil {
 		return nil, err
