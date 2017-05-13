@@ -13,6 +13,8 @@ type UpdateBuilder struct {
 	prefixes     expressions
 	options      expressions
 	tables       expressions
+	joins        []string
+	joinsArg     []interface{}
 	columns      []SQLer
 	wheres       whereExpressions
 	orderBys     []string
@@ -40,6 +42,24 @@ func (this *UpdateBuilder) Table(table string, args ...string) *UpdateBuilder {
 	ts = append(ts, fmt.Sprintf("`%s`", table))
 	ts = append(ts, args...)
 	this.tables = append(this.tables, Expression(strings.Join(ts, " ")))
+	return this
+}
+
+func (this *UpdateBuilder) Join(join, table, suffix string, args ...interface{}) *UpdateBuilder {
+	return this.join(join, table, suffix, args...)
+}
+
+func (this *UpdateBuilder) RightJoin(table, suffix string, args ...interface{}) *UpdateBuilder {
+	return this.join("RIGHT JOIN", table, suffix, args...)
+}
+
+func (this *UpdateBuilder) LeftJoin(table, suffix string, args ...interface{}) *UpdateBuilder {
+	return this.join("LEFT JOIN", table, suffix, args...)
+}
+
+func (this *UpdateBuilder) join(join, table, suffix string, args ...interface{}) *UpdateBuilder {
+	this.joins = append(this.joins, join, fmt.Sprintf("`%s`", table), suffix)
+	this.joinsArg = append(this.joinsArg, args...)
 	return this
 }
 
@@ -109,6 +129,12 @@ func (this *UpdateBuilder) ToSQL() (sql string, args []interface{}, err error) {
 
 	if len(this.tables) > 0 {
 		args, _ = this.tables.appendToSQL(sqlBuffer, ", ", args)
+	}
+
+	if len(this.joins) > 0 {
+		sqlBuffer.WriteString(" ")
+		sqlBuffer.WriteString(strings.Join(this.joins, " "))
+		args = append(args, this.joinsArg...)
 	}
 
 	sqlBuffer.WriteString(" SET ")
