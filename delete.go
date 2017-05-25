@@ -12,9 +12,10 @@ import (
 type DeleteBuilder struct {
 	prefixes     expressions
 	options      expressions
-	tables       []string
+	tables       expressions
 	using        string
 	joins        []string
+	joinsArg     []interface{}
 	wheres       whereExpressions
 	orderBys     []string
 	limit        uint64
@@ -36,8 +37,11 @@ func (this *DeleteBuilder) Options(options ...string) *DeleteBuilder {
 	return this
 }
 
-func (this *DeleteBuilder) Table(from ...string) *DeleteBuilder {
-	this.tables = from
+func (this *DeleteBuilder) Table(table string, args ...string) *DeleteBuilder {
+	var ts []string
+	ts = append(ts, fmt.Sprintf("`%s`", table))
+	ts = append(ts, args...)
+	this.tables = append(this.tables, Expression(strings.Join(ts, " ")))
 	return this
 }
 
@@ -46,20 +50,39 @@ func (this *DeleteBuilder) USING(sql string) *DeleteBuilder {
 	return this
 }
 
-func (this *DeleteBuilder) Join(join, table string) *DeleteBuilder {
-	return this.join(join, table)
+//func (this *DeleteBuilder) Join(join, table string) *DeleteBuilder {
+//	return this.join(join, table)
+//}
+//
+//func (this *DeleteBuilder) RightJoin(table string) *DeleteBuilder {
+//	return this.join("RIGHT JOIN", table)
+//}
+//
+//func (this *DeleteBuilder) LeftJoin(table string) *DeleteBuilder {
+//	return this.join("LEFT JOIN", table)
+//}
+//
+//func (this *DeleteBuilder) join(join, table string) *DeleteBuilder {
+//	this.joins = append(this.joins, join, fmt.Sprintf("`%s`", table))
+//	return this
+//}
+
+
+func (this *DeleteBuilder) Join(join, table, suffix string, args ...interface{}) *DeleteBuilder {
+	return this.join(join, table, suffix, args...)
 }
 
-func (this *DeleteBuilder) RightJoin(table string) *DeleteBuilder {
-	return this.join("RIGHT JOIN", table)
+func (this *DeleteBuilder) RightJoin(table, suffix string, args ...interface{}) *DeleteBuilder {
+	return this.join("RIGHT JOIN", table, suffix, args...)
 }
 
-func (this *DeleteBuilder) LeftJoin(table string) *DeleteBuilder {
-	return this.join("LEFT JOIN", table)
+func (this *DeleteBuilder) LeftJoin(table, suffix string, args ...interface{}) *DeleteBuilder {
+	return this.join("LEFT JOIN", table, suffix, args...)
 }
 
-func (this *DeleteBuilder) join(join, table string) *DeleteBuilder {
-	this.joins = append(this.joins, join, fmt.Sprintf("`%s`", table))
+func (this *DeleteBuilder) join(join, table, suffix string, args ...interface{}) *DeleteBuilder {
+	this.joins = append(this.joins, join, fmt.Sprintf("`%s`", table), suffix)
+	this.joinsArg = append(this.joinsArg, args...)
 	return this
 }
 
@@ -104,14 +127,14 @@ func (this *DeleteBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	sqlBuffer.WriteString("DELETE ")
 
 	if len(this.options) > 0 {
-		args, _ = this.options.appendToSQL(sqlBuffer, " ", args)
+		args, _ = this.options.appendToSQL(sqlBuffer, ", ", args)
 		sqlBuffer.WriteString(" ")
 	}
 
 	sqlBuffer.WriteString("FROM ")
 
 	if len(this.tables) > 0 {
-		sqlBuffer.WriteString(strings.Join(this.tables, ", "))
+		args, _ = this.tables.appendToSQL(sqlBuffer, ", ", args)
 	}
 
 	if len(this.using) > 0 {
@@ -122,6 +145,7 @@ func (this *DeleteBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	if len(this.joins) > 0 {
 		sqlBuffer.WriteString(" ")
 		sqlBuffer.WriteString(strings.Join(this.joins, " "))
+		args = append(args, this.joinsArg...)
 	}
 
 	if len(this.wheres) == 0 {
