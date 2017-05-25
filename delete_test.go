@@ -7,7 +7,7 @@ import (
 
 func TestDeleteBuilder_ToSQL(t *testing.T) {
 	var db = NewDeleteBuilder()
-	db.Options("user")
+	db.Alias("u", "b")
 	db.Table("user", "AS u")
 	db.Where("u.id=?", 10)
 	db.Limit(1)

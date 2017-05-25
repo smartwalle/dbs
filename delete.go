@@ -12,6 +12,7 @@ import (
 type DeleteBuilder struct {
 	prefixes     expressions
 	options      expressions
+	alias        []string
 	tables       expressions
 	using        string
 	joins        []string
@@ -34,6 +35,11 @@ func (this *DeleteBuilder) Options(options ...string) *DeleteBuilder {
 	for _, c := range options {
 		this.options = append(this.options, Expression(c))
 	}
+	return this
+}
+
+func (this *DeleteBuilder) Alias(alias ...string) *DeleteBuilder {
+	this.alias = append(this.alias, alias...)
 	return this
 }
 
@@ -127,7 +133,12 @@ func (this *DeleteBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	sqlBuffer.WriteString("DELETE ")
 
 	if len(this.options) > 0 {
-		args, _ = this.options.appendToSQL(sqlBuffer, ", ", args)
+		args, _ = this.options.appendToSQL(sqlBuffer, " ", args)
+		sqlBuffer.WriteString(" ")
+	}
+
+	if len(this.alias) > 0 {
+		sqlBuffer.WriteString(strings.Join(this.alias, ", "))
 		sqlBuffer.WriteString(" ")
 	}
 
