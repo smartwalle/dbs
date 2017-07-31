@@ -12,7 +12,7 @@ type txStmt struct {
 
 type Tx struct {
 	tx       *sql.Tx
-	db       *sql.DB
+	//db       *sql.DB
 	stmtList []*txStmt
 }
 
@@ -133,10 +133,10 @@ func (this *Tx) Commit() (err error) {
 
 func NewTx(db *sql.DB) (tx *Tx, err error) {
 	tx = &Tx{}
-	tx.db = db
+	//tx.db = db
 	tx.tx, err = db.Begin()
 	if err != nil {
 		return nil, err
 	}
-	return tx, nil
+	return tx, err
 }
