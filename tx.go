@@ -131,6 +131,10 @@ func (this *Tx) Commit() (err error) {
 	return err
 }
 
+func (this *Tx) Rollback() error {
+	return this.tx.Rollback()
+}
+
 func NewTx(db *sql.DB) (tx *Tx, err error) {
 	tx = &Tx{}
 	//tx.db = db
