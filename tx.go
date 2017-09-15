@@ -2,6 +2,8 @@ package dbs
 
 import (
 	"database/sql"
+	"fmt"
+	"runtime"
 )
 
 type txStmt struct {
@@ -11,6 +13,7 @@ type txStmt struct {
 }
 
 type Tx struct {
+	id       string
 	tx       *sql.Tx
 	stmtList []*txStmt
 }
@@ -113,11 +116,17 @@ func (this *Tx) ExecBuilder(b *Builder, results interface{}) (result sql.Result,
 }
 
 func (this *Tx) Commit() (err error) {
+	if debug {
+		delete(txStack, this.id)
+	}
 	err = this.tx.Commit()
 	return err
 }
 
 func (this *Tx) Rollback() error {
+	if debug {
+		delete(txStack, this.id)
+	}
 	return this.tx.Rollback()
 }
 
@@ -127,5 +136,31 @@ func NewTx(db *sql.DB) (tx *Tx, err error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if debug {
+		tx.id = fmt.Sprintf("%x", &tx)
+		pc, file, line, _ := runtime.Caller(1)
+		f := runtime.FuncForPC(pc)
+		value := fmt.Sprintf("%s-%d-%s", file, line, f.Name())
+		txStack[tx.id] = value
+	}
+
 	return tx, err
+}
+
+var debug = false
+var txStack map[string]string
+
+func GetTxStack() map[string]string {
+	return txStack
+}
+
+func EnableTxDebug() {
+	txStack = make(map[string]string)
+	debug = true
+}
+
+func DisableTxDebug() {
+	debug = false
+	txStack = nil
 }
