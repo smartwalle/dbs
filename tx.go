@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"runtime"
+	"sync"
 )
 
 type txStmt struct {
@@ -117,7 +118,7 @@ func (this *Tx) ExecBuilder(b *Builder, results interface{}) (result sql.Result,
 
 func (this *Tx) Commit() (err error) {
 	if debug {
-		delete(txStack, this.id)
+		txStack.Delete(this.id)
 	}
 	err = this.tx.Commit()
 	return err
@@ -125,7 +126,7 @@ func (this *Tx) Commit() (err error) {
 
 func (this *Tx) Rollback() error {
 	if debug {
-		delete(txStack, this.id)
+		txStack.Delete(this.id)
 	}
 	return this.tx.Rollback()
 }
@@ -142,21 +143,26 @@ func NewTx(db *sql.DB) (tx *Tx, err error) {
 		pc, file, line, _ := runtime.Caller(1)
 		f := runtime.FuncForPC(pc)
 		value := fmt.Sprintf("%s-%d-%s", file, line, f.Name())
-		txStack[tx.id] = value
+		txStack.Store(tx.id, value)
 	}
 
 	return tx, err
 }
 
 var debug = false
-var txStack map[string]string
+var txStack *sync.Map
 
-func GetTxStack() map[string]string {
-	return txStack
+func GetTxStack() map[string]interface{} {
+	results := make(map[string]interface{})
+	txStack.Range(func(key, value interface{}) bool {
+		results[key.(string)] = value
+		return true
+	})
+	return results
 }
 
 func EnableTxDebug() {
-	txStack = make(map[string]string)
+	txStack = &sync.Map{}
 	debug = true
 }
 
