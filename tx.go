@@ -154,6 +154,7 @@ var txStack *sync.Map
 
 func GetTxStack() map[string]interface{} {
 	results := make(map[string]interface{})
+
 	txStack.Range(func(key, value interface{}) bool {
 		results[key.(string)] = value
 		return true
