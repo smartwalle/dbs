@@ -67,7 +67,7 @@ func (this *Tx) exec(query string, args []interface{}, results interface{}) (res
 	} else {
 		result, err = this.tx.Exec(query, args...)
 	}
-	return result, nil
+	return result, err
 }
 
 func (this *Tx) ExecSelectBuilder(sb *SelectBuilder, results interface{}) (err error) {
