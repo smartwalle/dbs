@@ -4,15 +4,15 @@ import (
 	"database/sql"
 )
 
-type txStmt struct {
-	sql     string
-	args    []interface{}
-	results interface{}
-}
+//type txStmt struct {
+//	sql     string
+//	args    []interface{}
+//	results interface{}
+//}
 
 type Tx struct {
 	tx       *sql.Tx
-	stmtList []*txStmt
+	//stmtList []*txStmt
 }
 
 func (this *Tx) Tx() *sql.Tx {
