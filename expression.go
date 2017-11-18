@@ -3,6 +3,7 @@ package dbs
 import (
 	"io"
 	"strings"
+	"reflect"
 )
 
 // --------------------------------------------------------------------------------
@@ -79,4 +80,23 @@ func Placeholders(count int) string {
 		return ""
 	}
 	return strings.Repeat(", ?", count)[2:]
+}
+
+// --------------------------------------------------------------------------------
+func ListWrapper(p interface{}) (results []interface{}) {
+	if p == nil {
+		return nil
+	}
+
+	var pType = reflect.TypeOf(p)
+	var pValue = reflect.ValueOf(p)
+
+	if pType.Kind() == reflect.Array || pType.Kind() == reflect.Slice {
+		var l = pValue.Len()
+		results = make([]interface{}, l)
+		for i := 0; i < l; i++ {
+			results[i] = pValue.Index(i)
+		}
+	}
+	return results
 }
