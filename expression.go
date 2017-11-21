@@ -95,7 +95,7 @@ func ListWrapper(p interface{}) (results []interface{}) {
 		var l = pValue.Len()
 		results = make([]interface{}, l)
 		for i := 0; i < l; i++ {
-			results[i] = pValue.Index(i)
+			results[i] = pValue.Index(i).Interface()
 		}
 	}
 	return results
