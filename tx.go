@@ -10,6 +10,10 @@ import (
 //	results interface{}
 //}
 
+type txDB interface {
+	Begin() (*sql.Tx, error)
+}
+
 type Tx struct {
 	tx       *sql.Tx
 	//stmtList []*txStmt
@@ -121,11 +125,19 @@ func (this *Tx) Rollback() error {
 	return this.tx.Rollback()
 }
 
-func NewTx(db *sql.DB) (tx *Tx, err error) {
+func NewTx(db txDB) (tx *Tx, err error) {
 	tx = &Tx{}
 	tx.tx, err = db.Begin()
 	if err != nil {
 		return nil, err
 	}
 	return tx, err
+}
+
+func MustTx(db txDB) (tx *Tx) {
+	tx, err := NewTx(db)
+	if err != nil {
+		panic(err)
+	}
+	return tx
 }

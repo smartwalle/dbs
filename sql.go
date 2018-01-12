@@ -61,6 +61,10 @@ func (this *Session) QueryRow(query string, args ...interface{}) (row *sql.Row) 
 	return this.DB.QueryRow(query, args...)
 }
 
+func (this *Session) Begin() (*sql.Tx, error) {
+	return this.DB.Begin()
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 const k_SQL_KEY = "sql_session"
 
