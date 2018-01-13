@@ -86,6 +86,9 @@ func (this *UpdateBuilder) Where(sql string, args ...interface{}) *UpdateBuilder
 
 func (this *UpdateBuilder) WhereClause(c Clause) *UpdateBuilder {
 	sql, args := c.ToSQL()
+	if len(sql) == 0 {
+		return this
+	}
 	this.wheres = nil
 	this.wheres = append(this.wheres, WhereExpression(sql, args...))
 	return this

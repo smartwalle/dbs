@@ -84,6 +84,9 @@ func (this *SelectBuilder) Where(sql string, args ...interface{}) *SelectBuilder
 
 func (this *SelectBuilder) WhereClause(c Clause) *SelectBuilder {
 	sql, args := c.ToSQL()
+	if len(sql) == 0 {
+		return this
+	}
 	this.wheres = nil
 	this.wheres = append(this.wheres, WhereExpression(sql, args...))
 	return this
