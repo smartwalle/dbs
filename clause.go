@@ -17,7 +17,8 @@ const (
 // --------------------------------------------------------------------------------
 type Clause interface {
 	AppendToSQL(w io.Writer, sep string, args []interface{}) ([]interface{}, error)
-	Append(c ...Clause)
+	Append(c ...Clause) Clause
+	AppendStmt(sql string, args ...interface{}) Clause
 	ToSQL() (sql string, args []interface{}, err error)
 }
 
@@ -50,7 +51,12 @@ func (this *rawClause) AppendToSQL(w io.Writer, sep string, args []interface{}) 
 	return args, nil
 }
 
-func (this *rawClause) Append(c ...Clause) {
+func (this *rawClause) Append(c ...Clause) Clause {
+	return this
+}
+
+func (this *rawClause) AppendStmt(sql string, args ...interface{}) Clause {
+	return this
 }
 
 // --------------------------------------------------------------------------------
@@ -76,7 +82,12 @@ func (this rawClauses) AppendToSQL(w io.Writer, sep string, args []interface{}) 
 	return args, nil
 }
 
-func (this rawClauses) Append(c ...Clause) {
+func (this rawClauses) Append(c ...Clause) Clause {
+	return this
+}
+
+func (this rawClauses) AppendStmt(sql string, args ...interface{}) Clause {
+	return this
 }
 
 // --------------------------------------------------------------------------------
@@ -85,6 +96,12 @@ type logicClause struct {
 	args     []interface{}
 	logic    string
 	children []Clause
+}
+
+func (this *logicClause) ToSQL() (sql string, args []interface{}, err error) {
+	var sqlBuffer = &bytes.Buffer{}
+	args, err = this.AppendToSQL(sqlBuffer, "", nil)
+	return sqlBuffer.String(), args, err
 }
 
 func (this *logicClause) AppendToSQL(w io.Writer, sep string, args []interface{}) ([]interface{}, error) {
@@ -125,18 +142,18 @@ func (this *logicClause) AppendToSQL(w io.Writer, sep string, args []interface{}
 	return args, err
 }
 
-func (this *logicClause) Append(cs ...Clause) {
+func (this *logicClause) Append(cs ...Clause) Clause {
 	for _, c := range cs {
 		if c != nil {
 			this.children = append(this.children, c)
 		}
 	}
+	return this
 }
 
-func (this *logicClause) ToSQL() (sql string, args []interface{}, err error) {
-	var sqlBuffer = &bytes.Buffer{}
-	args, err = this.AppendToSQL(sqlBuffer, "", nil)
-	return sqlBuffer.String(), args, err
+func (this *logicClause) AppendStmt(sql string, args ...interface{}) Clause {
+	this.Append(SQL(sql, args...))
+	return this
 }
 
 // --------------------------------------------------------------------------------

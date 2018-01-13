@@ -154,8 +154,12 @@ func (this *SelectBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	}
 
 	if this.wheres2 != nil {
-		sqlBuffer.WriteString(" WHERE ")
-		args, _ = this.wheres2.AppendToSQL(sqlBuffer, " ", args)
+		wSql, wArgs , _ := this.wheres2.ToSQL()
+		if len(strings.TrimSpace(wSql)) > 0 {
+			sqlBuffer.WriteString(" WHERE ")
+			sqlBuffer.WriteString(wSql)
+			args = append(args, wArgs...)
+		}
 	} else if len(this.wheres) > 0 {
 		sqlBuffer.WriteString(" WHERE ")
 		args, _ = this.wheres.appendToSQL(sqlBuffer, " ", args)
@@ -231,8 +235,12 @@ func (this *SelectBuilder) CountSQL() (sql string, args []interface{}, err error
 	}
 
 	if this.wheres2 != nil {
-		sqlBuffer.WriteString(" WHERE ")
-		args, _ = this.wheres2.AppendToSQL(sqlBuffer, " ", args)
+		wSql, wArgs , _ := this.wheres2.ToSQL()
+		if len(strings.TrimSpace(wSql)) > 0 {
+			sqlBuffer.WriteString(" WHERE ")
+			sqlBuffer.WriteString(wSql)
+			args = append(args, wArgs...)
+		}
 	} else if len(this.wheres) > 0 {
 		sqlBuffer.WriteString(" WHERE ")
 		args, _ = this.wheres.appendToSQL(sqlBuffer, " ", args)

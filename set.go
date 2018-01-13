@@ -42,7 +42,12 @@ func (this *setClause) AppendToSQL(w io.Writer, sep string, args []interface{}) 
 	return args, nil
 }
 
-func (this *setClause) Append(c ...Clause) {
+func (this *setClause) Append(c ...Clause) Clause {
+	return this
+}
+
+func (this *setClause) AppendStmt(sql string, args ...interface{}) Clause {
+	return this
 }
 
 // --------------------------------------------------------------------------------
@@ -74,6 +79,11 @@ func (this *setClauses) AppendToSQL(w io.Writer, sep string, args []interface{})
 	return args, nil
 }
 
-func (this *setClauses) Append(c ...Clause) {
+func (this *setClauses) Append(c ...Clause) Clause {
 	this.clauses = append(this.clauses, c...)
+	return this
+}
+
+func (this *setClauses) AppendStmt(sql string, args ...interface{}) Clause {
+	return this
 }

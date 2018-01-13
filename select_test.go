@@ -16,4 +16,11 @@ func TestSelectBuilder_Select(t *testing.T) {
 	sb.Limit(1)
 	sb.Offset(10)
 	fmt.Println(sb.ToSQL())
+
+
+	var sb2 = NewSelectBuilder()
+	sb2.Selects("u.id", "u.name")
+	sb2.From("user", "AS u")
+	sb2.Where(AND())
+	fmt.Println(sb2.ToSQL())
 }
