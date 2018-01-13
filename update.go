@@ -84,6 +84,13 @@ func (this *UpdateBuilder) Where(sql string, args ...interface{}) *UpdateBuilder
 	return this
 }
 
+func (this *UpdateBuilder) WhereClause(c Clause) *UpdateBuilder {
+	sql, args := c.ToSQL()
+	this.wheres = nil
+	this.wheres = append(this.wheres, WhereExpression(sql, args...))
+	return this
+}
+
 func (this *UpdateBuilder) OrderBy(sql ...string) *UpdateBuilder {
 	this.orderBys = append(this.orderBys, sql...)
 	return this

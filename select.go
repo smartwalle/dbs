@@ -82,6 +82,13 @@ func (this *SelectBuilder) Where(sql string, args ...interface{}) *SelectBuilder
 	return this
 }
 
+func (this *SelectBuilder) WhereClause(c Clause) *SelectBuilder {
+	sql, args := c.ToSQL()
+	this.wheres = nil
+	this.wheres = append(this.wheres, WhereExpression(sql, args...))
+	return this
+}
+
 func (this *SelectBuilder) GroupBy(groupBys ...string) *SelectBuilder {
 	this.groupBys = append(this.groupBys, groupBys...)
 	return this

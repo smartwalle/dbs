@@ -97,6 +97,13 @@ func (this *DeleteBuilder) Where(sql string, args ...interface{}) *DeleteBuilder
 	return this
 }
 
+func (this *DeleteBuilder) WhereClause(c Clause) *DeleteBuilder {
+	sql, args := c.ToSQL()
+	this.wheres = nil
+	this.wheres = append(this.wheres, WhereExpression(sql, args...))
+	return this
+}
+
 func (this *DeleteBuilder) OrderBy(sql ...string) *DeleteBuilder {
 	this.orderBys = append(this.orderBys, sql...)
 	return this

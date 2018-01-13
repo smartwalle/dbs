@@ -1,10 +1,10 @@
 package dbs
 
 import (
-	"io"
-	"strings"
 	"bytes"
+	"io"
 	"reflect"
+	"strings"
 )
 
 const (
@@ -16,7 +16,7 @@ const (
 
 // --------------------------------------------------------------------------------
 type Clause interface {
-	appendToSQL(w io.Writer, sep string, args []interface{}) ([]interface{})
+	appendToSQL(w io.Writer, sep string, args []interface{}) []interface{}
 	Append(c ...Clause) Clause
 	AppendStmt(sql string, args ...interface{}) Clause
 	ToSQL() (sql string, args []interface{})
@@ -24,17 +24,17 @@ type Clause interface {
 
 // --------------------------------------------------------------------------------
 type rawClause struct {
-	sql interface{}
+	sql  interface{}
 	args []interface{}
 }
 
-func (this *rawClause) ToSQL() (sql string, args []interface{} ) {
+func (this *rawClause) ToSQL() (sql string, args []interface{}) {
 	var sqlBuffer = &bytes.Buffer{}
 	args = this.appendToSQL(sqlBuffer, "", nil)
 	return sqlBuffer.String(), args
 }
 
-func (this *rawClause) appendToSQL(w io.Writer, sep string, args []interface{}) ([]interface{}) {
+func (this *rawClause) appendToSQL(w io.Writer, sep string, args []interface{}) []interface{} {
 	switch t := this.sql.(type) {
 	case Clause:
 		args = t.appendToSQL(w, sep, args)
@@ -69,7 +69,7 @@ func (this *logicClause) ToSQL() (sql string, args []interface{}) {
 	return sqlBuffer.String(), args
 }
 
-func (this *logicClause) appendToSQL(w io.Writer, sep string, args []interface{}) ([]interface{}) {
+func (this *logicClause) appendToSQL(w io.Writer, sep string, args []interface{}) []interface{} {
 	var hasSQL = len(this.sql) > 0
 	var hasChildren = len(this.children) > 0
 
