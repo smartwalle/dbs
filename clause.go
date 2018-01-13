@@ -127,6 +127,32 @@ func (this *rawSQL) Append(c ...Clause) {
 }
 
 // --------------------------------------------------------------------------------
+type rawSQLs []Clause
+
+func (this rawSQLs) ToSQL() (sql string, args []interface{}, err error) {
+	var sqlBuffer = &bytes.Buffer{}
+	args, err = this.AppendToSQL(sqlBuffer, "", nil)
+	return sqlBuffer.String(), args, err
+}
+
+func (this rawSQLs) AppendToSQL(w io.Writer, sep string, args []interface{}) ([]interface{}, error) {
+	var err error
+	for i, e := range this {
+		if i != 0 {
+			io.WriteString(w, sep)
+		}
+		args, err = e.AppendToSQL(w, "", args)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return args, nil
+}
+
+func (this rawSQLs) Append(c ...Clause) {
+}
+
+// --------------------------------------------------------------------------------
 func AND(c ...Clause) Clause {
 	var w = &clause{}
 	w.Append(c...)
