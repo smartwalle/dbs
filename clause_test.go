@@ -12,15 +12,14 @@ func TestClause(t *testing.T) {
 	var cs = Clauses{}
 	cs = append(cs, c1)
 	cs = append(cs, c2)
+	fmt.Println(cs.ToSQL(" "))
+}
 
-	fmt.Println(cs.ToSQL())
-
-
-
+func TestSet(t *testing.T) {
 	var s1 = NewSet("sa", 10)
 	var s2 = NewSet("sb", NewClause("sb+?", 11))
 	var ss = Sets{}
 	ss = append(ss, s1)
 	ss = append(ss, s2)
-	fmt.Println(ss.ToSQL())
+	fmt.Println(ss.ToSQL(", "))
 }

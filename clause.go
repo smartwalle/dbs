@@ -17,7 +17,7 @@ func (this *Args) Append(args ...interface{}) {
 // --------------------------------------------------------------------------------
 type Clauser interface {
 	AppendToSQL(w io.Writer, sep string, args *Args)
-	ToSQL() (string, []interface{})
+	ToSQL(sep string) (string, []interface{})
 }
 
 // --------------------------------------------------------------------------------
@@ -42,9 +42,9 @@ func (this *Clause) AppendToSQL(w io.Writer, sep string, args *Args) {
 	}
 }
 
-func (this *Clause) ToSQL() (string, []interface{}) {
+func (this *Clause) ToSQL(sep string) (string, []interface{}) {
 	var sqlBuffer = &bytes.Buffer{}
-	this.AppendToSQL(sqlBuffer, "", nil)
+	this.AppendToSQL(sqlBuffer, sep, nil)
 	return sqlBuffer.String(), this.args
 }
 
@@ -60,10 +60,10 @@ func (this Clauses) AppendToSQL(w io.Writer, sep string, args *Args) {
 	}
 }
 
-func (this Clauses) ToSQL() (string, []interface{}) {
+func (this Clauses) ToSQL(sep string) (string, []interface{}) {
 	var sqlBuffer = &bytes.Buffer{}
 	var args = &Args{}
-	this.AppendToSQL(sqlBuffer, " ", args)
+	this.AppendToSQL(sqlBuffer, sep, args)
 	return sqlBuffer.String(), args.args
 }
 
@@ -91,7 +91,7 @@ func (this *Set) AppendToSQL(w io.Writer, sep string, args *Args) {
 	}
 }
 
-func (this *Set) ToSQL() (string, []interface{}) {
+func (this *Set) ToSQL(sep string) (string, []interface{}) {
 	var sqlBuffer = &bytes.Buffer{}
 	var args = &Args{}
 	this.AppendToSQL(sqlBuffer, " ", args)
@@ -110,9 +110,9 @@ func (this Sets) AppendToSQL(w io.Writer, sep string, args *Args) {
 	}
 }
 
-func (this Sets) ToSQL() (string, []interface{}) {
+func (this Sets) ToSQL(sep string) (string, []interface{}) {
 	var sqlBuffer = &bytes.Buffer{}
 	var args = &Args{}
-	this.AppendToSQL(sqlBuffer, ", ", args)
+	this.AppendToSQL(sqlBuffer, sep, args)
 	return sqlBuffer.String(), args.args
 }
