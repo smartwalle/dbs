@@ -149,7 +149,7 @@ func (this *UpdateBuilder) ToSQL() (sql string, args []interface{}, err error) {
 		return "", nil, err
 	}
 
-	if len(this.wheres) == 0 {
+	if len(this.wheres) == 0 && this.wheres2 == nil {
 		return "", nil, errors.New("update statements must have WHERE condition")
 	}
 

@@ -165,7 +165,7 @@ func (this *DeleteBuilder) ToSQL() (sql string, args []interface{}, err error) {
 		args = append(args, this.joinsArg...)
 	}
 
-	if len(this.wheres) == 0 {
+	if len(this.wheres) == 0 && this.wheres2 == nil {
 		return "", nil, errors.New("delete statements must have WHERE condition")
 	}
 

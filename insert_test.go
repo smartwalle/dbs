@@ -2,14 +2,15 @@ package dbs
 
 import (
 	"testing"
+	"fmt"
 )
 
 func TestInsertBuilder_ToSQL(t *testing.T) {
-	//var ib = NewInsertBuilder()
-	////ib.Table("author").Columns("text", "name").Values(1, SQL("((SELECT `name` FROM `class` WHERE id=? LIMIT 1)+10)"))
-	//ib.Table("a")
-	//ib.SET("a", "a1")
-	//ib.SET("b", "b1")
-	//
-	//fmt.Println(ib.ToSQL())
+	var ib = NewInsertBuilder()
+	ib.Table("user")
+	ib.Columns("name", "email", "amount")
+	ib.Values("Yang", "y@qq.com", 10)
+	ib.Values("Feng", "f@qq.com", 20)
+	ib.Suffix("ON DUPLICATE KEY UPDATE name=VALUES(name), email=VALUES(email), amount=VALUES(amount)")
+	fmt.Println(ib.ToSQL())
 }
