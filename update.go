@@ -17,6 +17,7 @@ type UpdateBuilder struct {
 	joinsArg     []interface{}
 	columns      Clause
 	wheres       whereExpressions
+	wheres2      Clause
 	orderBys     []string
 	limit        uint64
 	updateLimit  bool
@@ -68,24 +69,23 @@ func (this *UpdateBuilder) SET(column string, value interface{}) *UpdateBuilder 
 		this.columns = newSets()
 	}
 	this.columns.Append(newSet(column, value))
-
-	//this.columns = append(this.columns, newSet(column, value))
-	//this.columns = append(this.columns, column)
-	//this.values = append(this.values, value)
 	return this
 }
 
 func (this *UpdateBuilder) SetMap(data map[string]interface{}) *UpdateBuilder {
 	for k, v := range data {
-		//this.columns = append(this.columns, k)
-		//this.values = append(this.values, v)
 		this.SET(k, v)
 	}
 	return this
 }
 
-func (this *UpdateBuilder) Where(sql string, args ...interface{}) *UpdateBuilder {
+func (this *UpdateBuilder) Where2(sql string, args ...interface{}) *UpdateBuilder {
 	this.wheres = append(this.wheres, WhereExpression(sql, args...))
+	return this
+}
+
+func (this *UpdateBuilder) Where(c Clause) *UpdateBuilder {
+	this.wheres2 = c
 	return this
 }
 
@@ -144,26 +144,6 @@ func (this *UpdateBuilder) ToSQL() (sql string, args []interface{}, err error) {
 
 	sqlBuffer.WriteString(" SET ")
 
-	//if len(this.columns.clauses) > 0 {
-	//	//args, _ = this.newSets.AppendToSQL(sqlBuffer, ", ", args)
-	//	//var cs []string
-	//	//for _, c := range this.columns {
-	//	//	cs = append(cs, fmt.Sprintf("%s=?", c))
-	//	//}
-	//	//sqlBuffer.WriteString(strings.Join(cs, ", "))
-	//	//args = append(args, this.values...)
-	//
-	//	var cs []string
-	//	for _, c := range this.columns {
-	//		vSQL, vArgs, vErr := c.ToSQL()
-	//		if vErr != nil {
-	//			return "", nil, vErr
-	//		}
-	//		cs = append(cs, vSQL)
-	//		args = append(args, vArgs...)
-	//	}
-	//	sqlBuffer.WriteString(strings.Join(cs, ", "))
-	//}
 	args, err = this.columns.AppendToSQL(sqlBuffer, ", ", args)
 	if err != nil {
 		return "", nil, err
@@ -173,7 +153,10 @@ func (this *UpdateBuilder) ToSQL() (sql string, args []interface{}, err error) {
 		return "", nil, errors.New("update statements must have WHERE condition")
 	}
 
-	if len(this.wheres) > 0 {
+	if this.wheres2 != nil {
+		sqlBuffer.WriteString(" WHERE ")
+		args, _ = this.wheres2.AppendToSQL(sqlBuffer, " ", args)
+	} else if len(this.wheres) > 0 {
 		sqlBuffer.WriteString(" WHERE ")
 		args, _ = this.wheres.appendToSQL(sqlBuffer, " ", args)
 	}

@@ -18,6 +18,7 @@ type DeleteBuilder struct {
 	joins        []string
 	joinsArg     []interface{}
 	wheres       whereExpressions
+	wheres2      Clause
 	orderBys     []string
 	limit        uint64
 	updateLimit  bool
@@ -92,8 +93,13 @@ func (this *DeleteBuilder) join(join, table, suffix string, args ...interface{})
 	return this
 }
 
-func (this *DeleteBuilder) Where(sql string, args ...interface{}) *DeleteBuilder {
+func (this *DeleteBuilder) Where2(sql string, args ...interface{}) *DeleteBuilder {
 	this.wheres = append(this.wheres, WhereExpression(sql, args...))
+	return this
+}
+
+func (this *DeleteBuilder) Where(c Clause) *DeleteBuilder {
+	this.wheres2 = c
 	return this
 }
 
@@ -163,7 +169,10 @@ func (this *DeleteBuilder) ToSQL() (sql string, args []interface{}, err error) {
 		return "", nil, errors.New("delete statements must have WHERE condition")
 	}
 
-	if len(this.wheres) > 0 {
+	if this.wheres2 != nil {
+		sqlBuffer.WriteString(" WHERE ")
+		args, _ = this.wheres2.AppendToSQL(sqlBuffer, " ", args)
+	} else if len(this.wheres) > 0 {
 		sqlBuffer.WriteString(" WHERE ")
 		args, _ = this.wheres.appendToSQL(sqlBuffer, " ", args)
 	}
