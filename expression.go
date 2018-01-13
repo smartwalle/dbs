@@ -4,6 +4,7 @@ import (
 	"io"
 	"strings"
 	"reflect"
+	"bytes"
 )
 
 // --------------------------------------------------------------------------------
@@ -12,13 +13,20 @@ type expression struct {
 	args []interface{}
 }
 
-type expressions []expression
+type rawSQLs []Clause
 
-func Expression(sql string, args ...interface{}) expression {
-	return expression{sql, args}
+//func SQL(sql string, args ...interface{}) expression {
+//	return expression{sql, args}
+//}
+
+func (this rawSQLs) ToSQL() (sql string, args []interface{}, err error) {
+	var sqlBuffer = &bytes.Buffer{}
+	args, err = this.AppendToSQL(sqlBuffer, " ", nil)
+	return sqlBuffer.String(), args, err
 }
 
-func (this expressions) appendToSQL(w io.Writer, sep string, args []interface{}) ([]interface{}, error) {
+func (this rawSQLs) AppendToSQL(w io.Writer, sep string, args []interface{}) ([]interface{}, error) {
+	var err error
 	for i, e := range this {
 		if i > 0 {
 			_, err := io.WriteString(w, sep)
@@ -26,14 +34,24 @@ func (this expressions) appendToSQL(w io.Writer, sep string, args []interface{})
 				return nil, err
 			}
 		}
-		_, err := io.WriteString(w, e.sql)
+
+
+		//_, err := io.WriteString(w, e.args)
+		//if err != nil {
+		//	return nil, err
+		//}
+		args, err = e.AppendToSQL(w, "", args)
 		if err != nil {
 			return nil, err
 		}
-		args = append(args, e.args...)
+		//args = append(args, e.args...)
 	}
 	return args, nil
 }
+
+func (this rawSQLs) Append(c ...Clause) {
+}
+
 
 // --------------------------------------------------------------------------------
 type whereExpression struct {

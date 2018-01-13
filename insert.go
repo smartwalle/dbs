@@ -9,22 +9,22 @@ import (
 )
 
 type InsertBuilder struct {
-	prefixes expressions
-	options  expressions
+	prefixes rawSQLs
+	options  rawSQLs
 	columns  []string
 	table    string
 	values   [][]interface{}
-	suffixes expressions
+	suffixes rawSQLs
 }
 
 func (this *InsertBuilder) Prefix(sql string, args ...interface{}) *InsertBuilder {
-	this.prefixes = append(this.prefixes, Expression(sql, args...))
+	this.prefixes = append(this.prefixes, SQL(sql, args...))
 	return this
 }
 
 func (this *InsertBuilder) Options(options ...string) *InsertBuilder {
 	for _, c := range options {
-		this.options = append(this.options, Expression(c))
+		this.options = append(this.options, SQL(c))
 	}
 	return this
 }
@@ -50,7 +50,7 @@ func (this *InsertBuilder) Values(values ...interface{}) *InsertBuilder {
 }
 
 func (this *InsertBuilder) Suffix(sql string, args ...interface{}) *InsertBuilder {
-	this.suffixes = append(this.suffixes, Expression(sql, args...))
+	this.suffixes = append(this.suffixes, SQL(sql, args...))
 	return this
 }
 
@@ -78,14 +78,14 @@ func (this *InsertBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	var sqlBuffer = &bytes.Buffer{}
 
 	if len(this.prefixes) > 0 {
-		args, _ = this.prefixes.appendToSQL(sqlBuffer, " ", args)
+		args, _ = this.prefixes.AppendToSQL(sqlBuffer, " ", args)
 		sqlBuffer.WriteString(" ")
 	}
 
 	sqlBuffer.WriteString("INSERT ")
 
 	if len(this.options) > 0 {
-		args, _ = this.options.appendToSQL(sqlBuffer, " ", args)
+		args, _ = this.options.AppendToSQL(sqlBuffer, " ", args)
 		sqlBuffer.WriteString(" ")
 	}
 
@@ -106,7 +106,7 @@ func (this *InsertBuilder) ToSQL() (sql string, args []interface{}, err error) {
 		var valuePlaceholder = make([]string, len(value))
 		for i, v := range value {
 			switch vt := v.(type) {
-			case SQLer:
+			case Clause:
 				vSQL, vArgs, err := vt.ToSQL()
 				if err != nil {
 					return "", nil, err
@@ -124,7 +124,7 @@ func (this *InsertBuilder) ToSQL() (sql string, args []interface{}, err error) {
 
 	if len(this.suffixes) > 0 {
 		sqlBuffer.WriteString(" ")
-		args, _ = this.suffixes.appendToSQL(sqlBuffer, " ", args)
+		args, _ = this.suffixes.AppendToSQL(sqlBuffer, " ", args)
 	}
 
 	sql = sqlBuffer.String()

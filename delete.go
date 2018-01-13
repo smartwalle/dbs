@@ -10,10 +10,10 @@ import (
 )
 
 type DeleteBuilder struct {
-	prefixes     expressions
-	options      expressions
+	prefixes     rawSQLs
+	options      rawSQLs
 	alias        []string
-	tables       expressions
+	tables       rawSQLs
 	using        string
 	joins        []string
 	joinsArg     []interface{}
@@ -23,17 +23,17 @@ type DeleteBuilder struct {
 	updateLimit  bool
 	offset       uint64
 	updateOffset bool
-	suffixes     expressions
+	suffixes     rawSQLs
 }
 
 func (this *DeleteBuilder) Prefix(sql string, args ...interface{}) *DeleteBuilder {
-	this.prefixes = append(this.prefixes, Expression(sql, args...))
+	this.prefixes = append(this.prefixes, SQL(sql, args...))
 	return this
 }
 
 func (this *DeleteBuilder) Options(options ...string) *DeleteBuilder {
 	for _, c := range options {
-		this.options = append(this.options, Expression(c))
+		this.options = append(this.options, SQL(c))
 	}
 	return this
 }
@@ -47,7 +47,7 @@ func (this *DeleteBuilder) Table(table string, args ...string) *DeleteBuilder {
 	var ts []string
 	ts = append(ts, fmt.Sprintf("`%s`", table))
 	ts = append(ts, args...)
-	this.tables = append(this.tables, Expression(strings.Join(ts, " ")))
+	this.tables = append(this.tables, SQL(strings.Join(ts, " ")))
 	return this
 }
 
@@ -115,7 +115,7 @@ func (this *DeleteBuilder) Offset(offset uint64) *DeleteBuilder {
 }
 
 func (this *DeleteBuilder) Suffix(sql string, args ...interface{}) *DeleteBuilder {
-	this.suffixes = append(this.suffixes, Expression(sql, args...))
+	this.suffixes = append(this.suffixes, SQL(sql, args...))
 	return this
 }
 
@@ -126,14 +126,14 @@ func (this *DeleteBuilder) ToSQL() (sql string, args []interface{}, err error) {
 
 	var sqlBuffer = &bytes.Buffer{}
 	if len(this.prefixes) > 0 {
-		args, _ = this.prefixes.appendToSQL(sqlBuffer, " ", args)
+		args, _ = this.prefixes.AppendToSQL(sqlBuffer, " ", args)
 		sqlBuffer.WriteString(" ")
 	}
 
 	sqlBuffer.WriteString("DELETE ")
 
 	if len(this.options) > 0 {
-		args, _ = this.options.appendToSQL(sqlBuffer, " ", args)
+		args, _ = this.options.AppendToSQL(sqlBuffer, " ", args)
 		sqlBuffer.WriteString(" ")
 	}
 
@@ -145,7 +145,7 @@ func (this *DeleteBuilder) ToSQL() (sql string, args []interface{}, err error) {
 	sqlBuffer.WriteString("FROM ")
 
 	if len(this.tables) > 0 {
-		args, _ = this.tables.appendToSQL(sqlBuffer, ", ", args)
+		args, _ = this.tables.AppendToSQL(sqlBuffer, ", ", args)
 	}
 
 	if len(this.using) > 0 {
@@ -185,7 +185,7 @@ func (this *DeleteBuilder) ToSQL() (sql string, args []interface{}, err error) {
 
 	if len(this.suffixes) > 0 {
 		sqlBuffer.WriteString(" ")
-		args, _ = this.suffixes.appendToSQL(sqlBuffer, " ", args)
+		args, _ = this.suffixes.AppendToSQL(sqlBuffer, " ", args)
 	}
 
 	sql = sqlBuffer.String()

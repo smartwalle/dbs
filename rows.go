@@ -94,7 +94,7 @@ func Scan(rows *sql.Rows, result interface{}) (err error) {
 	}
 
 	//if !hasData {
-	//	return errors.New("rows: no rows in result set")
+	//	return errors.New("rows: no rows in result newSet")
 	//}
 
 	return err
@@ -159,7 +159,6 @@ func scan(rows *sql.Rows, result interface{}) (err error) {
 		if hasData {
 			objValue.Set(sliceValue)
 		} else {
-			//return errors.New("rows: no rows in result set")
 			return nil
 		}
 
@@ -167,7 +166,6 @@ func scan(rows *sql.Rows, result interface{}) (err error) {
 		for rows.Next() {
 			return _scan(rows, columns, result)
 		}
-		//return errors.New("rows: no rows in result set")
 		return nil
 	}
 

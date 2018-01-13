@@ -10,44 +10,44 @@ import (
 )
 
 type SelectBuilder struct {
-	prefixes     expressions
-	options      expressions
-	columns      expressions
-	from         expressions
+	prefixes     rawSQLs
+	options      rawSQLs
+	columns      rawSQLs
+	from         rawSQLs
 	joins        []string
 	joinsArg     []interface{}
 	wheres       whereExpressions
 	groupBys     []string
-	havings      expressions
+	havings      rawSQLs
 	orderBys     []string
 	limit        uint64
 	updateLimit  bool
 	offset       uint64
 	updateOffset bool
-	suffixes     expressions
+	suffixes     rawSQLs
 }
 
 func (this *SelectBuilder) Prefix(sql string, args ...interface{}) *SelectBuilder {
-	this.prefixes = append(this.prefixes, Expression(sql, args...))
+	this.prefixes = append(this.prefixes, SQL(sql, args...))
 	return this
 }
 
 func (this *SelectBuilder) Options(options ...string) *SelectBuilder {
 	for _, c := range options {
-		this.options = append(this.options, Expression(c))
+		this.options = append(this.options, SQL(c))
 	}
 	return this
 }
 
 func (this *SelectBuilder) Selects(columns ...string) *SelectBuilder {
 	for _, c := range columns {
-		this.columns = append(this.columns, Expression(c))
+		this.columns = append(this.columns, SQL(c))
 	}
 	return this
 }
 
 func (this *SelectBuilder) Select(column string, args ...interface{}) *SelectBuilder {
-	this.columns = append(this.columns, Expression(column, args...))
+	this.columns = append(this.columns, SQL(column, args...))
 	return this
 }
 
@@ -55,7 +55,7 @@ func (this *SelectBuilder) From(table string, args ...string) *SelectBuilder {
 	var ts []string
 	ts = append(ts, fmt.Sprintf("`%s`", table))
 	ts = append(ts, args...)
-	this.from = append(this.from, Expression(strings.Join(ts, " ")))
+	this.from = append(this.from, SQL(strings.Join(ts, " ")))
 	return this
 }
 
@@ -88,7 +88,7 @@ func (this *SelectBuilder) GroupBy(groupBys ...string) *SelectBuilder {
 }
 
 func (this *SelectBuilder) Having(sql string, args ...interface{}) *SelectBuilder {
-	this.havings = append(this.havings, Expression(sql, args...))
+	this.havings = append(this.havings, SQL(sql, args...))
 	return this
 }
 
@@ -110,7 +110,7 @@ func (this *SelectBuilder) Offset(offset uint64) *SelectBuilder {
 }
 
 func (this *SelectBuilder) Suffix(sql string, args ...interface{}) *SelectBuilder {
-	this.suffixes = append(this.suffixes, Expression(sql, args...))
+	this.suffixes = append(this.suffixes, SQL(sql, args...))
 	return this
 }
 
@@ -121,24 +121,24 @@ func (this *SelectBuilder) ToSQL() (sql string, args []interface{}, err error) {
 
 	var sqlBuffer = &bytes.Buffer{}
 	if len(this.prefixes) > 0 {
-		args, _ = this.prefixes.appendToSQL(sqlBuffer, " ", args)
+		args, _ = this.prefixes.AppendToSQL(sqlBuffer, " ", args)
 		sqlBuffer.WriteString(" ")
 	}
 
 	sqlBuffer.WriteString("SELECT ")
 
 	if len(this.options) > 0 {
-		args, _ = this.options.appendToSQL(sqlBuffer, " ", args)
+		args, _ = this.options.AppendToSQL(sqlBuffer, " ", args)
 		sqlBuffer.WriteString(" ")
 	}
 
 	if len(this.columns) > 0 {
-		args, _ = this.columns.appendToSQL(sqlBuffer, ", ", args)
+		args, _ = this.columns.AppendToSQL(sqlBuffer, ", ", args)
 	}
 
 	if len(this.from) > 0 {
 		sqlBuffer.WriteString(" FROM ")
-		args, _ = this.from.appendToSQL(sqlBuffer, ", ", args)
+		args, _ = this.from.AppendToSQL(sqlBuffer, ", ", args)
 	}
 
 	if len(this.joins) > 0 {
@@ -159,7 +159,7 @@ func (this *SelectBuilder) ToSQL() (sql string, args []interface{}, err error) {
 
 	if len(this.havings) > 0 {
 		sqlBuffer.WriteString(" HAVING ")
-		args, _ = this.havings.appendToSQL(sqlBuffer, " ", args)
+		args, _ = this.havings.AppendToSQL(sqlBuffer, " ", args)
 	}
 
 	if len(this.orderBys) > 0 {
@@ -179,7 +179,7 @@ func (this *SelectBuilder) ToSQL() (sql string, args []interface{}, err error) {
 
 	if len(this.suffixes) > 0 {
 		sqlBuffer.WriteString(" ")
-		args, _ = this.suffixes.appendToSQL(sqlBuffer, " ", args)
+		args, _ = this.suffixes.AppendToSQL(sqlBuffer, " ", args)
 	}
 
 	sql = sqlBuffer.String()
@@ -194,25 +194,25 @@ func (this *SelectBuilder) CountSQL() (sql string, args []interface{}, err error
 
 	var sqlBuffer = &bytes.Buffer{}
 	if len(this.prefixes) > 0 {
-		args, _ = this.prefixes.appendToSQL(sqlBuffer, " ", args)
+		args, _ = this.prefixes.AppendToSQL(sqlBuffer, " ", args)
 		sqlBuffer.WriteString(" ")
 	}
 
 	sqlBuffer.WriteString("SELECT ")
 
 	if len(this.options) > 0 {
-		args, _ = this.options.appendToSQL(sqlBuffer, " ", args)
+		args, _ = this.options.AppendToSQL(sqlBuffer, " ", args)
 		sqlBuffer.WriteString(" ")
 	}
 
 	//if len(this.columns) > 0 {
-	//	args, _ = this.columns.appendToSQL(sqlBuffer, ", ", args)
+	//	args, _ = this.columns.AppendToSQL(sqlBuffer, ", ", args)
 	//}
 	sqlBuffer.WriteString("COUNT(*) AS total")
 
 	if len(this.from) > 0 {
 		sqlBuffer.WriteString(" FROM ")
-		args, _ = this.from.appendToSQL(sqlBuffer, ", ", args)
+		args, _ = this.from.AppendToSQL(sqlBuffer, ", ", args)
 	}
 
 	if len(this.joins) > 0 {
@@ -233,7 +233,7 @@ func (this *SelectBuilder) CountSQL() (sql string, args []interface{}, err error
 
 	if len(this.havings) > 0 {
 		sqlBuffer.WriteString(" HAVING ")
-		args, _ = this.havings.appendToSQL(sqlBuffer, " ", args)
+		args, _ = this.havings.AppendToSQL(sqlBuffer, " ", args)
 	}
 
 	if len(this.orderBys) > 0 {
@@ -253,7 +253,7 @@ func (this *SelectBuilder) CountSQL() (sql string, args []interface{}, err error
 
 	if len(this.suffixes) > 0 {
 		sqlBuffer.WriteString(" ")
-		args, _ = this.suffixes.appendToSQL(sqlBuffer, " ", args)
+		args, _ = this.suffixes.AppendToSQL(sqlBuffer, " ", args)
 	}
 
 	sql = sqlBuffer.String()
