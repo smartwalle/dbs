@@ -10,22 +10,22 @@ import (
 )
 
 type SelectBuilder struct {
-	prefixes     rawSQLs
-	options      rawSQLs
-	columns      rawSQLs
-	from         rawSQLs
+	prefixes     rawClauses
+	options      rawClauses
+	columns      rawClauses
+	from         rawClauses
 	joins        []string
 	joinsArg     []interface{}
 	wheres       whereExpressions
 	wheres2      Clause
 	groupBys     []string
-	havings      rawSQLs
+	havings      rawClauses
 	orderBys     []string
 	limit        uint64
 	updateLimit  bool
 	offset       uint64
 	updateOffset bool
-	suffixes     rawSQLs
+	suffixes     rawClauses
 }
 
 func (this *SelectBuilder) Prefix(sql string, args ...interface{}) *SelectBuilder {

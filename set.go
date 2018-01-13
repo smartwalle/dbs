@@ -32,6 +32,7 @@ func (this *setClause) AppendToSQL(w io.Writer, sep string, args []interface{}) 
 		}
 		p = cSQL
 		args = append(args, cArgs...)
+	case nil:
 	default:
 		p = "?"
 		args = append(args, vt)

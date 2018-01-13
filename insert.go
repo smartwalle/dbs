@@ -9,12 +9,12 @@ import (
 )
 
 type InsertBuilder struct {
-	prefixes rawSQLs
-	options  rawSQLs
+	prefixes rawClauses
+	options  rawClauses
 	columns  []string
 	table    string
 	values   [][]interface{}
-	suffixes rawSQLs
+	suffixes rawClauses
 }
 
 func (this *InsertBuilder) Prefix(sql string, args ...interface{}) *InsertBuilder {

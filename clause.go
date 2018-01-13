@@ -21,14 +21,73 @@ type Clause interface {
 	ToSQL() (sql string, args []interface{}, err error)
 }
 
-type clause struct {
+// --------------------------------------------------------------------------------
+type rawClause struct {
+	sql interface{}
+	args []interface{}
+}
+
+func (this *rawClause) ToSQL() (sql string, args []interface{}, err error) {
+	var sqlBuffer = &bytes.Buffer{}
+	args, err = this.AppendToSQL(sqlBuffer, "", nil)
+	return sqlBuffer.String(), args, err
+}
+
+func (this *rawClause) AppendToSQL(w io.Writer, sep string, args []interface{}) ([]interface{}, error) {
+	var err error
+	switch t := this.sql.(type) {
+	case Clause:
+		args, err = t.AppendToSQL(w, sep, args)
+		if err != nil {
+			return nil, err
+		}
+	case string:
+		io.WriteString(w, t)
+		args = append(args, this.args...)
+	case nil:
+	default:
+	}
+	return args, nil
+}
+
+func (this *rawClause) Append(c ...Clause) {
+}
+
+// --------------------------------------------------------------------------------
+type rawClauses []Clause
+
+func (this rawClauses) ToSQL() (sql string, args []interface{}, err error) {
+	var sqlBuffer = &bytes.Buffer{}
+	args, err = this.AppendToSQL(sqlBuffer, "", nil)
+	return sqlBuffer.String(), args, err
+}
+
+func (this rawClauses) AppendToSQL(w io.Writer, sep string, args []interface{}) ([]interface{}, error) {
+	var err error
+	for i, e := range this {
+		if i != 0 {
+			io.WriteString(w, sep)
+		}
+		args, err = e.AppendToSQL(w, "", args)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return args, nil
+}
+
+func (this rawClauses) Append(c ...Clause) {
+}
+
+// --------------------------------------------------------------------------------
+type logicClause struct {
 	sql      string
 	args     []interface{}
 	logic    string
 	children []Clause
 }
 
-func (this *clause) AppendToSQL(w io.Writer, sep string, args []interface{}) ([]interface{}, error) {
+func (this *logicClause) AppendToSQL(w io.Writer, sep string, args []interface{}) ([]interface{}, error) {
 	var hasSQL = len(this.sql) > 0
 	var hasChildren = len(this.children) > 0
 	var err error
@@ -66,7 +125,7 @@ func (this *clause) AppendToSQL(w io.Writer, sep string, args []interface{}) ([]
 	return args, err
 }
 
-func (this *clause) Append(cs ...Clause) {
+func (this *logicClause) Append(cs ...Clause) {
 	for _, c := range cs {
 		if c != nil {
 			this.children = append(this.children, c)
@@ -74,7 +133,7 @@ func (this *clause) Append(cs ...Clause) {
 	}
 }
 
-func (this *clause) ToSQL() (sql string, args []interface{}, err error) {
+func (this *logicClause) ToSQL() (sql string, args []interface{}, err error) {
 	var sqlBuffer = &bytes.Buffer{}
 	args, err = this.AppendToSQL(sqlBuffer, "", nil)
 	return sqlBuffer.String(), args, err
@@ -91,84 +150,26 @@ func appendLogic(w io.Writer, logic, prefix, suffix string) {
 }
 
 // --------------------------------------------------------------------------------
-type rawSQL struct {
-	sql interface{}
-	args []interface{}
-}
-
 func SQL(sql interface{}, args ...interface{}) Clause {
-	return &rawSQL{sql, args}
+	return &rawClause{sql, args}
 }
 
-func (this *rawSQL) ToSQL() (sql string, args []interface{}, err error) {
-	var sqlBuffer = &bytes.Buffer{}
-	args, err = this.AppendToSQL(sqlBuffer, "", nil)
-	return sqlBuffer.String(), args, err
-}
-
-func (this *rawSQL) AppendToSQL(w io.Writer, sep string, args []interface{}) ([]interface{}, error) {
-	var err error
-	switch t := this.sql.(type) {
-	case Clause:
-		args, err = t.AppendToSQL(w, sep, args)
-		if err != nil {
-			return nil, err
-		}
-	case string:
-		io.WriteString(w, t)
-		args = append(args, this.args...)
-	case nil:
-	default:
-	}
-	return args, nil
-}
-
-func (this *rawSQL) Append(c ...Clause) {
-}
-
-// --------------------------------------------------------------------------------
-type rawSQLs []Clause
-
-func (this rawSQLs) ToSQL() (sql string, args []interface{}, err error) {
-	var sqlBuffer = &bytes.Buffer{}
-	args, err = this.AppendToSQL(sqlBuffer, "", nil)
-	return sqlBuffer.String(), args, err
-}
-
-func (this rawSQLs) AppendToSQL(w io.Writer, sep string, args []interface{}) ([]interface{}, error) {
-	var err error
-	for i, e := range this {
-		if i != 0 {
-			io.WriteString(w, sep)
-		}
-		args, err = e.AppendToSQL(w, "", args)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return args, nil
-}
-
-func (this rawSQLs) Append(c ...Clause) {
-}
-
-// --------------------------------------------------------------------------------
 func AND(c ...Clause) Clause {
-	var w = &clause{}
+	var w = &logicClause{}
 	w.Append(c...)
 	w.logic = k_WHERE_AND
 	return w
 }
 
 func OR(c ...Clause) Clause {
-	var w = &clause{}
+	var w = &logicClause{}
 	w.Append(c...)
 	w.logic = k_WHERE_OR
 	return w
 }
 
 func NOT(sql string, args ...interface{}) Clause {
-	var w = &clause{}
+	var w = &logicClause{}
 	w.sql = sql
 	w.args = args
 	w.logic = k_WHERE_NOT
@@ -196,7 +197,7 @@ func IN(sql string, args interface{}) Clause {
 		sql = sql + " IN (" + strings.Repeat(", ?", len(params))[2:] + ")"
 	}
 
-	var w = &clause{}
+	var w = &logicClause{}
 	w.sql = sql
 	w.args = params
 	return w

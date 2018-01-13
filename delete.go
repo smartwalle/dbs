@@ -10,10 +10,10 @@ import (
 )
 
 type DeleteBuilder struct {
-	prefixes     rawSQLs
-	options      rawSQLs
+	prefixes     rawClauses
+	options      rawClauses
 	alias        []string
-	tables       rawSQLs
+	tables       rawClauses
 	using        string
 	joins        []string
 	joinsArg     []interface{}
@@ -24,7 +24,7 @@ type DeleteBuilder struct {
 	updateLimit  bool
 	offset       uint64
 	updateOffset bool
-	suffixes     rawSQLs
+	suffixes     rawClauses
 }
 
 func (this *DeleteBuilder) Prefix(sql string, args ...interface{}) *DeleteBuilder {

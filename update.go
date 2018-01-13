@@ -10,9 +10,9 @@ import (
 )
 
 type UpdateBuilder struct {
-	prefixes     rawSQLs
-	options      rawSQLs
-	tables       rawSQLs
+	prefixes     rawClauses
+	options      rawClauses
+	tables       rawClauses
 	joins        []string
 	joinsArg     []interface{}
 	columns      Clause
@@ -23,7 +23,7 @@ type UpdateBuilder struct {
 	updateLimit  bool
 	offset       uint64
 	updateOffset bool
-	suffixes     rawSQLs
+	suffixes     rawClauses
 }
 
 func (this *UpdateBuilder) Prefix(sql string, args ...interface{}) *UpdateBuilder {
