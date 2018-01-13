@@ -25,7 +25,7 @@ func NewSQL(driver, url string, maxOpen, maxIdle int) (p *Pool) {
 	return p
 }
 
-////////////////////////////////////////////////////////////////////////////////
+// --------------------------------------------------------------------------------
 type Pool struct {
 	s *Session
 }
@@ -54,7 +54,22 @@ func (this *Session) Begin() (*sql.Tx, error) {
 	return this.DB.Begin()
 }
 
-////////////////////////////////////////////////////////////////////////////////
+// --------------------------------------------------------------------------------
+type SQLExecutor interface {
+	Exec(query string, args ...interface{}) (sql.Result, error)
+
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+}
+
+func Exec(s SQLExecutor, query string, args ...interface{}) (sql.Result, error) {
+	return s.Exec(query, args...)
+}
+
+func Query(s SQLExecutor, query string, args ...interface{}) (*sql.Rows, error) {
+	return s.Query(query, args...)
+}
+
+// --------------------------------------------------------------------------------
 const k_SQL_KEY = "sql_session"
 
 type Setter interface {
