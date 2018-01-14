@@ -3,6 +3,8 @@ package dbs
 import (
 	"bytes"
 	"io"
+	"reflect"
+	"strings"
 )
 
 // --------------------------------------------------------------------------------
@@ -14,30 +16,34 @@ func (this *Args) Append(args ...interface{}) {
 	this.values = append(this.values, args...)
 }
 
-func NewArgs() *Args {
+func newArgs() *Args {
 	return &Args{}
 }
 
 // --------------------------------------------------------------------------------
-type Clauser interface {
+type Statement interface {
 	AppendToSQL(w io.Writer, sep string, args *Args)
 	ToSQL() (string, []interface{})
 }
 
 // --------------------------------------------------------------------------------
-type Clause struct {
+type statement struct {
 	sql  string
 	args []interface{}
 }
 
-func NewClause(sql string, args ...interface{}) *Clause {
-	var c = &Clause{}
-	c.sql = sql
-	c.args = args
-	return c
+func NewStatement(sql string, args ...interface{}) *statement {
+	var st = &statement{}
+	st.sql = sql
+	st.args = args
+	return st
 }
 
-func (this *Clause) AppendToSQL(w io.Writer, sep string, args *Args) {
+func SQL(sql string, args ...interface{}) *statement {
+	return NewStatement(sql, args...)
+}
+
+func (this *statement) AppendToSQL(w io.Writer, sep string, args *Args) {
 	if len(this.sql) > 0 {
 		io.WriteString(w, this.sql)
 	}
@@ -46,16 +52,45 @@ func (this *Clause) AppendToSQL(w io.Writer, sep string, args *Args) {
 	}
 }
 
-func (this *Clause) ToSQL() (string, []interface{}) {
+func (this *statement) ToSQL() (string, []interface{}) {
 	var sqlBuffer = &bytes.Buffer{}
 	this.AppendToSQL(sqlBuffer, "", nil)
 	return sqlBuffer.String(), this.args
 }
 
 // --------------------------------------------------------------------------------
-type Clauses []Clauser
+type Clause struct {
+	sql  string
+	args Statement
+}
 
-func (this Clauses) AppendToSQL(w io.Writer, sep string, args *Args) {
+func NewClause(sql string, s Statement) *Clause {
+	var c = &Clause{}
+	c.sql = sql
+	c.args = s
+	return c
+}
+
+func (this *Clause) AppendToSQL(w io.Writer, sep string, args *Args) {
+	if len(this.sql) > 0 {
+		io.WriteString(w, this.sql)
+	}
+	if this.args != nil {
+		this.args.AppendToSQL(w, sep, args)
+	}
+}
+
+func (this *Clause) ToSQL() (string, []interface{}) {
+	var sqlBuffer = &bytes.Buffer{}
+	var args = newArgs()
+	this.AppendToSQL(sqlBuffer, "", args)
+	return sqlBuffer.String(), args.values
+}
+
+// --------------------------------------------------------------------------------
+type statments []Statement
+
+func (this statments) AppendToSQL(w io.Writer, sep string, args *Args) {
 	for i, c := range this {
 		if i != 0 {
 			io.WriteString(w, sep)
@@ -64,28 +99,28 @@ func (this Clauses) AppendToSQL(w io.Writer, sep string, args *Args) {
 	}
 }
 
-func (this Clauses) ToSQL() (string, []interface{}) {
+func (this statments) ToSQL() (string, []interface{}) {
 	var sqlBuffer = &bytes.Buffer{}
-	var args = &Args{}
+	var args = newArgs()
 	this.AppendToSQL(sqlBuffer, "", args)
 	return sqlBuffer.String(), args.values
 }
 
 // --------------------------------------------------------------------------------
-type Set struct {
+type set struct {
 	column string
 	value  interface{}
 }
 
-func NewSet(column string, value interface{}) *Set {
-	return &Set{column, value}
+func newSet(column string, value interface{}) *set {
+	return &set{column, value}
 }
 
-func (this *Set) AppendToSQL(w io.Writer, sep string, args *Args) {
+func (this *set) AppendToSQL(w io.Writer, sep string, args *Args) {
 	io.WriteString(w, this.column)
 	io.WriteString(w, "=")
 	switch tv := this.value.(type) {
-	case Clauser:
+	case Statement:
 		tv.AppendToSQL(w, "", args)
 	default:
 		io.WriteString(w, "?")
@@ -95,17 +130,17 @@ func (this *Set) AppendToSQL(w io.Writer, sep string, args *Args) {
 	}
 }
 
-func (this *Set) ToSQL() (string, []interface{}) {
+func (this *set) ToSQL() (string, []interface{}) {
 	var sqlBuffer = &bytes.Buffer{}
-	var args = &Args{}
+	var args = newArgs()
 	this.AppendToSQL(sqlBuffer, " ", args)
 	return sqlBuffer.String(), args.values
 }
 
 // --------------------------------------------------------------------------------
-type Sets []Clauser
+type sets []Statement
 
-func (this Sets) AppendToSQL(w io.Writer, sep string, args *Args) {
+func (this sets) AppendToSQL(w io.Writer, sep string, args *Args) {
 	for i, c := range this {
 		if i != 0 {
 			io.WriteString(w, sep)
@@ -114,9 +149,9 @@ func (this Sets) AppendToSQL(w io.Writer, sep string, args *Args) {
 	}
 }
 
-func (this Sets) ToSQL() (string, []interface{}) {
+func (this sets) ToSQL() (string, []interface{}) {
 	var sqlBuffer = &bytes.Buffer{}
-	var args = &Args{}
+	var args = newArgs()
 	this.AppendToSQL(sqlBuffer, ", ", args)
 	return sqlBuffer.String(), args.values
 }
@@ -126,47 +161,30 @@ type where struct {
 	sql      string
 	prefix   string
 	args     []interface{}
-	children []Clauser
-}
-
-func NewWhere() *where {
-	var w = &where{}
-	return w
+	children []Statement
 }
 
 func (this *where) AppendToSQL(w io.Writer, sep string, args *Args) {
 	var hasSQL = len(this.sql) > 0
 	var hasChildren = len(this.children) > 0
+	var hasParen = len(this.children) > 1
 
 	if len(this.args) > 0 {
 		args.Append(this.args...)
 	}
 
 	if hasSQL || hasChildren {
-		if hasChildren {
+		if hasParen {
 			io.WriteString(w, "(")
 		}
-
 		io.WriteString(w, this.sql)
-
-		if hasSQL && len(this.prefix) > 0 && len(this.children) == 1 {
-			io.WriteString(w, " ")
-			io.WriteString(w, this.prefix)
-			io.WriteString(w, " ")
-		}
-
 		for i, e := range this.children {
-			if i != 0 {
-				if len(this.prefix) > 0 {
-					io.WriteString(w, " ")
-					io.WriteString(w, this.prefix)
-					io.WriteString(w, " ")
-				}
+			if i != 0 || hasSQL {
+				io.WriteString(w, this.prefix)
 			}
 			e.AppendToSQL(w, sep, args)
 		}
-
-		if hasChildren {
+		if hasParen {
 			io.WriteString(w, ")")
 		}
 	}
@@ -174,13 +192,13 @@ func (this *where) AppendToSQL(w io.Writer, sep string, args *Args) {
 
 func (this *where) ToSQL() (string, []interface{}) {
 	var sqlBuffer = &bytes.Buffer{}
-	var args = &Args{}
+	var args = newArgs()
 	this.AppendToSQL(sqlBuffer, " ", args)
 	return sqlBuffer.String(), args.values
 }
 
-func (this *where) Append(cs ...Clauser) *where {
-	for _, c := range cs {
+func (this *where) Append(sts ...Statement) *where {
+	for _, c := range sts {
 		if c != nil {
 			this.children = append(this.children, c)
 		}
@@ -188,61 +206,44 @@ func (this *where) Append(cs ...Clauser) *where {
 	return this
 }
 
-//func (this *where) And(cs ...*where) *where {
-//	var w = NewWhere("", nil)
-//	w.children = cs
-//	return this
-//
-//	//var w *where
-//	//for i, c := range cs {
-//	//	//if i == 0 {
-//	//		switch t := c.(type) {
-//	//		case string:
-//	//			if i == 0 {
-//	//				w = NewWhere(t, nil)
-//	//				w.prefix = "AND"
-//	//				this.children = append(this.children, w)
-//	//			} else {
-//	//				w.args = append(w.args, t)
-//	//			}
-//	//		case *where:
-//	//			t.prefix = "AND"
-//	//			this.children = append(this.children, t)
-//	//		case Clauser:
-//	//			this.children = append(this.children, t)
-//	//		default:
-//	//			w.args = append(w.args, t)
-//	//		}
-//	//	//}
-//	//}
-//	//return this
-//}
-//
-//func (this *where) Or(sql string, args ...interface{}) *where {
-//	var w = NewWhere(sql, args...)
-//	w.prefix = "OR"
-//	this.children = append(this.children, w)
-//	return this
-//}
-
 // --------------------------------------------------------------------------------
-func And(cs ...Clauser) *where {
+func AND(sts ...Statement) *where {
 	var w = &where{}
-	w.children = cs
-	w.prefix = "AND"
+	w.children = sts
+	w.prefix = " AND "
 	return w
 }
 
-func Or(cs ...Clauser) *where {
+func OR(sts ...Statement) *where {
 	var w = &where{}
-	w.children = cs
-	w.prefix = "OR"
+	w.children = sts
+	w.prefix = " OR "
 	return w
 }
-//
-//func Not(cs ...Clauser) *where {
-//	var w = &where{}
-//	w.children = cs
-//	w.prefix = "NOT"
-//	return w
-//}
+
+func IN(sql string, args interface{}) Statement {
+	if len(sql) == 0 {
+		return nil
+	}
+
+	var pType = reflect.TypeOf(args)
+	var pValue = reflect.ValueOf(args)
+	var params []interface{}
+
+	if pType.Kind() == reflect.Array || pType.Kind() == reflect.Slice {
+		var l = pValue.Len()
+		params = make([]interface{}, l)
+		for i := 0; i < l; i++ {
+			params[i] = pValue.Index(i).Interface()
+		}
+	}
+
+	if len(params) > 0 {
+		sql = sql + " IN (" + strings.Repeat(", ?", len(params))[2:] + ")"
+	}
+
+	var st = &statement{}
+	st.sql = sql
+	st.args = params
+	return st
+}

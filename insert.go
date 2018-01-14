@@ -9,22 +9,22 @@ import (
 )
 
 type InsertBuilder struct {
-	prefixes Clauses
-	options  Clauses
+	prefixes statments
+	options  statments
 	columns  []string
 	table    string
 	values   [][]interface{}
-	suffixes Clauses
+	suffixes statments
 }
 
 func (this *InsertBuilder) Prefix(sql string, args ...interface{}) *InsertBuilder {
-	this.prefixes = append(this.prefixes, NewClause(sql, args...))
+	this.prefixes = append(this.prefixes, NewStatement(sql, args...))
 	return this
 }
 
 func (this *InsertBuilder) Options(options ...string) *InsertBuilder {
 	for _, c := range options {
-		this.options = append(this.options, NewClause(c))
+		this.options = append(this.options, NewStatement(c))
 	}
 	return this
 }
@@ -50,7 +50,7 @@ func (this *InsertBuilder) Values(values ...interface{}) *InsertBuilder {
 }
 
 func (this *InsertBuilder) Suffix(sql string, args ...interface{}) *InsertBuilder {
-	this.suffixes = append(this.suffixes, NewClause(sql, args...))
+	this.suffixes = append(this.suffixes, NewStatement(sql, args...))
 	return this
 }
 
@@ -66,7 +66,7 @@ func (this *InsertBuilder) SET(column string, value interface{}) *InsertBuilder 
 }
 
 func (this *InsertBuilder) ToSQL() (string, []interface{}, error) {
-	var args = NewArgs()
+	var args = newArgs()
 	var err error
 	if len(this.table) == 0 {
 		err = errors.New("insert statements must specify a table")
@@ -108,7 +108,7 @@ func (this *InsertBuilder) ToSQL() (string, []interface{}, error) {
 		var valuePlaceholder = make([]string, len(value))
 		for i, v := range value {
 			switch vt := v.(type) {
-			case Clauser:
+			case Statement:
 				vSQL, vArgs := vt.ToSQL()
 				valuePlaceholder[i] = vSQL
 				args.Append(vArgs...)
