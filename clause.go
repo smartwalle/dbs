@@ -37,14 +37,6 @@ func NewClause(sql string, args ...interface{}) Clauser {
 	return c
 }
 
-func NC(sql string, args ...interface{}) Clauser {
-	return NewClause(sql, args...)
-}
-
-func C(sql string, args ...interface{}) Clauser {
-	return NewClause(sql, args...)
-}
-
 func (this *Clause) AppendToSQL(w io.Writer, sep string, args *Args) {
 	if len(this.sql) > 0 {
 		io.WriteString(w, this.sql)
