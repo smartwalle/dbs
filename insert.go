@@ -107,7 +107,7 @@ func (this *InsertBuilder) ToSQL() (string, []interface{}, error) {
 		for i, v := range value {
 			switch vt := v.(type) {
 			case Statement:
-				vSQL, vArgs := vt.ToSQL()
+				vSQL, vArgs, _ := vt.ToSQL()
 				valuePlaceholder[i] = vSQL
 				args.Append(vArgs...)
 			default:

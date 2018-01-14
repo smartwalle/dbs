@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"io"
 )
 
 type SelectBuilder struct {
@@ -109,74 +110,112 @@ func (this *SelectBuilder) Suffix(sql string, args ...interface{}) *SelectBuilde
 }
 
 func (this *SelectBuilder) ToSQL() (string, []interface{}, error) {
-	if len(this.columns) == 0 {
-		return "", nil, errors.New("SELECT statements must have at least on result column")
-	}
-
 	var sqlBuffer = &bytes.Buffer{}
 	var args = newArgs()
-	var err error
+	err := this.AppendToSQL(sqlBuffer, "", args)
+	return sqlBuffer.String(), args.values, err
+}
 
-	if len(this.prefixes) > 0 {
-		this.prefixes.AppendToSQL(sqlBuffer, " ", args)
-		sqlBuffer.WriteString(" ")
+func (this *SelectBuilder) Query(s SQLExecutor) (*sql.Rows, error) {
+	sql, args, err := this.ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	return Query(s, sql, args...)
+}
+
+func (this *SelectBuilder) Count(s SQLExecutor) (count int64) {
+	sql, args, err := this.CountSQL()
+	if err != nil {
+		return 0
+	}
+	rows, err := Query(s, sql, args...)
+	if err != nil {
+		return 0
 	}
 
-	sqlBuffer.WriteString("SELECT ")
+	if rows.Next() {
+		err = rows.Scan(&count)
+		if err != nil {
+			return 0
+		}
+	}
+	return count
+}
+
+func (this *SelectBuilder) Scan(s SQLExecutor, result interface{}) (err error) {
+	rows, err := this.Query(s)
+	if err != nil {
+		return err
+	}
+	err = Scan(rows, result)
+	return err
+}
+
+func (this *SelectBuilder) AppendToSQL(w io.Writer, sep string, args *Args) (error) {
+	if len(this.columns) == 0 {
+		return errors.New("SELECT statements must have at least on result column")
+	}
+
+	if len(this.prefixes) > 0 {
+		this.prefixes.AppendToSQL(w, " ", args)
+		io.WriteString(w, " ")
+	}
+
+	io.WriteString(w, "SELECT ")
 
 	if len(this.options) > 0 {
-		this.options.AppendToSQL(sqlBuffer, " ", args)
-		sqlBuffer.WriteString(" ")
+		this.options.AppendToSQL(w, " ", args)
+		io.WriteString(w, " ")
 	}
 
 	if len(this.columns) > 0 {
-		this.columns.AppendToSQL(sqlBuffer, ", ", args)
+		this.columns.AppendToSQL(w, ", ", args)
 	}
 
 	if len(this.from) > 0 {
-		sqlBuffer.WriteString(" FROM ")
-		this.from.AppendToSQL(sqlBuffer, ", ", args)
+		io.WriteString(w, " FROM ")
+		this.from.AppendToSQL(w, ", ", args)
 	}
 
 	if len(this.joins) > 0 {
-		sqlBuffer.WriteString(" ")
-		this.joins.AppendToSQL(sqlBuffer, " ", args)
+		io.WriteString(w, " ")
+		this.joins.AppendToSQL(w, " ", args)
 	}
 
 	if this.where != nil && this.where.Valid() {
-		sqlBuffer.WriteString(" WHERE ")
-		this.where.AppendToSQL(sqlBuffer, " ", args)
+		io.WriteString(w, " WHERE ")
+		this.where.AppendToSQL(w, " ", args)
 	}
 
 	if len(this.groupBys) > 0 {
-		sqlBuffer.WriteString(" GROUP BY ")
-		sqlBuffer.WriteString(strings.Join(this.groupBys, ", "))
+		io.WriteString(w, " GROUP BY ")
+		io.WriteString(w, strings.Join(this.groupBys, ", "))
 	}
 
 	if len(this.havings) > 0 {
-		sqlBuffer.WriteString(" HAVING ")
-		this.havings.AppendToSQL(sqlBuffer, " ", args)
+		io.WriteString(w, " HAVING ")
+		this.havings.AppendToSQL(w, " ", args)
 	}
 
 	if len(this.orderBys) > 0 {
-		sqlBuffer.WriteString(" ORDER BY ")
-		sqlBuffer.WriteString(strings.Join(this.orderBys, ", "))
+		io.WriteString(w, " ORDER BY ")
+		io.WriteString(w, strings.Join(this.orderBys, ", "))
 	}
 
 	if this.limit != nil {
-		this.limit.AppendToSQL(sqlBuffer, "", args)
+		this.limit.AppendToSQL(w, "", args)
 	}
 
 	if this.offset != nil {
-		this.offset.AppendToSQL(sqlBuffer, "", args)
+		this.offset.AppendToSQL(w, "", args)
 	}
 
 	if len(this.suffixes) > 0 {
-		sqlBuffer.WriteString(" ")
-		this.suffixes.AppendToSQL(sqlBuffer, " ", args)
+		io.WriteString(w, " ")
+		this.suffixes.AppendToSQL(w, " ", args)
 	}
-
-	return sqlBuffer.String(), args.values, err
+	return nil
 }
 
 func (this *SelectBuilder) CountSQL() (string, []interface{}, error) {
@@ -237,43 +276,11 @@ func (this *SelectBuilder) CountSQL() (string, []interface{}, error) {
 		this.suffixes.AppendToSQL(sqlBuffer, " ", args)
 	}
 
-	return sqlBuffer.String(), args.values, err
+	return "", nil, err
 }
 
-func (this *SelectBuilder) Query(s SQLExecutor) (*sql.Rows, error) {
-	sql, args, err := this.ToSQL()
-	if err != nil {
-		return nil, err
-	}
-	return Query(s, sql, args...)
-}
-
-func (this *SelectBuilder) Count(s SQLExecutor) (count int64) {
-	sql, args, err := this.CountSQL()
-	if err != nil {
-		return 0
-	}
-	rows, err := Query(s, sql, args...)
-	if err != nil {
-		return 0
-	}
-
-	if rows.Next() {
-		err = rows.Scan(&count)
-		if err != nil {
-			return 0
-		}
-	}
-	return count
-}
-
-func (this *SelectBuilder) Scan(s SQLExecutor, result interface{}) (err error) {
-	rows, err := this.Query(s)
-	if err != nil {
-		return err
-	}
-	err = Scan(rows, result)
-	return err
+func (this *SelectBuilder) Valid() bool {
+	return true
 }
 
 func NewSelectBuilder() *SelectBuilder {
