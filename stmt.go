@@ -24,6 +24,7 @@ func newArgs() *Args {
 type Statement interface {
 	AppendToSQL(w io.Writer, sep string, args *Args)
 	ToSQL() (string, []interface{})
+	Valid() bool
 }
 
 // --------------------------------------------------------------------------------
@@ -58,6 +59,36 @@ func (this *statement) ToSQL() (string, []interface{}) {
 	return sqlBuffer.String(), this.args
 }
 
+func (this *statement) Valid() bool {
+	if len(this.sql) > 0 || len(this.args) > 0 {
+		return true
+	}
+	return false
+}
+
+// --------------------------------------------------------------------------------
+type statements []Statement
+
+func (this statements) AppendToSQL(w io.Writer, sep string, args *Args) {
+	for i, c := range this {
+		if i != 0 {
+			io.WriteString(w, sep)
+		}
+		c.AppendToSQL(w, sep, args)
+	}
+}
+
+func (this statements) ToSQL() (string, []interface{}) {
+	var sqlBuffer = &bytes.Buffer{}
+	var args = newArgs()
+	this.AppendToSQL(sqlBuffer, "", args)
+	return sqlBuffer.String(), args.values
+}
+
+func (this statements) Valid() bool {
+	return true
+}
+
 // --------------------------------------------------------------------------------
 type Clause struct {
 	sql  string
@@ -87,23 +118,8 @@ func (this *Clause) ToSQL() (string, []interface{}) {
 	return sqlBuffer.String(), args.values
 }
 
-// --------------------------------------------------------------------------------
-type statments []Statement
-
-func (this statments) AppendToSQL(w io.Writer, sep string, args *Args) {
-	for i, c := range this {
-		if i != 0 {
-			io.WriteString(w, sep)
-		}
-		c.AppendToSQL(w, sep, args)
-	}
-}
-
-func (this statments) ToSQL() (string, []interface{}) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	this.AppendToSQL(sqlBuffer, "", args)
-	return sqlBuffer.String(), args.values
+func (this *Clause) Valid() bool {
+	return true
 }
 
 // --------------------------------------------------------------------------------
@@ -137,6 +153,10 @@ func (this *set) ToSQL() (string, []interface{}) {
 	return sqlBuffer.String(), args.values
 }
 
+func (this *set) Valid() bool {
+	return true
+}
+
 // --------------------------------------------------------------------------------
 type sets []Statement
 
@@ -154,6 +174,10 @@ func (this sets) ToSQL() (string, []interface{}) {
 	var args = newArgs()
 	this.AppendToSQL(sqlBuffer, ", ", args)
 	return sqlBuffer.String(), args.values
+}
+
+func (this *sets) Valid() bool {
+	return true
 }
 
 // --------------------------------------------------------------------------------
@@ -204,6 +228,13 @@ func (this *where) Append(sts ...Statement) *where {
 		}
 	}
 	return this
+}
+
+func (this *where) Valid() bool {
+	if len(this.sql) > 0 || len(this.children) > 0 {
+		return true
+	}
+	return false
 }
 
 // --------------------------------------------------------------------------------

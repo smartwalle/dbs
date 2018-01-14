@@ -1,20 +1,20 @@
 package dbs
 
 import (
-	"errors"
 	"bytes"
-	"strings"
-	"fmt"
 	"database/sql"
+	"errors"
+	"fmt"
+	"strings"
 )
 
 type InsertBuilder struct {
-	prefixes statments
-	options  statments
+	prefixes statements
+	options  statements
 	columns  []string
 	table    string
 	values   [][]interface{}
-	suffixes statments
+	suffixes statements
 }
 
 func (this *InsertBuilder) Prefix(sql string, args ...interface{}) *InsertBuilder {
@@ -66,18 +66,16 @@ func (this *InsertBuilder) SET(column string, value interface{}) *InsertBuilder 
 }
 
 func (this *InsertBuilder) ToSQL() (string, []interface{}, error) {
-	var args = newArgs()
-	var err error
 	if len(this.table) == 0 {
-		err = errors.New("insert statements must specify a table")
-		return "", nil, err
+		return "", nil, errors.New("insert statements must specify a table")
 	}
 	if len(this.values) == 0 {
-		err = errors.New("insert statements must have at least one set of values")
-		return "", nil, err
+		return "", nil, errors.New("insert statements must have at least one set of values")
 	}
 
 	var sqlBuffer = &bytes.Buffer{}
+	var args = newArgs()
+	var err error
 
 	if len(this.prefixes) > 0 {
 		this.prefixes.AppendToSQL(sqlBuffer, " ", args)

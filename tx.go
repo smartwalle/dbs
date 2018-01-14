@@ -65,51 +65,51 @@ func (this *Tx) exec(query string, args []interface{}, results interface{}) (res
 	return result, err
 }
 
-//func (this *Tx) ExecSelectBuilder(sb *SelectBuilder, results interface{}) (err error) {
-//	sql, args, err := sb.ToSQL()
-//	if err != nil {
-//		this.Rollback()
-//		return err
-//	}
-//	_, err = this.exec(sql, args, results)
-//	return err
-//}
-//
-//func (this *Tx) ExecInsertBuilder(ib *InsertBuilder) (result sql.Result, err error) {
-//	sql, args, err := ib.ToSQL()
-//	if err != nil {
-//		this.Rollback()
-//		return nil, err
-//	}
-//	return this.exec(sql, args, nil)
-//}
-//
-//func (this *Tx) ExecUpdateBuilder(ub *UpdateBuilder) (result sql.Result, err error) {
-//	sql, args, err := ub.ToSQL()
-//	if err != nil {
-//		this.Rollback()
-//		return nil, err
-//	}
-//	return this.exec(sql, args, nil)
-//}
-//
-//func (this *Tx) ExecDeleteBuilder(rb *DeleteBuilder) (result sql.Result, err error) {
-//	sql, args, err := rb.ToSQL()
-//	if err != nil {
-//		this.Rollback()
-//		return nil, err
-//	}
-//	return this.exec(sql, args, nil)
-//}
-//
-//func (this *Tx) ExecBuilder(b *Builder, results interface{}) (result sql.Result, err error) {
-//	sql, args, err := b.ToSQL()
-//	if err != nil {
-//		this.Rollback()
-//		return nil, err
-//	}
-//	return this.exec(sql, args, results)
-//}
+func (this *Tx) ExecSelectBuilder(sb *SelectBuilder, results interface{}) (err error) {
+	sql, args, err := sb.ToSQL()
+	if err != nil {
+		this.Rollback()
+		return err
+	}
+	_, err = this.exec(sql, args, results)
+	return err
+}
+
+func (this *Tx) ExecInsertBuilder(ib *InsertBuilder) (result sql.Result, err error) {
+	sql, args, err := ib.ToSQL()
+	if err != nil {
+		this.Rollback()
+		return nil, err
+	}
+	return this.exec(sql, args, nil)
+}
+
+func (this *Tx) ExecUpdateBuilder(ub *UpdateBuilder) (result sql.Result, err error) {
+	sql, args, err := ub.ToSQL()
+	if err != nil {
+		this.Rollback()
+		return nil, err
+	}
+	return this.exec(sql, args, nil)
+}
+
+func (this *Tx) ExecDeleteBuilder(rb *DeleteBuilder) (result sql.Result, err error) {
+	sql, args, err := rb.ToSQL()
+	if err != nil {
+		this.Rollback()
+		return nil, err
+	}
+	return this.exec(sql, args, nil)
+}
+
+func (this *Tx) ExecBuilder(b *Builder, results interface{}) (result sql.Result, err error) {
+	sql, args, err := b.ToSQL()
+	if err != nil {
+		this.Rollback()
+		return nil, err
+	}
+	return this.exec(sql, args, results)
+}
 
 func (this *Tx) Commit() (err error) {
 	err = this.tx.Commit()

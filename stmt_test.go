@@ -1,14 +1,14 @@
 package dbs
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 func TestClause(t *testing.T) {
 	//var c1 = SQL("a=?", 1)
 	//var c2 = SQL("b=?", 2)
-	//var cs = statments{}
+	//var cs = statements{}
 	//cs = append(cs, c1)
 	//cs = append(cs, c2)
 	//fmt.Println(cs.ToSQL(" "))

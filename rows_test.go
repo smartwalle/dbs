@@ -1,4 +1,5 @@
 package dbs
+
 //
 //import (
 //	"testing"
@@ -59,5 +60,3 @@ package dbs
 //		fmt.Println(h.Id, h.Name, h.Gender, h.Birthday, h.Type.Id, h.Type.Name)
 //	}
 //}
-
-
