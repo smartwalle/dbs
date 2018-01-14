@@ -7,11 +7,15 @@ import (
 
 // --------------------------------------------------------------------------------
 type Args struct {
-	args []interface{}
+	values []interface{}
 }
 
 func (this *Args) Append(args ...interface{}) {
-	this.args = append(this.args, args...)
+	this.values = append(this.values, args...)
+}
+
+func NewArgs() *Args {
+	return &Args{}
 }
 
 // --------------------------------------------------------------------------------
@@ -72,7 +76,7 @@ func (this Clauses) ToSQL() (string, []interface{}) {
 	var sqlBuffer = &bytes.Buffer{}
 	var args = &Args{}
 	this.AppendToSQL(sqlBuffer, "", args)
-	return sqlBuffer.String(), args.args
+	return sqlBuffer.String(), args.values
 }
 
 // --------------------------------------------------------------------------------
@@ -103,7 +107,7 @@ func (this *Set) ToSQL() (string, []interface{}) {
 	var sqlBuffer = &bytes.Buffer{}
 	var args = &Args{}
 	this.AppendToSQL(sqlBuffer, " ", args)
-	return sqlBuffer.String(), args.args
+	return sqlBuffer.String(), args.values
 }
 
 // --------------------------------------------------------------------------------
@@ -122,7 +126,7 @@ func (this Sets) ToSQL() (string, []interface{}) {
 	var sqlBuffer = &bytes.Buffer{}
 	var args = &Args{}
 	this.AppendToSQL(sqlBuffer, ", ", args)
-	return sqlBuffer.String(), args.args
+	return sqlBuffer.String(), args.values
 }
 
 // --------------------------------------------------------------------------------
@@ -180,7 +184,7 @@ func (this *where) ToSQL() (string, []interface{}) {
 	var sqlBuffer = &bytes.Buffer{}
 	var args = &Args{}
 	this.AppendToSQL(sqlBuffer, " ", args)
-	return sqlBuffer.String(), args.args
+	return sqlBuffer.String(), args.values
 }
 
 func (this *where) Append(cs ...Clauser) *where {
