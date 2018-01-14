@@ -17,7 +17,7 @@ func (this *Args) Append(args ...interface{}) {
 // --------------------------------------------------------------------------------
 type Clauser interface {
 	AppendToSQL(w io.Writer, sep string, args *Args)
-	ToSQL(sep string) (string, []interface{})
+	ToSQL() (string, []interface{})
 }
 
 // --------------------------------------------------------------------------------
@@ -50,9 +50,9 @@ func (this *Clause) AppendToSQL(w io.Writer, sep string, args *Args) {
 	}
 }
 
-func (this *Clause) ToSQL(sep string) (string, []interface{}) {
+func (this *Clause) ToSQL() (string, []interface{}) {
 	var sqlBuffer = &bytes.Buffer{}
-	this.AppendToSQL(sqlBuffer, sep, nil)
+	this.AppendToSQL(sqlBuffer, "", nil)
 	return sqlBuffer.String(), this.args
 }
 
@@ -68,10 +68,10 @@ func (this Clauses) AppendToSQL(w io.Writer, sep string, args *Args) {
 	}
 }
 
-func (this Clauses) ToSQL(sep string) (string, []interface{}) {
+func (this Clauses) ToSQL() (string, []interface{}) {
 	var sqlBuffer = &bytes.Buffer{}
 	var args = &Args{}
-	this.AppendToSQL(sqlBuffer, sep, args)
+	this.AppendToSQL(sqlBuffer, "", args)
 	return sqlBuffer.String(), args.args
 }
 
@@ -99,7 +99,7 @@ func (this *Set) AppendToSQL(w io.Writer, sep string, args *Args) {
 	}
 }
 
-func (this *Set) ToSQL(sep string) (string, []interface{}) {
+func (this *Set) ToSQL() (string, []interface{}) {
 	var sqlBuffer = &bytes.Buffer{}
 	var args = &Args{}
 	this.AppendToSQL(sqlBuffer, " ", args)
@@ -118,10 +118,10 @@ func (this Sets) AppendToSQL(w io.Writer, sep string, args *Args) {
 	}
 }
 
-func (this Sets) ToSQL(sep string) (string, []interface{}) {
+func (this Sets) ToSQL() (string, []interface{}) {
 	var sqlBuffer = &bytes.Buffer{}
 	var args = &Args{}
-	this.AppendToSQL(sqlBuffer, sep, args)
+	this.AppendToSQL(sqlBuffer, ", ", args)
 	return sqlBuffer.String(), args.args
 }
 
@@ -176,7 +176,7 @@ func (this *where) AppendToSQL(w io.Writer, sep string, args *Args) {
 	}
 }
 
-func (this *where) ToSQL(sep string) (string, []interface{}) {
+func (this *where) ToSQL() (string, []interface{}) {
 	var sqlBuffer = &bytes.Buffer{}
 	var args = &Args{}
 	this.AppendToSQL(sqlBuffer, " ", args)
