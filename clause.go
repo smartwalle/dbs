@@ -30,7 +30,7 @@ type Clause struct {
 	args []interface{}
 }
 
-func NewClause(sql string, args ...interface{}) Clauser {
+func NewClause(sql string, args ...interface{}) *Clause {
 	var c = &Clause{}
 	c.sql = sql
 	c.args = args
@@ -77,7 +77,7 @@ type Set struct {
 	value  interface{}
 }
 
-func NewSet(column string, value interface{}) Clauser {
+func NewSet(column string, value interface{}) *Set {
 	return &Set{column, value}
 }
 
