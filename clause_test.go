@@ -2,8 +2,6 @@ package dbs
 
 import (
 	"testing"
-	"fmt"
-
 )
 
 func TestClause(t *testing.T) {
@@ -25,14 +23,15 @@ func TestSet(t *testing.T) {
 }
 
 func TestWhere(t *testing.T) {
-	//var w1 = NewWhere("w=?", 10).And("w2=? AND w22=?", 11, 112).Or("w3=?", 12)
+	//var w1 = NewWhere()
+	////var w2 = NewWhere("w1=?", 20)
+	////w2.prefix = "AND"
+	////w1.Append(w2)
+	//w1.Or("a=?", 10)
 	//fmt.Println(w1.ToSQL(""))
 
-	var w2 = And(NewClause("w1=?", 10), Or(NewClause("w2=?", 20), NewClause("w3=?", 30)))
-
-	//w2.And(NewWhere("w2=?", 20), NewWhere("w3=?", 30))
-	fmt.Println(w2.ToSQL(""))
-
+	//var w2 = And(NC("w1=?", NC("ww=?", 10)), Or(NC("w2=?", 20), NC("w3=?", 30)))
+	//fmt.Println(w2.ToSQL(""))
 
 	//var wa = Or(And(C("w1=?", 10), C("w2=?", 20)), And(C("w3=?", 30), C("w4=?", 40)), Not(C("w5")))
 	//fmt.Println(wa.ToSQL(""))

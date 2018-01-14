@@ -33,6 +33,10 @@ func NewClause(sql string, args ...interface{}) Clauser {
 	return c
 }
 
+func NC(sql string, args ...interface{}) Clauser {
+	return NewClause(sql, args...)
+}
+
 func C(sql string, args ...interface{}) Clauser {
 	return NewClause(sql, args...)
 }
@@ -129,10 +133,8 @@ type where struct {
 	children []Clauser
 }
 
-func NewWhere(sql string, args ...interface{}) *where {
+func NewWhere() *where {
 	var w = &where{}
-	w.sql = sql
-	w.args = args
 	return w
 }
 
@@ -150,6 +152,12 @@ func (this *where) AppendToSQL(w io.Writer, sep string, args *Args) {
 		}
 
 		io.WriteString(w, this.sql)
+
+		if hasSQL && len(this.prefix) > 0 && len(this.children) == 1 {
+			io.WriteString(w, " ")
+			io.WriteString(w, this.prefix)
+			io.WriteString(w, " ")
+		}
 
 		for i, e := range this.children {
 			if i != 0 {
@@ -173,6 +181,15 @@ func (this *where) ToSQL(sep string) (string, []interface{}) {
 	var args = &Args{}
 	this.AppendToSQL(sqlBuffer, " ", args)
 	return sqlBuffer.String(), args.args
+}
+
+func (this *where) Append(cs ...Clauser) *where {
+	for _, c := range cs {
+		if c != nil {
+			this.children = append(this.children, c)
+		}
+	}
+	return this
 }
 
 //func (this *where) And(cs ...*where) *where {
