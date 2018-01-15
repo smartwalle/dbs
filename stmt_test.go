@@ -46,3 +46,9 @@ func TestWhere_IN(t *testing.T) {
 	var wi2 = AND(IN("c1", []int{1, 2, 3, 4, 5}), SQL("c2=?", 10))
 	fmt.Println(wi2.ToSQL())
 }
+
+func TestStatement(t *testing.T) {
+	var s = SQL("a=?", 10)
+	s.Append("AND b=?", 20)
+	fmt.Println(s.ToSQL())
+}

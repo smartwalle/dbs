@@ -22,7 +22,7 @@ func newArgs() *Args {
 
 // --------------------------------------------------------------------------------
 type Statement interface {
-	AppendToSQL(w io.Writer, sep string, args *Args) (error)
+	AppendToSQL(w io.Writer, sep string, args *Args) error
 	ToSQL() (string, []interface{}, error)
 	Valid() bool
 }
@@ -44,7 +44,7 @@ func SQL(sql string, args ...interface{}) *statement {
 	return NewStatement(sql, args...)
 }
 
-func (this *statement) AppendToSQL(w io.Writer, sep string, args *Args) (error) {
+func (this *statement) AppendToSQL(w io.Writer, sep string, args *Args) error {
 	if len(this.sql) > 0 {
 		if _, err := io.WriteString(w, this.sql); err != nil {
 			return err
@@ -54,6 +54,12 @@ func (this *statement) AppendToSQL(w io.Writer, sep string, args *Args) (error) 
 		args.Append(this.args...)
 	}
 	return nil
+}
+
+func (this *statement) Append(sql string, args ...interface{}) *statement {
+	this.sql = this.sql + " " + sql
+	this.args = append(this.args, args...)
+	return this
 }
 
 func (this *statement) ToSQL() (string, []interface{}, error) {
@@ -72,7 +78,7 @@ func (this *statement) Valid() bool {
 // --------------------------------------------------------------------------------
 type statements []Statement
 
-func (this statements) AppendToSQL(w io.Writer, sep string, args *Args) (error) {
+func (this statements) AppendToSQL(w io.Writer, sep string, args *Args) error {
 	for i, c := range this {
 		if i != 0 {
 			if _, err := io.WriteString(w, sep); err != nil {
@@ -110,7 +116,7 @@ func NewClause(sql string, s Statement) *Clause {
 	return c
 }
 
-func (this *Clause) AppendToSQL(w io.Writer, sep string, args *Args) (error) {
+func (this *Clause) AppendToSQL(w io.Writer, sep string, args *Args) error {
 	if len(this.sql) > 0 {
 		if _, err := io.WriteString(w, this.sql); err != nil {
 			return err
@@ -145,7 +151,7 @@ func newSet(column string, value interface{}) *set {
 	return &set{column, value}
 }
 
-func (this *set) AppendToSQL(w io.Writer, sep string, args *Args) (error) {
+func (this *set) AppendToSQL(w io.Writer, sep string, args *Args) error {
 	io.WriteString(w, this.column)
 	io.WriteString(w, "=")
 	switch tv := this.value.(type) {
@@ -176,7 +182,7 @@ func (this *set) Valid() bool {
 // --------------------------------------------------------------------------------
 type sets []Statement
 
-func (this sets) AppendToSQL(w io.Writer, sep string, args *Args) (error) {
+func (this sets) AppendToSQL(w io.Writer, sep string, args *Args) error {
 	for i, c := range this {
 		if i != 0 {
 			if _, err := io.WriteString(w, sep); err != nil {
@@ -209,7 +215,7 @@ type where struct {
 	children []Statement
 }
 
-func (this *where) AppendToSQL(w io.Writer, sep string, args *Args) (error) {
+func (this *where) AppendToSQL(w io.Writer, sep string, args *Args) error {
 	var hasSQL = len(this.sql) > 0
 	var hasChildren = len(this.children) > 0
 	var hasParen = len(this.children) > 1

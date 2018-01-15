@@ -3,8 +3,9 @@ package dbs
 import (
 	"bytes"
 	"database/sql"
+	"errors"
 	"fmt"
-	"github.com/smartwalle/errors"
+	"io"
 	"strings"
 )
 
@@ -97,70 +98,77 @@ func (this *UpdateBuilder) Suffix(sql string, args ...interface{}) *UpdateBuilde
 }
 
 func (this *UpdateBuilder) ToSQL() (string, []interface{}, error) {
-	if len(this.tables) == 0 {
-		return "", nil, errors.New("update statements must specify a table")
-	}
-	if len(this.columns) == 0 {
-		return "", nil, errors.New("update statements must have at least one Set")
-	}
-
 	var sqlBuffer = &bytes.Buffer{}
 	var args = newArgs()
-	var err error
+	err := this.AppendToSQL(sqlBuffer, "", args)
+	return sqlBuffer.String(), args.values, err
+}
 
-	if len(this.prefixes) > 0 {
-		this.prefixes.AppendToSQL(sqlBuffer, " ", args)
-		sqlBuffer.WriteString(" ")
+func (this *UpdateBuilder) AppendToSQL(w io.Writer, sep string, args *Args) error {
+	if len(this.tables) == 0 {
+		return errors.New("update statements must specify a table")
+	}
+	if len(this.columns) == 0 {
+		return errors.New("update statements must have at least one Set")
 	}
 
-	sqlBuffer.WriteString("UPDATE ")
+	if len(this.prefixes) > 0 {
+		this.prefixes.AppendToSQL(w, " ", args)
+		io.WriteString(w, " ")
+	}
+
+	io.WriteString(w, "UPDATE ")
 
 	if len(this.options) > 0 {
-		this.options.AppendToSQL(sqlBuffer, " ", args)
-		sqlBuffer.WriteString(" ")
+		this.options.AppendToSQL(w, " ", args)
+		io.WriteString(w, " ")
 	}
 
 	if len(this.tables) > 0 {
-		this.tables.AppendToSQL(sqlBuffer, ", ", args)
+		this.tables.AppendToSQL(w, ", ", args)
 	}
 
 	if len(this.joins) > 0 {
-		sqlBuffer.WriteString(" ")
-		this.joins.AppendToSQL(sqlBuffer, " ", args)
+		io.WriteString(w, " ")
+		this.joins.AppendToSQL(w, " ", args)
 	}
 
-	sqlBuffer.WriteString(" SET ")
+	io.WriteString(w, " SET ")
 
 	if len(this.columns) > 0 {
-		this.columns.AppendToSQL(sqlBuffer, ", ", args)
+		this.columns.AppendToSQL(w, ", ", args)
 	}
 
 	if this.where == nil || this.where.Valid() == false {
-		return "", nil, errors.New("update statements must have WHERE condition")
+		return errors.New("update statements must have WHERE condition")
 	} else {
-		sqlBuffer.WriteString(" WHERE ")
-		this.where.AppendToSQL(sqlBuffer, " ", args)
+		io.WriteString(w, " WHERE ")
+		this.where.AppendToSQL(w, " ", args)
 	}
 
 	if len(this.orderBys) > 0 {
-		sqlBuffer.WriteString(" ORDER BY ")
-		sqlBuffer.WriteString(strings.Join(this.orderBys, ", "))
+		io.WriteString(w, " ORDER BY ")
+		io.WriteString(w, strings.Join(this.orderBys, ", "))
 	}
 
 	if this.limit != nil {
-		this.limit.AppendToSQL(sqlBuffer, "", args)
+		this.limit.AppendToSQL(w, "", args)
 	}
 
 	if this.offset != nil {
-		this.offset.AppendToSQL(sqlBuffer, "", args)
+		this.offset.AppendToSQL(w, "", args)
 	}
 
 	if len(this.suffixes) > 0 {
-		sqlBuffer.WriteString(" ")
-		this.suffixes.AppendToSQL(sqlBuffer, " ", args)
+		io.WriteString(w, " ")
+		this.suffixes.AppendToSQL(w, " ", args)
 	}
 
-	return sqlBuffer.String(), args.values, err
+	return nil
+}
+
+func (this *UpdateBuilder) Valid() bool {
+	return true
 }
 
 func (this *UpdateBuilder) Exec(s SQLExecutor) (sql.Result, error) {

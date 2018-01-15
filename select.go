@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 	"io"
+	"strings"
 )
 
 type SelectBuilder struct {
@@ -109,6 +109,67 @@ func (this *SelectBuilder) Suffix(sql string, args ...interface{}) *SelectBuilde
 	return this
 }
 
+func (this *SelectBuilder) CountSQL() (string, []interface{}, error) {
+	if len(this.columns) == 0 {
+		return "", nil, errors.New("SELECT statements must have at least on result column")
+	}
+
+	var sqlBuffer = &bytes.Buffer{}
+	var args = newArgs()
+	var err error
+
+	if len(this.prefixes) > 0 {
+		this.prefixes.AppendToSQL(sqlBuffer, " ", args)
+		sqlBuffer.WriteString(" ")
+	}
+
+	sqlBuffer.WriteString("SELECT ")
+
+	if len(this.options) > 0 {
+		this.options.AppendToSQL(sqlBuffer, " ", args)
+		sqlBuffer.WriteString(" ")
+	}
+
+	sqlBuffer.WriteString("COUNT(*) AS total")
+
+	if len(this.from) > 0 {
+		sqlBuffer.WriteString(" FROM ")
+		this.from.AppendToSQL(sqlBuffer, ", ", args)
+	}
+
+	if len(this.joins) > 0 {
+		sqlBuffer.WriteString(" ")
+		this.joins.AppendToSQL(sqlBuffer, " ", args)
+	}
+
+	if this.where != nil && this.where.Valid() {
+		sqlBuffer.WriteString(" WHERE ")
+		this.where.AppendToSQL(sqlBuffer, " ", args)
+	}
+
+	if len(this.groupBys) > 0 {
+		sqlBuffer.WriteString(" GROUP BY ")
+		sqlBuffer.WriteString(strings.Join(this.groupBys, ", "))
+	}
+
+	if len(this.havings) > 0 {
+		sqlBuffer.WriteString(" HAVING ")
+		this.havings.AppendToSQL(sqlBuffer, " ", args)
+	}
+
+	if len(this.orderBys) > 0 {
+		sqlBuffer.WriteString(" ORDER BY ")
+		sqlBuffer.WriteString(strings.Join(this.orderBys, ", "))
+	}
+
+	if len(this.suffixes) > 0 {
+		sqlBuffer.WriteString(" ")
+		this.suffixes.AppendToSQL(sqlBuffer, " ", args)
+	}
+
+	return "", nil, err
+}
+
 func (this *SelectBuilder) ToSQL() (string, []interface{}, error) {
 	var sqlBuffer = &bytes.Buffer{}
 	var args = newArgs()
@@ -116,43 +177,7 @@ func (this *SelectBuilder) ToSQL() (string, []interface{}, error) {
 	return sqlBuffer.String(), args.values, err
 }
 
-func (this *SelectBuilder) Query(s SQLExecutor) (*sql.Rows, error) {
-	sql, args, err := this.ToSQL()
-	if err != nil {
-		return nil, err
-	}
-	return Query(s, sql, args...)
-}
-
-func (this *SelectBuilder) Count(s SQLExecutor) (count int64) {
-	sql, args, err := this.CountSQL()
-	if err != nil {
-		return 0
-	}
-	rows, err := Query(s, sql, args...)
-	if err != nil {
-		return 0
-	}
-
-	if rows.Next() {
-		err = rows.Scan(&count)
-		if err != nil {
-			return 0
-		}
-	}
-	return count
-}
-
-func (this *SelectBuilder) Scan(s SQLExecutor, result interface{}) (err error) {
-	rows, err := this.Query(s)
-	if err != nil {
-		return err
-	}
-	err = Scan(rows, result)
-	return err
-}
-
-func (this *SelectBuilder) AppendToSQL(w io.Writer, sep string, args *Args) (error) {
+func (this *SelectBuilder) AppendToSQL(w io.Writer, sep string, args *Args) error {
 	if len(this.columns) == 0 {
 		return errors.New("SELECT statements must have at least on result column")
 	}
@@ -218,69 +243,44 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, sep string, args *Args) (err
 	return nil
 }
 
-func (this *SelectBuilder) CountSQL() (string, []interface{}, error) {
-	if len(this.columns) == 0 {
-		return "", nil, errors.New("SELECT statements must have at least on result column")
-	}
-
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	var err error
-
-	if len(this.prefixes) > 0 {
-		this.prefixes.AppendToSQL(sqlBuffer, " ", args)
-		sqlBuffer.WriteString(" ")
-	}
-
-	sqlBuffer.WriteString("SELECT ")
-
-	if len(this.options) > 0 {
-		this.options.AppendToSQL(sqlBuffer, " ", args)
-		sqlBuffer.WriteString(" ")
-	}
-
-	sqlBuffer.WriteString("COUNT(*) AS total")
-
-	if len(this.from) > 0 {
-		sqlBuffer.WriteString(" FROM ")
-		this.from.AppendToSQL(sqlBuffer, ", ", args)
-	}
-
-	if len(this.joins) > 0 {
-		sqlBuffer.WriteString(" ")
-		this.joins.AppendToSQL(sqlBuffer, " ", args)
-	}
-
-	if this.where != nil && this.where.Valid() {
-		sqlBuffer.WriteString(" WHERE ")
-		this.where.AppendToSQL(sqlBuffer, " ", args)
-	}
-
-	if len(this.groupBys) > 0 {
-		sqlBuffer.WriteString(" GROUP BY ")
-		sqlBuffer.WriteString(strings.Join(this.groupBys, ", "))
-	}
-
-	if len(this.havings) > 0 {
-		sqlBuffer.WriteString(" HAVING ")
-		this.havings.AppendToSQL(sqlBuffer, " ", args)
-	}
-
-	if len(this.orderBys) > 0 {
-		sqlBuffer.WriteString(" ORDER BY ")
-		sqlBuffer.WriteString(strings.Join(this.orderBys, ", "))
-	}
-
-	if len(this.suffixes) > 0 {
-		sqlBuffer.WriteString(" ")
-		this.suffixes.AppendToSQL(sqlBuffer, " ", args)
-	}
-
-	return "", nil, err
-}
-
 func (this *SelectBuilder) Valid() bool {
 	return true
+}
+
+func (this *SelectBuilder) Query(s SQLExecutor) (*sql.Rows, error) {
+	sql, args, err := this.ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	return Query(s, sql, args...)
+}
+
+func (this *SelectBuilder) Count(s SQLExecutor) (count int64) {
+	sql, args, err := this.CountSQL()
+	if err != nil {
+		return 0
+	}
+	rows, err := Query(s, sql, args...)
+	if err != nil {
+		return 0
+	}
+
+	if rows.Next() {
+		err = rows.Scan(&count)
+		if err != nil {
+			return 0
+		}
+	}
+	return count
+}
+
+func (this *SelectBuilder) Scan(s SQLExecutor, result interface{}) (err error) {
+	rows, err := this.Query(s)
+	if err != nil {
+		return err
+	}
+	err = Scan(rows, result)
+	return err
 }
 
 func NewSelectBuilder() *SelectBuilder {

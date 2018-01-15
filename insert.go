@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 )
 
@@ -66,40 +67,43 @@ func (this *InsertBuilder) SET(column string, value interface{}) *InsertBuilder 
 }
 
 func (this *InsertBuilder) ToSQL() (string, []interface{}, error) {
-	if len(this.table) == 0 {
-		return "", nil, errors.New("insert statements must specify a table")
-	}
-	if len(this.values) == 0 {
-		return "", nil, errors.New("insert statements must have at least one set of values")
-	}
-
 	var sqlBuffer = &bytes.Buffer{}
 	var args = newArgs()
-	var err error
+	err := this.AppendToSQL(sqlBuffer, "", args)
+	return sqlBuffer.String(), args.values, err
+}
+
+func (this *InsertBuilder) AppendToSQL(w io.Writer, sep string, args *Args) error {
+	if len(this.table) == 0 {
+		return errors.New("insert statements must specify a table")
+	}
+	if len(this.values) == 0 {
+		return errors.New("insert statements must have at least one set of values")
+	}
 
 	if len(this.prefixes) > 0 {
-		this.prefixes.AppendToSQL(sqlBuffer, " ", args)
-		sqlBuffer.WriteString(" ")
+		this.prefixes.AppendToSQL(w, " ", args)
+		io.WriteString(w, " ")
 	}
 
-	sqlBuffer.WriteString("INSERT ")
+	io.WriteString(w, "INSERT ")
 
 	if len(this.options) > 0 {
-		this.options.AppendToSQL(sqlBuffer, " ", args)
-		sqlBuffer.WriteString(" ")
+		this.options.AppendToSQL(w, " ", args)
+		io.WriteString(w, " ")
 	}
 
-	sqlBuffer.WriteString("INTO `")
-	sqlBuffer.WriteString(this.table)
-	sqlBuffer.WriteString("` ")
+	io.WriteString(w, "INTO `")
+	io.WriteString(w, this.table)
+	io.WriteString(w, "` ")
 
 	if len(this.columns) > 0 {
-		sqlBuffer.WriteString("(`")
-		sqlBuffer.WriteString(strings.Join(this.columns, "`, `"))
-		sqlBuffer.WriteString("`)")
+		io.WriteString(w, "(`")
+		io.WriteString(w, strings.Join(this.columns, "`, `"))
+		io.WriteString(w, "`)")
 	}
 
-	sqlBuffer.WriteString(" VALUES ")
+	io.WriteString(w, " VALUES ")
 
 	var valuesPlaceholder = make([]string, len(this.values))
 	for index, value := range this.values {
@@ -117,14 +121,17 @@ func (this *InsertBuilder) ToSQL() (string, []interface{}, error) {
 		}
 		valuesPlaceholder[index] = fmt.Sprintf("(%s)", strings.Join(valuePlaceholder, ", "))
 	}
-	sqlBuffer.WriteString(strings.Join(valuesPlaceholder, ", "))
+	io.WriteString(w, strings.Join(valuesPlaceholder, ", "))
 
 	if len(this.suffixes) > 0 {
-		sqlBuffer.WriteString(" ")
-		this.suffixes.AppendToSQL(sqlBuffer, " ", args)
+		io.WriteString(w, " ")
+		this.suffixes.AppendToSQL(w, " ", args)
 	}
+	return nil
+}
 
-	return sqlBuffer.String(), args.values, err
+func (this *InsertBuilder) Valid() bool {
+	return true
 }
 
 func (this *InsertBuilder) Exec(s SQLExecutor) (sql.Result, error) {

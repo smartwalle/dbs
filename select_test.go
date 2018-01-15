@@ -25,10 +25,8 @@ func TestSelectBuilder_Select2(t *testing.T) {
 	var sb1 = NewSelectBuilder()
 	sb1.Select("u.id")
 	sb1.From("user", "AS u")
-	sb1.Where(SQL("u.id=?", 10))
-	fmt.Println("----------------")
+	sb1.Where(SQL("u.id=?", 10).Append("OR u.id=?", 20))
 	fmt.Println(sb1.ToSQL())
-	fmt.Println("----------------")
 
 	var sb2 = NewSelectBuilder()
 	sb2.Select("s.id")
