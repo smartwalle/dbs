@@ -138,7 +138,10 @@ func (this *Clause) ToSQL() (string, []interface{}, error) {
 }
 
 func (this *Clause) Valid() bool {
-	return true
+	if len(this.sql) == 0 {
+		return false
+	}
+	return this.args.Valid()
 }
 
 // --------------------------------------------------------------------------------

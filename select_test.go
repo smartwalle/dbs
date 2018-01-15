@@ -34,3 +34,13 @@ func TestSelectBuilder_Select2(t *testing.T) {
 	sb2.Where(NewClause("s.user_id=", sb1))
 	fmt.Println(sb2.ToSQL())
 }
+
+func TestSelectBuilder_Select3(t *testing.T) {
+	var sb = NewSelectBuilder()
+	sb.Selects("u.id")
+	sb.From("user", "AS u")
+
+	var w = SQL("")
+	sb.Where(w)
+	fmt.Println(sb.ToSQL())
+}
