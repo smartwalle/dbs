@@ -229,7 +229,7 @@ func (this *where) ToSQL() (string, []interface{}, error) {
 	return sqlBuffer.String(), args.values, err
 }
 
-func (this *where) Append(sql interface{}, args ...interface{}) *where {
+func (this *where) Append(sql string, args ...interface{}) *where {
 	var stmt = parseStmt(sql, args...)
 	if stmt != nil {
 		this.Appends(stmt)

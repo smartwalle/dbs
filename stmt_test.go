@@ -18,7 +18,7 @@ func TestAND(t *testing.T) {
 
 	var wa2 = AND()
 	wa2.Append("c1=?", 10000)
-	wa2.Append("c2=?", 20000)
+	wa2.Append("c2=?", "1111")
 	wa2.Appends(SQL("c3=?", 30000))
 	fmt.Println(wa2.ToSQL())
 }
