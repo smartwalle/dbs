@@ -16,7 +16,7 @@ type DeleteBuilder struct {
 	tables   statements
 	using    string
 	joins    statements
-	where    Statement
+	where    statements
 	orderBys []string
 	limit    Statement
 	offset   Statement
@@ -89,7 +89,7 @@ func (this *DeleteBuilder) join(join, table, suffix string, args ...interface{})
 }
 
 func (this *DeleteBuilder) Where(sql Statement) *DeleteBuilder {
-	this.where = sql
+	this.where = append(this.where, sql)
 	return this
 }
 
@@ -158,9 +158,7 @@ func (this *DeleteBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 		this.joins.AppendToSQL(w, " ", args)
 	}
 
-	if this.where == nil || this.where.Valid() == false {
-		return errors.New("delete statements must have WHERE condition")
-	} else {
+	if len(this.where) > 0 {
 		io.WriteString(w, " WHERE ")
 		this.where.AppendToSQL(w, " ", args)
 	}
@@ -183,10 +181,6 @@ func (this *DeleteBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 		this.suffixes.AppendToSQL(w, " ", args)
 	}
 	return nil
-}
-
-func (this *DeleteBuilder) Valid() bool {
-	return true
 }
 
 func (this *DeleteBuilder) Exec(s SQLExecutor) (sql.Result, error) {

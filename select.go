@@ -15,7 +15,7 @@ type SelectBuilder struct {
 	columns  statements
 	from     statements
 	joins    statements
-	where    Statement
+	where    statements
 	groupBys []string
 	havings  statements
 	orderBys []string
@@ -75,7 +75,7 @@ func (this *SelectBuilder) join(join, table, suffix string, args ...interface{})
 }
 
 func (this *SelectBuilder) Where(sql Statement) *SelectBuilder {
-	this.where = sql
+	this.where = append(this.where, sql)
 	return this
 }
 
@@ -142,7 +142,7 @@ func (this *SelectBuilder) CountSQL() (string, []interface{}, error) {
 		this.joins.AppendToSQL(sqlBuffer, " ", args)
 	}
 
-	if this.where != nil && this.where.Valid() {
+	if len(this.where) > 0 {
 		sqlBuffer.WriteString(" WHERE ")
 		this.where.AppendToSQL(sqlBuffer, " ", args)
 	}
@@ -208,9 +208,9 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 		this.joins.AppendToSQL(w, " ", args)
 	}
 
-	if this.where != nil && this.where.Valid() {
+	if len(this.where) > 0 {
 		io.WriteString(w, " WHERE ")
-		this.where.AppendToSQL(w, " ", args)
+		this.where.AppendToSQL(w, " AND ", args)
 	}
 
 	if len(this.groupBys) > 0 {
@@ -241,10 +241,6 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 		this.suffixes.AppendToSQL(w, " ", args)
 	}
 	return nil
-}
-
-func (this *SelectBuilder) Valid() bool {
-	return true
 }
 
 func (this *SelectBuilder) Query(s SQLExecutor) (*sql.Rows, error) {

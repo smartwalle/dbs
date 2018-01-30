@@ -1,8 +1,8 @@
 package dbs
 
 import (
-	"fmt"
 	"testing"
+	"fmt"
 )
 
 func TestUpdateBuilder_ToSQL(t *testing.T) {

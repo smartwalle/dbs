@@ -40,7 +40,9 @@ func TestSelectBuilder_Select3(t *testing.T) {
 	sb.Selects("u.id")
 	sb.From("user", "AS u")
 
-	var w = SQL("")
+	var w = SQL("a=?", 10)
 	sb.Where(w)
+	sb.Where(SQL("b=?", 20))
+	sb.Where(OR(SQL("c=?", 30), SQL("d=?", 40)))
 	fmt.Println(sb.ToSQL())
 }

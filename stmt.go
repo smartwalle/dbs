@@ -24,7 +24,6 @@ func newArgs() *Args {
 type Statement interface {
 	AppendToSQL(w io.Writer, sep string, args *Args) error
 	ToSQL() (string, []interface{}, error)
-	Valid() bool
 }
 
 // --------------------------------------------------------------------------------
@@ -68,13 +67,6 @@ func (this *statement) ToSQL() (string, []interface{}, error) {
 	return sqlBuffer.String(), this.args, err
 }
 
-func (this *statement) Valid() bool {
-	if len(this.sql) > 0 || len(this.args) > 0 {
-		return true
-	}
-	return false
-}
-
 // --------------------------------------------------------------------------------
 type statements []Statement
 
@@ -97,10 +89,6 @@ func (this statements) ToSQL() (string, []interface{}, error) {
 	var args = newArgs()
 	err := this.AppendToSQL(sqlBuffer, "", args)
 	return sqlBuffer.String(), args.values, err
-}
-
-func (this statements) Valid() bool {
-	return true
 }
 
 // --------------------------------------------------------------------------------
@@ -137,13 +125,6 @@ func (this *Clause) ToSQL() (string, []interface{}, error) {
 	return sqlBuffer.String(), args.values, err
 }
 
-func (this *Clause) Valid() bool {
-	if len(this.sql) == 0 {
-		return false
-	}
-	return this.args.Valid()
-}
-
 // --------------------------------------------------------------------------------
 type set struct {
 	column string
@@ -178,10 +159,6 @@ func (this *set) ToSQL() (string, []interface{}, error) {
 	return sqlBuffer.String(), args.values, err
 }
 
-func (this *set) Valid() bool {
-	return true
-}
-
 // --------------------------------------------------------------------------------
 type sets []Statement
 
@@ -204,10 +181,6 @@ func (this sets) ToSQL() (string, []interface{}, error) {
 	var args = newArgs()
 	err := this.AppendToSQL(sqlBuffer, ", ", args)
 	return sqlBuffer.String(), args.values, err
-}
-
-func (this *sets) Valid() bool {
-	return true
 }
 
 // --------------------------------------------------------------------------------
@@ -263,13 +236,6 @@ func (this *where) Append(sts ...Statement) *where {
 		}
 	}
 	return this
-}
-
-func (this *where) Valid() bool {
-	if len(this.sql) > 0 || len(this.children) > 0 {
-		return true
-	}
-	return false
 }
 
 // --------------------------------------------------------------------------------

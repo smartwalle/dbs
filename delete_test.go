@@ -1,8 +1,8 @@
 package dbs
 
 import (
-	"fmt"
 	"testing"
+	"fmt"
 )
 
 func TestDeleteBuilder_ToSQL(t *testing.T) {
