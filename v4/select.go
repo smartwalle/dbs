@@ -173,11 +173,11 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 	}
 
 	if this.limit != nil {
-		this.limit.AppendToSQL(w, "", args)
+		this.limit.AppendToSQL(w, args)
 	}
 
 	if this.offset != nil {
-		this.offset.AppendToSQL(w, "", args)
+		this.offset.AppendToSQL(w, args)
 	}
 
 	if len(this.suffixes) > 0 {
