@@ -14,7 +14,7 @@ type UpdateBuilder struct {
 	options  statements
 	tables   statements
 	joins    statements
-	columns  sets
+	columns  setStmts
 	where    statements
 	orderBys []string
 	limit    Statement

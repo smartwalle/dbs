@@ -92,19 +92,19 @@ func (this statements) ToSQL() (string, []interface{}, error) {
 }
 
 // --------------------------------------------------------------------------------
-type Clause struct {
+type clauseStmt struct {
 	sql  string
 	args Statement
 }
 
-func NewClause(sql string, s Statement) *Clause {
-	var c = &Clause{}
+func Clause(sql string, s Statement) *clauseStmt {
+	var c = &clauseStmt{}
 	c.sql = sql
 	c.args = s
 	return c
 }
 
-func (this *Clause) AppendToSQL(w io.Writer, sep string, args *Args) error {
+func (this *clauseStmt) AppendToSQL(w io.Writer, sep string, args *Args) error {
 	if len(this.sql) > 0 {
 		if _, err := io.WriteString(w, this.sql); err != nil {
 			return err
@@ -118,7 +118,7 @@ func (this *Clause) AppendToSQL(w io.Writer, sep string, args *Args) error {
 	return nil
 }
 
-func (this *Clause) ToSQL() (string, []interface{}, error) {
+func (this *clauseStmt) ToSQL() (string, []interface{}, error) {
 	var sqlBuffer = &bytes.Buffer{}
 	var args = newArgs()
 	err := this.AppendToSQL(sqlBuffer, "", args)
@@ -126,16 +126,16 @@ func (this *Clause) ToSQL() (string, []interface{}, error) {
 }
 
 // --------------------------------------------------------------------------------
-type set struct {
+type setStmt struct {
 	column string
 	value  interface{}
 }
 
-func newSet(column string, value interface{}) *set {
-	return &set{column, value}
+func newSet(column string, value interface{}) *setStmt {
+	return &setStmt{column, value}
 }
 
-func (this *set) AppendToSQL(w io.Writer, sep string, args *Args) error {
+func (this *setStmt) AppendToSQL(w io.Writer, sep string, args *Args) error {
 	io.WriteString(w, this.column)
 	io.WriteString(w, "=")
 	switch tv := this.value.(type) {
@@ -152,7 +152,7 @@ func (this *set) AppendToSQL(w io.Writer, sep string, args *Args) error {
 	return nil
 }
 
-func (this *set) ToSQL() (string, []interface{}, error) {
+func (this *setStmt) ToSQL() (string, []interface{}, error) {
 	var sqlBuffer = &bytes.Buffer{}
 	var args = newArgs()
 	err := this.AppendToSQL(sqlBuffer, " ", args)
@@ -160,9 +160,9 @@ func (this *set) ToSQL() (string, []interface{}, error) {
 }
 
 // --------------------------------------------------------------------------------
-type sets []Statement
+type setStmts []Statement
 
-func (this sets) AppendToSQL(w io.Writer, sep string, args *Args) error {
+func (this setStmts) AppendToSQL(w io.Writer, sep string, args *Args) error {
 	for i, c := range this {
 		if i != 0 {
 			if _, err := io.WriteString(w, sep); err != nil {
@@ -176,7 +176,7 @@ func (this sets) AppendToSQL(w io.Writer, sep string, args *Args) error {
 	return nil
 }
 
-func (this sets) ToSQL() (string, []interface{}, error) {
+func (this setStmts) ToSQL() (string, []interface{}, error) {
 	var sqlBuffer = &bytes.Buffer{}
 	var args = newArgs()
 	err := this.AppendToSQL(sqlBuffer, ", ", args)
@@ -184,14 +184,14 @@ func (this sets) ToSQL() (string, []interface{}, error) {
 }
 
 // --------------------------------------------------------------------------------
-type where struct {
+type whereStmt struct {
 	sql      string
 	prefix   string
 	args     []interface{}
 	children []Statement
 }
 
-func (this *where) AppendToSQL(w io.Writer, sep string, args *Args) error {
+func (this *whereStmt) AppendToSQL(w io.Writer, sep string, args *Args) error {
 	var hasSQL = len(this.sql) > 0
 	var hasChildren = len(this.children) > 0
 	var hasParen = len(this.children) > 1
@@ -222,14 +222,14 @@ func (this *where) AppendToSQL(w io.Writer, sep string, args *Args) error {
 	return nil
 }
 
-func (this *where) ToSQL() (string, []interface{}, error) {
+func (this *whereStmt) ToSQL() (string, []interface{}, error) {
 	var sqlBuffer = &bytes.Buffer{}
 	var args = newArgs()
 	err := this.AppendToSQL(sqlBuffer, " ", args)
 	return sqlBuffer.String(), args.values, err
 }
 
-func (this *where) Append(sql string, args ...interface{}) *where {
+func (this *whereStmt) Append(sql string, args ...interface{}) *whereStmt {
 	var stmt = parseStmt(sql, args...)
 	if stmt != nil {
 		this.Appends(stmt)
@@ -237,7 +237,7 @@ func (this *where) Append(sql string, args ...interface{}) *where {
 	return this
 }
 
-func (this *where) Appends(sts ...Statement) *where {
+func (this *whereStmt) Appends(sts ...Statement) *whereStmt {
 	for _, c := range sts {
 		if c != nil {
 			this.children = append(this.children, c)
@@ -263,15 +263,15 @@ func parseStmt(sql interface{}, args ...interface{}) Statement {
 }
 
 // --------------------------------------------------------------------------------
-func AND(sts ...Statement) *where {
-	var w = &where{}
+func AND(sts ...Statement) *whereStmt {
+	var w = &whereStmt{}
 	w.children = sts
 	w.prefix = " AND "
 	return w
 }
 
-func OR(sts ...Statement) *where {
-	var w = &where{}
+func OR(sts ...Statement) *whereStmt {
+	var w = &whereStmt{}
 	w.children = sts
 	w.prefix = " OR "
 	return w
@@ -302,4 +302,103 @@ func IN(sql string, args interface{}) Statement {
 	st.sql = sql
 	st.args = params
 	return st
+}
+
+// --------------------------------------------------------------------------------
+type whenStmt struct {
+	when Statement
+	then Statement
+}
+type caseStmt struct {
+	whatPart Statement
+	whenPart []whenStmt
+	elsePart Statement
+}
+
+func Case(what ...interface{}) *caseStmt {
+	var c = &caseStmt{}
+
+	switch len(what) {
+	case 0:
+	case 1:
+		c.what(what[0])
+	default:
+		c.what(parseStmt(what[0], what[1:]...))
+	}
+	return c
+}
+
+func (this *caseStmt) AppendToSQL(w io.Writer, sep string, args *Args) error {
+	io.WriteString(w, "CASE ")
+	if this.whatPart != nil {
+		this.whatPart.AppendToSQL(w, " ", args)
+	}
+
+	for _, wp := range this.whenPart {
+		io.WriteString(w, " WHEN ")
+		wp.when.AppendToSQL(w, " ", args)
+		io.WriteString(w, " THEN ")
+		wp.then.AppendToSQL(w, " ", args)
+	}
+
+	if this.elsePart != nil {
+		io.WriteString(w, " ELSE ")
+		this.elsePart.AppendToSQL(w, " ", args)
+	}
+
+	io.WriteString(w, " END")
+	return nil
+}
+
+func (this *caseStmt) ToSQL() (string, []interface{}, error) {
+	var sqlBuffer = &bytes.Buffer{}
+	var args = newArgs()
+	err := this.AppendToSQL(sqlBuffer, " ", args)
+	return sqlBuffer.String(), args.values, err
+}
+
+func (this *caseStmt) what(what interface{}) *caseStmt {
+	this.whatPart = parseStmt(what)
+	return this
+}
+
+func (this *caseStmt) When(when, then interface{}) *caseStmt {
+	this.whenPart = append(this.whenPart, whenStmt{parseStmt(when), parseStmt(then)})
+	return this
+}
+
+func (this *caseStmt) Else(sql interface{}) *caseStmt {
+	this.elsePart = parseStmt(sql)
+	return this
+}
+
+// --------------------------------------------------------------------------------
+type aliasStmt struct {
+	sql Statement
+	alias string
+}
+
+func Alias(sql interface{}, alias string) *aliasStmt {
+	var s = &aliasStmt{}
+	s.sql = parseStmt(sql)
+	s.alias = alias
+	return s
+}
+
+func (this *aliasStmt) AppendToSQL(w io.Writer, sep string, args *Args) error {
+	if this.sql != nil {
+		io.WriteString(w, "(")
+		this.sql.AppendToSQL(w, "", args)
+		io.WriteString(w, ")")
+	}
+	io.WriteString(w, " AS ")
+	io.WriteString(w, this.alias)
+	return nil
+}
+
+func (this *aliasStmt) ToSQL() (string, []interface{}, error) {
+	var sqlBuffer = &bytes.Buffer{}
+	var args = newArgs()
+	err := this.AppendToSQL(sqlBuffer, " ", args)
+	return sqlBuffer.String(), args.values, err
 }

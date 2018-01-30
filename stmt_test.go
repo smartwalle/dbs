@@ -36,3 +36,12 @@ func TestIN(t *testing.T) {
 	var wi2 = AND(IN("c1", []int{1, 2, 3, 4, 5}), SQL("c2=?", 10))
 	fmt.Println(wi2.ToSQL())
 }
+
+func TestCase(t *testing.T) {
+	var c1 = Case("a")
+	c1.When("10", SQL("a=?", 1000))
+	c1.When("20", "200")
+	c1.Else("0")
+
+	fmt.Println(c1.ToSQL())
+}
