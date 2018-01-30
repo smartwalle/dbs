@@ -130,10 +130,6 @@ func (this *InsertBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 	return nil
 }
 
-func (this *InsertBuilder) Valid() bool {
-	return true
-}
-
 func (this *InsertBuilder) Exec(s SQLExecutor) (sql.Result, error) {
 	sql, args, err := this.ToSQL()
 	if err != nil {
