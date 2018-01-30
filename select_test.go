@@ -14,8 +14,8 @@ func TestSelectBuilder_Select(t *testing.T) {
 	//sb.RightJoin("course", "AS c ON c.user_id=u.id AND c.type=?", 1002)
 	//
 	//var ws = AND()
-	//ws.Append(OR(SQL("u.id=?", 10), SQL("u.email=?", "qq@qq.com")))
-	//ws.Append(OR(SQL("u.id=?", 11), SQL("u.email=?", "qq@qq.com")))
+	//ws.Appends(OR(SQL("u.id=?", 10), SQL("u.email=?", "qq@qq.com")))
+	//ws.Appends(OR(SQL("u.id=?", 11), SQL("u.email=?", "qq@qq.com")))
 	//sb.Where(ws)
 	//
 	//fmt.Println(sb.ToSQL())
@@ -25,7 +25,7 @@ func TestSelectBuilder_Select2(t *testing.T) {
 	//var sb1 = NewSelectBuilder()
 	//sb1.Select("u.id")
 	//sb1.From("user", "AS u")
-	//sb1.Where(SQL("u.id=?", 10).Append("OR u.id=?", 20))
+	//sb1.Where(SQL("u.id=?", 10).Appends("OR u.id=?", 20))
 	//fmt.Println(sb1.ToSQL())
 	//
 	//var sb2 = NewSelectBuilder()

@@ -13,17 +13,19 @@ func TestSQL(t *testing.T) {
 
 func TestAND(t *testing.T) {
 	var wa1 = AND()
-	wa1.Append(SQL("c1=?", 10), SQL("c2=?", 20), OR(SQL("c1=?", 11), SQL("c2=?", 21)), AND(SQL("c3=?", 30)))
+	wa1.Appends(SQL("c1=?", 10), SQL("c2=?", 20), OR(SQL("c1=?", 11), SQL("c2=?", 21)), AND(SQL("c3=?", 30)))
 	fmt.Println(wa1.ToSQL())
 
 	var wa2 = AND()
-	wa2.Append(SQL("c1=?", 10), SQL("c2=?", 10))
+	wa2.Append("c1=?", 10000)
+	wa2.Append("c2=?", 20000)
+	wa2.Appends(SQL("c3=?", 30000))
 	fmt.Println(wa2.ToSQL())
 }
 
 func TestOR(t *testing.T) {
 	var wo1 = OR()
-	wo1.Append(SQL("c1=?", 10), SQL("c2=?", 20), AND(SQL("c3=?", 30), SQL("c4=?", 40)))
+	wo1.Appends(SQL("c1=?", 10), SQL("c2=?", 20), AND(SQL("c3=?", 30), SQL("c4=?", 40)))
 	fmt.Println(wo1.ToSQL())
 }
 

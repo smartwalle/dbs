@@ -229,7 +229,15 @@ func (this *where) ToSQL() (string, []interface{}, error) {
 	return sqlBuffer.String(), args.values, err
 }
 
-func (this *where) Append(sts ...Statement) *where {
+func (this *where) Append(sql interface{}, args ...interface{}) *where {
+	var stmt = parseStmt(sql, args...)
+	if stmt != nil {
+		this.Appends(stmt)
+	}
+	return this
+}
+
+func (this *where) Appends(sts ...Statement) *where {
 	for _, c := range sts {
 		if c != nil {
 			this.children = append(this.children, c)
