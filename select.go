@@ -43,8 +43,11 @@ func (this *SelectBuilder) Selects(columns ...string) *SelectBuilder {
 	return this
 }
 
-func (this *SelectBuilder) Select(column string, args ...interface{}) *SelectBuilder {
-	this.columns = append(this.columns, NewStatement(column, args...))
+func (this *SelectBuilder) Select(column interface{}, args ...interface{}) *SelectBuilder {
+	var stmt = parseStmt(column, args...)
+	if stmt != nil {
+		this.columns = append(this.columns, stmt)
+	}
 	return this
 }
 
@@ -74,8 +77,11 @@ func (this *SelectBuilder) join(join, table, suffix string, args ...interface{})
 	return this
 }
 
-func (this *SelectBuilder) Where(sql Statement) *SelectBuilder {
-	this.where = append(this.where, sql)
+func (this *SelectBuilder) Where(sql interface{}, args ...interface{}) *SelectBuilder {
+	var stmt = parseStmt(sql, args...)
+	if stmt != nil {
+		this.where = append(this.where, stmt)
+	}
 	return this
 }
 

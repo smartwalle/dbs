@@ -72,8 +72,11 @@ func (this *UpdateBuilder) SetMap(data map[string]interface{}) *UpdateBuilder {
 	return this
 }
 
-func (this *UpdateBuilder) Where(sql Statement) *UpdateBuilder {
-	this.where = append(this.where, sql)
+func (this *UpdateBuilder) Where(sql interface{}, args ...interface{}) *UpdateBuilder {
+	var stmt = parseStmt(sql, args...)
+	if stmt != nil {
+		this.where = append(this.where, stmt)
+	}
 	return this
 }
 

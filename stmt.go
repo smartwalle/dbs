@@ -239,6 +239,22 @@ func (this *where) Append(sts ...Statement) *where {
 }
 
 // --------------------------------------------------------------------------------
+func parseStmt(sql interface{}, args ...interface{}) Statement {
+	switch s := sql.(type) {
+	case string:
+		if len(strings.TrimSpace(s)) == 0 {
+			return nil
+		}
+		return NewStatement(s, args...)
+	case Statement:
+		return s
+	default:
+		return nil
+	}
+	return nil
+}
+
+// --------------------------------------------------------------------------------
 func AND(sts ...Statement) *where {
 	var w = &where{}
 	w.children = sts

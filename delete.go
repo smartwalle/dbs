@@ -88,8 +88,11 @@ func (this *DeleteBuilder) join(join, table, suffix string, args ...interface{})
 	return this
 }
 
-func (this *DeleteBuilder) Where(sql Statement) *DeleteBuilder {
-	this.where = append(this.where, sql)
+func (this *DeleteBuilder) Where(sql interface{}, args ...interface{}) *DeleteBuilder {
+	var stmt = parseStmt(sql, args...)
+	if stmt != nil {
+		this.where = append(this.where, stmt)
+	}
 	return this
 }
 
