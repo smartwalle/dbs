@@ -6,6 +6,7 @@ import (
 	"errors"
 	"strings"
 	"fmt"
+	"database/sql"
 )
 
 type SelectBuilder struct {
@@ -186,6 +187,23 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 	}
 
 	return nil
+}
+
+func (this *SelectBuilder) Query(s SQLExecutor) (*sql.Rows, error) {
+	sql, args, err := this.ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	return Query(s, sql, args...)
+}
+
+func (this *SelectBuilder) Scan(s SQLExecutor, result interface{}) (err error) {
+	rows, err := this.Query(s)
+	if err != nil {
+		return err
+	}
+	err = Scan(rows, result)
+	return err
 }
 
 func NewSelectBuilder() *SelectBuilder {
