@@ -60,3 +60,9 @@ func TestSetStmt(t *testing.T) {
 
 	fmt.Println(s1.ToSQL())
 }
+
+func TestIN(t *testing.T) {
+	fmt.Println("===== IN =====")
+	var i1 = IN("a", []int{1,2,3,4})
+	fmt.Println(i1.ToSQL())
+}

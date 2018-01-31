@@ -72,3 +72,16 @@ func TestSelectBuilder3(t *testing.T) {
 
 	fmt.Println(sb.ToSQL())
 }
+
+func TestSelectBuilderIN(t *testing.T) {
+	fmt.Println("===== SelectBuilderIN =====")
+	var sb = NewSelectBuilder()
+	sb.Selects("u.id")
+	sb.Select(Alias("u.name", "name"))
+	sb.From("user", "AS u")
+
+	sb.Where("u.id=?", 100)
+	sb.Where(IN("u.status", []int{200, 300, 400}))
+
+	fmt.Println(sb.ToSQL())
+}

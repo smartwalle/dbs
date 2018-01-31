@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"io"
 	"strings"
+	"reflect"
+	"fmt"
 )
 
 // --------------------------------------------------------------------------------
@@ -217,6 +219,64 @@ func (this *caseStmt) Else(sql interface{}) *caseStmt {
 }
 
 // --------------------------------------------------------------------------------
+type setStmt struct {
+	column string
+	value  interface{}
+}
+
+func newSet(column string, value interface{}) *setStmt {
+	return &setStmt{column, value}
+}
+
+func (this *setStmt) AppendToSQL(w io.Writer, args *Args) error {
+	io.WriteString(w, this.column)
+	io.WriteString(w, "=")
+	switch tv := this.value.(type) {
+	case Statement:
+		if err := tv.AppendToSQL(w, args); err != nil {
+			return err
+		}
+	default:
+		io.WriteString(w, "?")
+		if this.value != nil && args != nil {
+			args.Append(this.value)
+		}
+	}
+	return nil
+}
+
+func (this *setStmt) ToSQL() (string, []interface{}, error) {
+	var sqlBuffer = &bytes.Buffer{}
+	var args = newArgs()
+	err := this.AppendToSQL(sqlBuffer, args)
+	return sqlBuffer.String(), args.values, err
+}
+
+// --------------------------------------------------------------------------------
+type setStmts []*setStmt
+
+func (this setStmts) AppendToSQL(w io.Writer, sep string, args *Args) error {
+	for i, c := range this {
+		if i != 0 {
+			if _, err := io.WriteString(w, sep); err != nil {
+				return err
+			}
+		}
+		if err := c.AppendToSQL(w, args); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (this setStmts) ToSQL() (string, []interface{}, error) {
+	var sqlBuffer = &bytes.Buffer{}
+	var args = newArgs()
+	err := this.AppendToSQL(sqlBuffer, ", ", args)
+	return sqlBuffer.String(), args.values, err
+}
+
+// --------------------------------------------------------------------------------
 type statements []Statement
 
 func (this statements) AppendToSQL(w io.Writer, sep string, args *Args) error {
@@ -310,61 +370,31 @@ func OR(stmts ...Statement) *whereStmt {
 }
 
 // --------------------------------------------------------------------------------
-type setStmt struct {
-	column string
-	value  interface{}
-}
+func IN(sql string, args interface{}) Statement {
+	if len(sql) == 0 {
+		return nil
+	}
 
-func newSet(column string, value interface{}) *setStmt {
-	return &setStmt{column, value}
-}
+	var pType = reflect.TypeOf(args)
+	var pValue = reflect.ValueOf(args)
+	var params []interface{}
 
-func (this *setStmt) AppendToSQL(w io.Writer, args *Args) error {
-	io.WriteString(w, this.column)
-	io.WriteString(w, "=")
-	switch tv := this.value.(type) {
-	case Statement:
-		if err := tv.AppendToSQL(w, args); err != nil {
-			return err
-		}
-	default:
-		io.WriteString(w, "?")
-		if this.value != nil && args != nil {
-			args.Append(this.value)
+	if pType.Kind() == reflect.Array || pType.Kind() == reflect.Slice {
+		var l = pValue.Len()
+		params = make([]interface{}, l)
+		for i := 0; i < l; i++ {
+			params[i] = pValue.Index(i).Interface()
 		}
 	}
-	return nil
-}
 
-func (this *setStmt) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	err := this.AppendToSQL(sqlBuffer, args)
-	return sqlBuffer.String(), args.values, err
-}
-
-// --------------------------------------------------------------------------------
-type setStmts []*setStmt
-
-func (this setStmts) AppendToSQL(w io.Writer, sep string, args *Args) error {
-	for i, c := range this {
-		if i != 0 {
-			if _, err := io.WriteString(w, sep); err != nil {
-				return err
-			}
-		}
-		if err := c.AppendToSQL(w, args); err != nil {
-			return err
-		}
+	if len(params) > 0 {
+		sql = fmt.Sprintf("%s IN (%s)", sql, strings.Repeat(", ?", len(params))[2:])
 	}
-	return nil
-}
 
-func (this setStmts) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	err := this.AppendToSQL(sqlBuffer, ", ", args)
-	return sqlBuffer.String(), args.values, err
+	var st = &statement{}
+	st.sql = sql
+	st.args = params
+	return st
 }
 
 // --------------------------------------------------------------------------------
