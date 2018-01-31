@@ -14,7 +14,7 @@ type SelectBuilder struct {
 	columns  statements
 	from     statements
 	joins    statements
-	where    statements
+	wheres   statements
 	groupBys []string
 	havings  statements
 	orderBys []string
@@ -79,7 +79,7 @@ func (this *SelectBuilder) join(join, table, suffix string, args ...interface{})
 func (this *SelectBuilder) Where(sql interface{}, args ...interface{}) *SelectBuilder {
 	var stmt = parseStmt(sql, args...)
 	if stmt != nil {
-		this.where = append(this.where, stmt)
+		this.wheres = append(this.wheres, stmt)
 	}
 	return this
 }
@@ -152,9 +152,9 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 		this.joins.AppendToSQL(w, " ", args)
 	}
 
-	if len(this.where) > 0 {
+	if len(this.wheres) > 0 {
 		io.WriteString(w, " WHERE ")
-		this.where.AppendToSQL(w, " AND ", args)
+		this.wheres.AppendToSQL(w, " AND ", args)
 	}
 
 	if len(this.groupBys) > 0 {
@@ -164,7 +164,7 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 
 	if len(this.havings) > 0 {
 		io.WriteString(w, " HAVING ")
-		this.havings.AppendToSQL(w, " ", args)
+		this.havings.AppendToSQL(w, " AND ", args)
 	}
 
 	if len(this.orderBys) > 0 {

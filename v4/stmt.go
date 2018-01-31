@@ -1,8 +1,8 @@
 package dbs
 
 import (
-	"io"
 	"bytes"
+	"io"
 	"strings"
 )
 
@@ -32,10 +32,10 @@ type statement struct {
 }
 
 func NewStatement(sql interface{}, args ...interface{}) *statement {
-	var stmt = &statement{}
-	stmt.sql = sql
-	stmt.args = args
-	return stmt
+	var s = &statement{}
+	s.sql = sql
+	s.args = args
+	return s
 }
 
 func SQL(sql string, args ...interface{}) *statement {
@@ -80,30 +80,6 @@ func (this *statement) ToSQL() (string, []interface{}, error) {
 	var sqlBuffer = &bytes.Buffer{}
 	var args = newArgs()
 	err := this.AppendToSQL(sqlBuffer, args)
-	return sqlBuffer.String(), args.values, err
-}
-
-// --------------------------------------------------------------------------------
-type statements []Statement
-
-func (this statements) AppendToSQL(w io.Writer, sep string, args *Args) error {
-	for i, stmt := range this {
-		if i != 0 {
-			if _, err := io.WriteString(w, sep); err != nil {
-				return err
-			}
-		}
-		if err := stmt.AppendToSQL(w, args); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (this statements) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	err := this.AppendToSQL(sqlBuffer, ", ", args)
 	return sqlBuffer.String(), args.values, err
 }
 
@@ -238,6 +214,99 @@ func (this *caseStmt) When(when, then interface{}) *caseStmt {
 func (this *caseStmt) Else(sql interface{}) *caseStmt {
 	this.elsePart = parseStmt(sql)
 	return this
+}
+
+// --------------------------------------------------------------------------------
+type statements []Statement
+
+func (this statements) AppendToSQL(w io.Writer, sep string, args *Args) error {
+	for i, stmt := range this {
+		if i != 0 {
+			if _, err := io.WriteString(w, sep); err != nil {
+				return err
+			}
+		}
+		if err := stmt.AppendToSQL(w, args); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (this statements) ToSQL() (string, []interface{}, error) {
+	var sqlBuffer = &bytes.Buffer{}
+	var args = newArgs()
+	err := this.AppendToSQL(sqlBuffer, ", ", args)
+	return sqlBuffer.String(), args.values, err
+}
+
+// --------------------------------------------------------------------------------
+type whereStmt struct {
+	stmts statements
+	sep   string
+}
+
+func (this *whereStmt) AppendToSQL(w io.Writer, args *Args) error {
+	for i, stmt := range this.stmts {
+		if i != 0 {
+			if _, err := io.WriteString(w, this.sep); err != nil {
+				return err
+			}
+		}
+
+		switch st := stmt.(type) {
+		case *whereStmt:
+			if _, err := io.WriteString(w, "("); err != nil {
+				return err
+			}
+			if err := st.AppendToSQL(w, args); err != nil {
+				return err
+			}
+			if _, err := io.WriteString(w, ")"); err != nil {
+				return err
+			}
+		default:
+			if err := st.AppendToSQL(w, args); err != nil {
+				return err
+			}
+		}
+
+	}
+	return nil
+}
+
+func (this *whereStmt) ToSQL() (string, []interface{}, error) {
+	var sqlBuffer = &bytes.Buffer{}
+	var args = newArgs()
+	err := this.AppendToSQL(sqlBuffer, args)
+	return sqlBuffer.String(), args.values, err
+}
+
+func (this *whereStmt) Appends(stmts ...Statement) *whereStmt {
+	this.stmts = append(this.stmts, stmts...)
+	return this
+}
+
+func (this *whereStmt) Append(sql interface{}, args ...interface{}) *whereStmt {
+	var s = parseStmt(sql, args...)
+	if s != nil {
+		this.stmts = append(this.stmts, s)
+	}
+	return this
+}
+
+func AND(stmts ...Statement) *whereStmt {
+	var s = &whereStmt{}
+	s.stmts = stmts
+	s.sep = " AND "
+	return s
+}
+
+func OR(stmts ...Statement) *whereStmt {
+	var s = &whereStmt{}
+	s.stmts = stmts
+	s.sep = " OR "
+	return s
 }
 
 // --------------------------------------------------------------------------------
