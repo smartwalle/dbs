@@ -391,10 +391,10 @@ func IN(sql string, args interface{}) Statement {
 		sql = fmt.Sprintf("%s IN (%s)", sql, strings.Repeat(", ?", len(params))[2:])
 	}
 
-	var st = &statement{}
-	st.sql = sql
-	st.args = params
-	return st
+	var s = &statement{}
+	s.sql = sql
+	s.args = params
+	return s
 }
 
 // --------------------------------------------------------------------------------
