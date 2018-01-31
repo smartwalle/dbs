@@ -105,59 +105,98 @@ func (this *DeleteBuilder) AppendToSQL(w io.Writer, args *Args) error {
 	}
 
 	if len(this.prefixes) > 0 {
-		this.prefixes.AppendToSQL(w, " ", args)
-		io.WriteString(w, " ")
+		if err := this.prefixes.AppendToSQL(w, " ", args); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, " "); err != nil {
+			return err
+		}
 	}
 
-	io.WriteString(w, "DELETE ")
+	if _, err := io.WriteString(w, "DELETE "); err != nil {
+		return err
+	}
 
 	if len(this.options) > 0 {
-		this.options.AppendToSQL(w, " ", args)
-		io.WriteString(w, " ")
+		if err := this.options.AppendToSQL(w, " ", args); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, " "); err != nil {
+			return err
+		}
 	}
 
 	if len(this.alias) > 0 {
-		io.WriteString(w, strings.Join(this.alias, ", "))
-		io.WriteString(w, " ")
+		if _, err := io.WriteString(w, strings.Join(this.alias, ", ")); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, " "); err != nil {
+			return err
+		}
 	}
 
-	io.WriteString(w, "FROM ")
+	if _, err := io.WriteString(w, "FROM "); err != nil {
+		return err
+	}
 
 	if len(this.tables) > 0 {
-		this.tables.AppendToSQL(w, ", ", args)
+		if err := this.tables.AppendToSQL(w, ", ", args); err != nil {
+			return err
+		}
 	}
 
 	if len(this.using) > 0 {
-		io.WriteString(w, " USING ")
-		io.WriteString(w, this.using)
+		if _, err := io.WriteString(w, fmt.Sprintf(" USING %s", this.using)); err != nil {
+			return err
+		}
 	}
 
 	if len(this.joins) > 0 {
-		io.WriteString(w, " ")
-		this.joins.AppendToSQL(w, " ", args)
+		if _, err := io.WriteString(w, " "); err != nil {
+			return err
+		}
+		if err := this.joins.AppendToSQL(w, " ", args); err != nil {
+			return err
+		}
 	}
 
 	if len(this.wheres) > 0 {
-		io.WriteString(w, " WHERE ")
-		this.wheres.AppendToSQL(w, " AND ", args)
+		if _, err := io.WriteString(w, " WHERE "); err != nil {
+			return err
+		}
+		if err := this.wheres.AppendToSQL(w, " AND ", args); err != nil {
+			return err
+		}
 	}
 
 	if len(this.orderBys) > 0 {
-		io.WriteString(w, " ORDER BY ")
-		io.WriteString(w, strings.Join(this.orderBys, ", "))
+		if _, err := io.WriteString(w, " ORDER BY "); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, strings.Join(this.orderBys, ", ")); err != nil {
+			return err
+		}
 	}
 
 	if this.limit != nil {
-		this.limit.AppendToSQL(w, args)
+		if err := this.limit.AppendToSQL(w, args); err != nil {
+			return err
+		}
 	}
 
 	if this.offset != nil {
-		this.offset.AppendToSQL(w, args)
+		if err := this.offset.AppendToSQL(w, args); err != nil {
+			return err
+		}
 	}
 
 	if len(this.suffixes) > 0 {
-		io.WriteString(w, " ")
-		this.suffixes.AppendToSQL(w, " ", args)
+		if _, err := io.WriteString(w, " "); err != nil {
+			return err
+		}
+		if err := this.suffixes.AppendToSQL(w, " ", args); err != nil {
+			return err
+		}
 	}
 	return nil
 }

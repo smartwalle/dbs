@@ -75,28 +75,46 @@ func (this *InsertBuilder) AppendToSQL(w io.Writer, args *Args) error {
 	}
 
 	if len(this.prefixes) > 0 {
-		this.prefixes.AppendToSQL(w, " ", args)
-		io.WriteString(w, " ")
+		if err := this.prefixes.AppendToSQL(w, " ", args); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, " "); err != nil {
+			return err
+		}
 	}
 
-	io.WriteString(w, "INSERT ")
+	if _, err := io.WriteString(w, "INSERT "); err != nil {
+		return err
+	}
 
 	if len(this.options) > 0 {
-		this.options.AppendToSQL(w, " ", args)
-		io.WriteString(w, " ")
+		if err := this.options.AppendToSQL(w, " ", args); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, " "); err != nil {
+			return err
+		}
 	}
 
-	io.WriteString(w, "INTO `")
-	io.WriteString(w, this.table)
-	io.WriteString(w, "` ")
+	if _, err := io.WriteString(w, fmt.Sprintf("INTO `%s` ", this.table)); err != nil {
+		return err
+	}
 
 	if len(this.columns) > 0 {
-		io.WriteString(w, "(`")
-		io.WriteString(w, strings.Join(this.columns, "`, `"))
-		io.WriteString(w, "`)")
+		if _, err := io.WriteString(w, "(`"); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, strings.Join(this.columns, "`, `")); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, "`)"); err != nil {
+			return err
+		}
 	}
 
-	io.WriteString(w, " VALUES ")
+	if _, err := io.WriteString(w, " VALUES "); err != nil {
+		return err
+	}
 
 	var valuesPlaceholder = make([]string, len(this.values))
 	for index, value := range this.values {
@@ -114,11 +132,17 @@ func (this *InsertBuilder) AppendToSQL(w io.Writer, args *Args) error {
 		}
 		valuesPlaceholder[index] = fmt.Sprintf("(%s)", strings.Join(valuePlaceholder, ", "))
 	}
-	io.WriteString(w, strings.Join(valuesPlaceholder, ", "))
+	if _, err := io.WriteString(w, strings.Join(valuesPlaceholder, ", ")); err != nil {
+		return err
+	}
 
 	if len(this.suffixes) > 0 {
-		io.WriteString(w, " ")
-		this.suffixes.AppendToSQL(w, " ", args)
+		if _, err := io.WriteString(w, " "); err != nil {
+			return err
+		}
+		if err := this.suffixes.AppendToSQL(w, " ", args); err != nil {
+			return err
+		}
 	}
 	return nil
 }

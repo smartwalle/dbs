@@ -116,53 +116,89 @@ func (this *UpdateBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 	}
 
 	if len(this.prefixes) > 0 {
-		this.prefixes.AppendToSQL(w, " ", args)
-		io.WriteString(w, " ")
+		if err := this.prefixes.AppendToSQL(w, " ", args); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, " "); err != nil {
+			return err
+		}
 	}
 
-	io.WriteString(w, "UPDATE ")
+	if _, err := io.WriteString(w, "UPDATE "); err != nil {
+		return err
+	}
 
 	if len(this.options) > 0 {
-		this.options.AppendToSQL(w, " ", args)
-		io.WriteString(w, " ")
+		if err := this.options.AppendToSQL(w, " ", args); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, " "); err != nil {
+			return err
+		}
 	}
 
 	if len(this.tables) > 0 {
-		this.tables.AppendToSQL(w, ", ", args)
+		if err := this.tables.AppendToSQL(w, ", ", args); err != nil {
+			return err
+		}
 	}
 
 	if len(this.joins) > 0 {
-		io.WriteString(w, " ")
-		this.joins.AppendToSQL(w, " ", args)
+		if _, err := io.WriteString(w, " "); err != nil {
+			return err
+		}
+		if err := this.joins.AppendToSQL(w, " ", args); err != nil {
+			return err
+		}
 	}
 
-	io.WriteString(w, " SET ")
+	if _, err := io.WriteString(w, " SET "); err != nil {
+		return err
+	}
 
 	if len(this.columns) > 0 {
-		this.columns.AppendToSQL(w, ", ", args)
+		if err := this.columns.AppendToSQL(w, ", ", args); err != nil {
+			return err
+		}
 	}
 
 	if len(this.wheres) > 0 {
-		io.WriteString(w, " WHERE ")
-		this.wheres.AppendToSQL(w, " ", args)
+		if _, err := io.WriteString(w, " WHERE "); err != nil {
+			return err
+		}
+		if err := this.wheres.AppendToSQL(w, " ", args); err != nil {
+			return err
+		}
 	}
 
 	if len(this.orderBys) > 0 {
-		io.WriteString(w, " ORDER BY ")
-		io.WriteString(w, strings.Join(this.orderBys, ", "))
+		if _, err := io.WriteString(w, " ORDER BY "); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, strings.Join(this.orderBys, ", ")); err != nil {
+			return err
+		}
 	}
 
 	if this.limit != nil {
-		this.limit.AppendToSQL(w, args)
+		if err := this.limit.AppendToSQL(w, args); err != nil {
+			return err
+		}
 	}
 
 	if this.offset != nil {
-		this.offset.AppendToSQL(w, args)
+		if err := this.offset.AppendToSQL(w, args); err != nil {
+			return err
+		}
 	}
 
 	if len(this.suffixes) > 0 {
-		io.WriteString(w, " ")
-		this.suffixes.AppendToSQL(w, " ", args)
+		if _, err := io.WriteString(w, " "); err != nil {
+			return err
+		}
+		if  err := this.suffixes.AppendToSQL(w, " ", args); err != nil {
+			return err
+		}
 	}
 
 	return nil
