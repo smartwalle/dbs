@@ -1,12 +1,12 @@
 package dbs
 
 import (
-	"bytes"
-	"database/sql"
-	"errors"
-	"fmt"
 	"io"
+	"bytes"
+	"errors"
 	"strings"
+	"fmt"
+	"database/sql"
 )
 
 type SelectBuilder struct {
@@ -15,7 +15,7 @@ type SelectBuilder struct {
 	columns  statements
 	from     statements
 	joins    statements
-	where    statements
+	wheres   statements
 	groupBys []string
 	havings  statements
 	orderBys []string
@@ -80,7 +80,7 @@ func (this *SelectBuilder) join(join, table, suffix string, args ...interface{})
 func (this *SelectBuilder) Where(sql interface{}, args ...interface{}) *SelectBuilder {
 	var stmt = parseStmt(sql, args...)
 	if stmt != nil {
-		this.where = append(this.where, stmt)
+		this.wheres = append(this.wheres, stmt)
 	}
 	return this
 }
@@ -113,67 +113,6 @@ func (this *SelectBuilder) Offset(offset uint64) *SelectBuilder {
 func (this *SelectBuilder) Suffix(sql string, args ...interface{}) *SelectBuilder {
 	this.suffixes = append(this.suffixes, NewStatement(sql, args...))
 	return this
-}
-
-func (this *SelectBuilder) CountSQL() (string, []interface{}, error) {
-	if len(this.columns) == 0 {
-		return "", nil, errors.New("SELECT statements must have at least on result column")
-	}
-
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	var err error
-
-	if len(this.prefixes) > 0 {
-		this.prefixes.AppendToSQL(sqlBuffer, " ", args)
-		sqlBuffer.WriteString(" ")
-	}
-
-	sqlBuffer.WriteString("SELECT ")
-
-	if len(this.options) > 0 {
-		this.options.AppendToSQL(sqlBuffer, " ", args)
-		sqlBuffer.WriteString(" ")
-	}
-
-	sqlBuffer.WriteString("COUNT(*) AS total")
-
-	if len(this.from) > 0 {
-		sqlBuffer.WriteString(" FROM ")
-		this.from.AppendToSQL(sqlBuffer, ", ", args)
-	}
-
-	if len(this.joins) > 0 {
-		sqlBuffer.WriteString(" ")
-		this.joins.AppendToSQL(sqlBuffer, " ", args)
-	}
-
-	if len(this.where) > 0 {
-		sqlBuffer.WriteString(" WHERE ")
-		this.where.AppendToSQL(sqlBuffer, " ", args)
-	}
-
-	if len(this.groupBys) > 0 {
-		sqlBuffer.WriteString(" GROUP BY ")
-		sqlBuffer.WriteString(strings.Join(this.groupBys, ", "))
-	}
-
-	if len(this.havings) > 0 {
-		sqlBuffer.WriteString(" HAVING ")
-		this.havings.AppendToSQL(sqlBuffer, " ", args)
-	}
-
-	if len(this.orderBys) > 0 {
-		sqlBuffer.WriteString(" ORDER BY ")
-		sqlBuffer.WriteString(strings.Join(this.orderBys, ", "))
-	}
-
-	if len(this.suffixes) > 0 {
-		sqlBuffer.WriteString(" ")
-		this.suffixes.AppendToSQL(sqlBuffer, " ", args)
-	}
-
-	return "", nil, err
 }
 
 func (this *SelectBuilder) ToSQL() (string, []interface{}, error) {
@@ -214,9 +153,9 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 		this.joins.AppendToSQL(w, " ", args)
 	}
 
-	if len(this.where) > 0 {
+	if len(this.wheres) > 0 {
 		io.WriteString(w, " WHERE ")
-		this.where.AppendToSQL(w, " AND ", args)
+		this.wheres.AppendToSQL(w, " AND ", args)
 	}
 
 	if len(this.groupBys) > 0 {
@@ -226,7 +165,7 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 
 	if len(this.havings) > 0 {
 		io.WriteString(w, " HAVING ")
-		this.havings.AppendToSQL(w, " ", args)
+		this.havings.AppendToSQL(w, " AND ", args)
 	}
 
 	if len(this.orderBys) > 0 {
@@ -235,17 +174,18 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 	}
 
 	if this.limit != nil {
-		this.limit.AppendToSQL(w, "", args)
+		this.limit.AppendToSQL(w, args)
 	}
 
 	if this.offset != nil {
-		this.offset.AppendToSQL(w, "", args)
+		this.offset.AppendToSQL(w, args)
 	}
 
 	if len(this.suffixes) > 0 {
 		io.WriteString(w, " ")
 		this.suffixes.AppendToSQL(w, " ", args)
 	}
+
 	return nil
 }
 
@@ -255,25 +195,6 @@ func (this *SelectBuilder) Query(s SQLExecutor) (*sql.Rows, error) {
 		return nil, err
 	}
 	return Query(s, sql, args...)
-}
-
-func (this *SelectBuilder) Count(s SQLExecutor) (count int64) {
-	sql, args, err := this.CountSQL()
-	if err != nil {
-		return 0
-	}
-	rows, err := Query(s, sql, args...)
-	if err != nil {
-		return 0
-	}
-
-	if rows.Next() {
-		err = rows.Scan(&count)
-		if err != nil {
-			return 0
-		}
-	}
-	return count
 }
 
 func (this *SelectBuilder) Scan(s SQLExecutor, result interface{}) (err error) {

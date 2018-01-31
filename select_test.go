@@ -5,48 +5,70 @@ import (
 	"testing"
 )
 
-func TestSelectBuilder_Select(t *testing.T) {
-	//var sb = NewSelectBuilder()
-	//sb.Selects("u.id", "u.name")
-	//sb.Select("u.email")
-	//sb.From("user", "AS u")
-	//sb.LeftJoin("student", "AS s ON s.user_id=u.id AND s.type=?", 1001)
-	//sb.RightJoin("course", "AS c ON c.user_id=u.id AND c.type=?", 1002)
-	//
-	//var ws = AND()
-	//ws.Appends(OR(SQL("u.id=?", 10), SQL("u.email=?", "qq@qq.com")))
-	//ws.Appends(OR(SQL("u.id=?", 11), SQL("u.email=?", "qq@qq.com")))
-	//sb.Where(ws)
-	//
-	//fmt.Println(sb.ToSQL())
-}
-
-func TestSelectBuilder_Select2(t *testing.T) {
-	var sb1 = NewSelectBuilder()
-	sb1.Select("u.id")
-	sb1.From("user", "AS u")
-	sb1.Where(SQL("u.id=?", 10).Append("OR u.id=?", 20))
-	fmt.Println(sb1.ToSQL())
-
-	var sb2 = NewSelectBuilder()
-	sb2.Select("s.id")
-	sb2.From("stu", "AS s")
-	sb2.Where(Clause("s.user_id=", Alias(sb1, "ccc")))
-	fmt.Println(sb2.ToSQL())
-}
-
-func TestSelectBuilder_Select3(t *testing.T) {
+func TestSelectBuilder(t *testing.T) {
+	fmt.Println("===== SelectBuilder =====")
 	var sb = NewSelectBuilder()
 	sb.Selects("u.id")
-	sb.Select("IF (u.id>?, ?, ?) AS aa", 101, 102, 103)
-	sb.Select(Alias("u.name", "user_name"))
-	sb.Select(Alias(Case("id").When("10", "20").Else("30"), "c"))
+	sb.Select(Alias("u.f2", "f2"))
+	sb.Select(Alias(NewStatement("SELECT tt.id, tt.name FROM test_table AS tt WHERE tt.id=?", 100), "amount"))
+	sb.Select(Alias(Case("u.id").When("10", "20"), "uuid"))
 	sb.From("user", "AS u")
-	sb.Where("")
+	sb.LeftJoin("user_email", "AS ue ON ue.user_id=u.id")
 
-	//sb.Where("a=? AND cc =?", 10, 200)
-	//sb.Where("d=?", "110")
-	//sb.Where(SQL("b=?", 20))
-	//sb.Where(OR(SQL("c=?", 30), SQL("d=?", 40)))
+	fmt.Println(sb.ToSQL())
+}
+
+func TestSelectBuilderAnd(t *testing.T) {
+	fmt.Println("===== SelectBuilderAnd =====")
+	var sb = NewSelectBuilder()
+	sb.Selects("u.id")
+	sb.Select(Alias("u.name", "name"))
+	sb.From("user", "AS u")
+	sb.Where("u.id=?", 100)
+	sb.Where("u.status=?", 200)
+	sb.Where(SQL("u.name=?", "test_name"))
+
+	fmt.Println(sb.ToSQL())
+}
+
+func TestSelectBuilderAnd2(t *testing.T) {
+	fmt.Println("===== SelectBuilderAnd2 =====")
+	var sb = NewSelectBuilder()
+	sb.Selects("u.id")
+	sb.Select(Alias("u.name", "name"))
+	sb.From("user", "AS u")
+
+	var a1 = AND()
+	a1.Append("u.id=?", 100)
+	a1.Appends(SQL("u.status=?", 200), SQL("u.name=?", "test_name"))
+	sb.Where(a1)
+
+	fmt.Println(sb.ToSQL())
+}
+
+func TestSelectBuilderOR(t *testing.T) {
+	fmt.Println("===== SelectBuilderOR =====")
+	var sb = NewSelectBuilder()
+	sb.Selects("u.id")
+	sb.Select(Alias("u.name", "name"))
+	sb.From("user", "AS u")
+
+	var a1 = OR()
+	a1.Append("u.id=?", 100)
+	a1.Appends(SQL("u.status=?", 200), SQL("u.name=?", "test_name"))
+	sb.Where(a1)
+
+	fmt.Println(sb.ToSQL())
+}
+
+func TestSelectBuilder3(t *testing.T) {
+	fmt.Println("===== SelectBuilder3 =====")
+	var sb = NewSelectBuilder()
+	sb.Selects("u.id")
+	sb.Select(Alias("u.name", "name"))
+	sb.From("user", "AS u")
+
+	sb.Where("u.id=", Alias(SQL("SELECT id FROM user_email WHERE email=?", "test@qq.com"), "user_id"))
+
 	fmt.Println(sb.ToSQL())
 }

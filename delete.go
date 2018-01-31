@@ -16,7 +16,7 @@ type DeleteBuilder struct {
 	tables   statements
 	using    string
 	joins    statements
-	where    statements
+	wheres   statements
 	orderBys []string
 	limit    Statement
 	offset   Statement
@@ -53,23 +53,6 @@ func (this *DeleteBuilder) USING(sql string) *DeleteBuilder {
 	return this
 }
 
-//func (this *DeleteBuilder) Join(join, table string) *DeleteBuilder {
-//	return this.join(join, table)
-//}
-//
-//func (this *DeleteBuilder) RightJoin(table string) *DeleteBuilder {
-//	return this.join("RIGHT JOIN", table)
-//}
-//
-//func (this *DeleteBuilder) LeftJoin(table string) *DeleteBuilder {
-//	return this.join("LEFT JOIN", table)
-//}
-//
-//func (this *DeleteBuilder) join(join, table string) *DeleteBuilder {
-//	this.joins = append(this.joins, join, fmt.Sprintf("`%s`", table))
-//	return this
-//}
-
 func (this *DeleteBuilder) Join(join, table, suffix string, args ...interface{}) *DeleteBuilder {
 	return this.join(join, table, suffix, args...)
 }
@@ -91,7 +74,7 @@ func (this *DeleteBuilder) join(join, table, suffix string, args ...interface{})
 func (this *DeleteBuilder) Where(sql interface{}, args ...interface{}) *DeleteBuilder {
 	var stmt = parseStmt(sql, args...)
 	if stmt != nil {
-		this.where = append(this.where, stmt)
+		this.wheres = append(this.wheres, stmt)
 	}
 	return this
 }
@@ -116,14 +99,7 @@ func (this *DeleteBuilder) Suffix(sql string, args ...interface{}) *DeleteBuilde
 	return this
 }
 
-func (this *DeleteBuilder) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	err := this.AppendToSQL(sqlBuffer, "", args)
-	return sqlBuffer.String(), args.values, err
-}
-
-func (this *DeleteBuilder) AppendToSQL(w io.Writer, sep string, args *Args) error {
+func (this *DeleteBuilder) AppendToSQL(w io.Writer, args *Args) error {
 	if len(this.tables) == 0 {
 		return errors.New("delete statements must specify a table")
 	}
@@ -161,9 +137,9 @@ func (this *DeleteBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 		this.joins.AppendToSQL(w, " ", args)
 	}
 
-	if len(this.where) > 0 {
+	if len(this.wheres) > 0 {
 		io.WriteString(w, " WHERE ")
-		this.where.AppendToSQL(w, " ", args)
+		this.wheres.AppendToSQL(w, " AND ", args)
 	}
 
 	if len(this.orderBys) > 0 {
@@ -172,11 +148,11 @@ func (this *DeleteBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 	}
 
 	if this.limit != nil {
-		this.limit.AppendToSQL(w, "", args)
+		this.limit.AppendToSQL(w, args)
 	}
 
 	if this.offset != nil {
-		this.offset.AppendToSQL(w, "", args)
+		this.offset.AppendToSQL(w, args)
 	}
 
 	if len(this.suffixes) > 0 {
@@ -184,6 +160,13 @@ func (this *DeleteBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 		this.suffixes.AppendToSQL(w, " ", args)
 	}
 	return nil
+}
+
+func (this *DeleteBuilder) ToSQL() (string, []interface{}, error) {
+	var sqlBuffer = &bytes.Buffer{}
+	var args = newArgs()
+	err := this.AppendToSQL(sqlBuffer, args)
+	return sqlBuffer.String(), args.values, err
 }
 
 func (this *DeleteBuilder) Exec(s SQLExecutor) (sql.Result, error) {

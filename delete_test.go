@@ -5,7 +5,8 @@ import (
 	"fmt"
 )
 
-func TestDeleteBuilder_ToSQL(t *testing.T) {
+func TestDeleteBuilder(t *testing.T) {
+	fmt.Println("===== DeleteBuilder =====")
 	var db = NewDeleteBuilder()
 	db.Alias("u", "b")
 	db.Table("user", "AS u")

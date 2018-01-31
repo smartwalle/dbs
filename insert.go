@@ -66,14 +66,7 @@ func (this *InsertBuilder) SET(column string, value interface{}) *InsertBuilder 
 	return this
 }
 
-func (this *InsertBuilder) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	err := this.AppendToSQL(sqlBuffer, "", args)
-	return sqlBuffer.String(), args.values, err
-}
-
-func (this *InsertBuilder) AppendToSQL(w io.Writer, sep string, args *Args) error {
+func (this *InsertBuilder) AppendToSQL(w io.Writer, args *Args) error {
 	if len(this.table) == 0 {
 		return errors.New("insert statements must specify a table")
 	}
@@ -153,4 +146,11 @@ func Insert(s SQLExecutor, table string, data map[string]interface{}) (sql.Resul
 
 func NewInsertBuilder() *InsertBuilder {
 	return &InsertBuilder{}
+}
+
+func (this *InsertBuilder) ToSQL() (string, []interface{}, error) {
+	var sqlBuffer = &bytes.Buffer{}
+	var args = newArgs()
+	err := this.AppendToSQL(sqlBuffer, args)
+	return sqlBuffer.String(), args.values, err
 }

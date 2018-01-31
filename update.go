@@ -15,7 +15,7 @@ type UpdateBuilder struct {
 	tables   statements
 	joins    statements
 	columns  setStmts
-	where    statements
+	wheres   statements
 	orderBys []string
 	limit    Statement
 	offset   Statement
@@ -75,7 +75,7 @@ func (this *UpdateBuilder) SetMap(data map[string]interface{}) *UpdateBuilder {
 func (this *UpdateBuilder) Where(sql interface{}, args ...interface{}) *UpdateBuilder {
 	var stmt = parseStmt(sql, args...)
 	if stmt != nil {
-		this.where = append(this.where, stmt)
+		this.wheres = append(this.wheres, stmt)
 	}
 	return this
 }
@@ -142,9 +142,9 @@ func (this *UpdateBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 		this.columns.AppendToSQL(w, ", ", args)
 	}
 
-	if len(this.where) > 0 {
+	if len(this.wheres) > 0 {
 		io.WriteString(w, " WHERE ")
-		this.where.AppendToSQL(w, " ", args)
+		this.wheres.AppendToSQL(w, " ", args)
 	}
 
 	if len(this.orderBys) > 0 {
@@ -153,11 +153,11 @@ func (this *UpdateBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 	}
 
 	if this.limit != nil {
-		this.limit.AppendToSQL(w, "", args)
+		this.limit.AppendToSQL(w, args)
 	}
 
 	if this.offset != nil {
-		this.offset.AppendToSQL(w, "", args)
+		this.offset.AppendToSQL(w, args)
 	}
 
 	if len(this.suffixes) > 0 {

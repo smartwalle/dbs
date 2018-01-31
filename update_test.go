@@ -5,7 +5,8 @@ import (
 	"fmt"
 )
 
-func TestUpdateBuilder_ToSQL(t *testing.T) {
+func TestUpdateBuilder(t *testing.T) {
+	fmt.Println("===== UpdateBuilder =====")
 	var ub = NewUpdateBuilder()
 	ub.Table("user")
 	ub.SET("username", "test")

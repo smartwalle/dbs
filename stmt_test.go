@@ -5,43 +5,58 @@ import (
 	"fmt"
 )
 
-func TestSQL(t *testing.T) {
-	var c1 = SQL("a=?", 1)
-	c1.Append("AND b=?", 11)
-	fmt.Println(c1.ToSQL())
+func TestNewStatement(t *testing.T) {
+	fmt.Println("===== Statement =====")
+	var st = NewStatement("a=", NewStatement("SELECT tt.id, tt.name FROM test_table AS tt WHERE tt.id=?", 100))
+	fmt.Println(st.ToSQL())
 }
 
-func TestAND(t *testing.T) {
-	var wa1 = AND()
-	wa1.Appends(SQL("c1=?", 10), SQL("c2=?", 20), OR(SQL("c1=?", 11), SQL("c2=?", 21)), AND(SQL("c3=?", 30)))
-	fmt.Println(wa1.ToSQL())
-
-	var wa2 = AND()
-	wa2.Append("c1=?", 10000)
-	wa2.Append("c2=?", "1111")
-	wa2.Appends(SQL("c3=?", 30000))
-	fmt.Println(wa2.ToSQL())
+func TestNewStatements(t *testing.T) {
+	fmt.Println("===== Statements =====")
+	var sts statements
+	sts = append(sts, Alias("a", "c1"), Alias("b", "c2"), Alias("c", "c3"))
+	fmt.Println(sts.ToSQL())
 }
 
-func TestOR(t *testing.T) {
-	var wo1 = OR()
-	wo1.Appends(SQL("c1=?", 10), SQL("c2=?", 20), AND(SQL("c3=?", 30), SQL("c4=?", 40)))
-	fmt.Println(wo1.ToSQL())
-}
-
-func TestIN(t *testing.T) {
-	var wi1 = IN("c1", []int{1, 2, 3, 4, 5})
-	fmt.Println(wi1.ToSQL())
-
-	var wi2 = AND(IN("c1", []int{1, 2, 3, 4, 5}), SQL("c2=?", 10))
-	fmt.Println(wi2.ToSQL())
+func TestAlias(t *testing.T) {
+	fmt.Println("===== Alias =====")
+	var a = Alias(NewStatement("SELECT tt.id, tt.name FROM test_table AS tt WHERE tt.id=?", 100), "a")
+	fmt.Println(a.ToSQL())
 }
 
 func TestCase(t *testing.T) {
-	var c1 = Case("a")
-	c1.When("10", SQL("a=?", 1000))
-	c1.When("20", "200")
-	c1.Else("0")
+	fmt.Println("===== Case =====")
+	var c = Case("a").When("1", "'男'").When("2", "'女'")
+	fmt.Println(c.ToSQL())
 
-	fmt.Println(c1.ToSQL())
+	var c2 = Alias(c, "cc")
+	fmt.Println(c2.ToSQL())
+}
+
+func TestAND(t *testing.T) {
+	fmt.Println("===== AND =====")
+	var a1 = AND(AND(SQL("a=?", 10), SQL("b=?", 20)), AND(SQL("c=?", 30), SQL("d=?", 40)))
+	a1.Append("e=?", 50)
+	a1.Append(AND(SQL("f=?", 60)))
+	fmt.Println(a1.ToSQL())
+
+	var a2 = AND(OR(SQL("a=?", 10), SQL("b=?", 20)))
+	fmt.Println(a2.ToSQL())
+}
+
+func TestOR(t *testing.T) {
+	fmt.Println("===== OR =====")
+	var a1 = AND(OR(SQL("a=?", 10), SQL("b=?", 20)), OR(SQL("c=?", 30), SQL("d=?", 40)))
+	fmt.Println(a1.ToSQL())
+}
+
+func TestSetStmt(t *testing.T) {
+	fmt.Println("===== SET =====")
+	var s1 setStmts
+
+	s1 = append(s1, newSet("c", 100))
+	s1 = append(s1, newSet("b", 200))
+	s1 = append(s1, newSet("c", SQL("b+?", 200)))
+
+	fmt.Println(s1.ToSQL())
 }
