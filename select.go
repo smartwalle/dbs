@@ -1,12 +1,12 @@
 package dbs
 
 import (
-	"io"
 	"bytes"
-	"errors"
-	"strings"
-	"fmt"
 	"database/sql"
+	"errors"
+	"fmt"
+	"io"
+	"strings"
 )
 
 type SelectBuilder struct {
@@ -203,7 +203,7 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, args *Args) error {
 	}
 
 	if len(this.orderBys) > 0 {
-		if _, err := io.WriteString(w, " ORDER BY "); err != nil  {
+		if _, err := io.WriteString(w, " ORDER BY "); err != nil {
 			return err
 		}
 		if _, err := io.WriteString(w, strings.Join(this.orderBys, ", ")); err != nil {

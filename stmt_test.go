@@ -1,8 +1,8 @@
 package dbs
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 func TestNewStatement(t *testing.T) {
@@ -63,6 +63,6 @@ func TestSetStmt(t *testing.T) {
 
 func TestIN(t *testing.T) {
 	fmt.Println("===== IN =====")
-	var i1 = IN("a", []int{1,2,3,4})
+	var i1 = IN("a", []int{1, 2, 3, 4})
 	fmt.Println(i1.ToSQL())
 }

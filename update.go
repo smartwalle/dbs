@@ -196,7 +196,7 @@ func (this *UpdateBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 		if _, err := io.WriteString(w, " "); err != nil {
 			return err
 		}
-		if  err := this.suffixes.AppendToSQL(w, " ", args); err != nil {
+		if err := this.suffixes.AppendToSQL(w, " ", args); err != nil {
 			return err
 		}
 	}

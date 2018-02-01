@@ -1,8 +1,8 @@
 package dbs
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 func TestUpdateBuilder(t *testing.T) {
