@@ -103,8 +103,12 @@ func (this *UpdateBuilder) Suffix(sql string, args ...interface{}) *UpdateBuilde
 func (this *UpdateBuilder) ToSQL() (string, []interface{}, error) {
 	var sqlBuffer = &bytes.Buffer{}
 	var args = newArgs()
-	err := this.AppendToSQL(sqlBuffer, "", args)
-	return sqlBuffer.String(), args.values, err
+	if err := this.AppendToSQL(sqlBuffer, "", args); err != nil {
+		return "", nil, err
+	}
+	sql := sqlBuffer.String()
+	log(sql, args.values)
+	return sql, args.values, nil
 }
 
 func (this *UpdateBuilder) AppendToSQL(w io.Writer, sep string, args *Args) error {

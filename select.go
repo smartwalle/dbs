@@ -121,7 +121,9 @@ func (this *SelectBuilder) ToSQL() (string, []interface{}, error) {
 	if err := this.AppendToSQL(sqlBuffer, args); err != nil {
 		return "", nil, err
 	}
-	return sqlBuffer.String(), args.values, nil
+	sql := sqlBuffer.String()
+	log(sql, args.values)
+	return sql, args.values, nil
 }
 
 func (this *SelectBuilder) AppendToSQL(w io.Writer, args *Args) error {

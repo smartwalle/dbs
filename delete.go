@@ -204,8 +204,12 @@ func (this *DeleteBuilder) AppendToSQL(w io.Writer, args *Args) error {
 func (this *DeleteBuilder) ToSQL() (string, []interface{}, error) {
 	var sqlBuffer = &bytes.Buffer{}
 	var args = newArgs()
-	err := this.AppendToSQL(sqlBuffer, args)
-	return sqlBuffer.String(), args.values, err
+	if err := this.AppendToSQL(sqlBuffer, args); err != nil {
+		return "", nil, err
+	}
+	sql := sqlBuffer.String()
+	log(sql, args.values)
+	return sql, args.values, nil
 }
 
 func (this *DeleteBuilder) Exec(s SQLExecutor) (sql.Result, error) {

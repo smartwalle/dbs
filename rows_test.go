@@ -29,7 +29,7 @@ package dbs
 //	if db == nil {
 //		var ndb, err = sql.Open("mysql", "root:smok2015@tcp(192.168.192.250:3306)/test?parseTime=true")
 //		if err != nil {
-//			fmt.Println("连接数据库出错:", err)
+//			fmt.log("连接数据库出错:", err)
 //			os.Exit(-1)
 //		}
 //		db = ndb
@@ -49,14 +49,14 @@ package dbs
 //	err = Scan(rows, &hList)
 //	defer rows.Close()
 //
-//	fmt.Println(err, hList)
+//	fmt.log(err, hList)
 //
 //	if err != nil {
-//		fmt.Println("Bind", err)
+//		fmt.log("Bind", err)
 //		return
 //	}
 //
 //	for _, h := range hList {
-//		fmt.Println(h.Id, h.Name, h.Gender, h.Birthday, h.Type.Id, h.Type.Name)
+//		fmt.log(h.Id, h.Name, h.Gender, h.Birthday, h.Type.Id, h.Type.Name)
 //	}
 //}

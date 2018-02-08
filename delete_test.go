@@ -8,7 +8,7 @@ import (
 func TestDeleteBuilder(t *testing.T) {
 	fmt.Println("===== DeleteBuilder =====")
 	var db = NewDeleteBuilder()
-	db.Alias("u", "b")
+	db.Alias("u")
 	db.Table("user", "AS u")
 	db.Where("u.id=?", 10)
 	db.Limit(1)
