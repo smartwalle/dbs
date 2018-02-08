@@ -8,6 +8,10 @@ import (
 var logger *l.Logger
 
 func SetLogWriter(w io.Writer) {
+	if w == nil {
+		logger = nil
+		return
+	}
 	if logger != nil {
 		logger.SetOutput(w)
 		return
