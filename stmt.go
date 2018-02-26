@@ -412,3 +412,92 @@ func parseStmt(sql interface{}, args ...interface{}) Statement {
 	}
 	return nil
 }
+
+// --------------------------------------------------------------------------------
+var isMap = map[bool]string{true:"IS", false:"IS NOT"}
+var inMap = map[bool]string{true:"IN", false:"NOT IN"}
+var eqMap = map[bool]string{true:"=", false:"<>"}
+
+type Eq map[string]interface{}
+
+func (this Eq) appendToSQL(eq bool, w io.Writer, args *Args) error {
+	var index = 0
+	for key, value := range this {
+		if key == "" {
+			continue
+		}
+
+		var stmt = ""
+		if value == nil {
+			stmt = fmt.Sprintf("%s %s NULL", key, isMap[eq])
+		} else {
+			pValue := reflect.ValueOf(value)
+			pKind := pValue.Kind()
+			if pKind == reflect.Array || pKind == reflect.Slice {
+				if pValue.Len() > 0 {
+					for i :=0; i< pValue.Len(); i++ {
+						args.Append(pValue.Index(i).Interface())
+					}
+					stmt = fmt.Sprintf("%s %s (%s)", key, inMap[eq], Placeholders(pValue.Len()))
+				}
+			} else {
+				stmt = fmt.Sprintf("%s %s ?", key, eqMap[eq])
+				args.Append(value)
+			}
+		}
+
+		if stmt != "" {
+			if index != 0 {
+				if _, err := io.WriteString(w, " AND "); err != nil {
+					return err
+				}
+			}
+
+			if _, err := io.WriteString(w, "("); err != nil {
+				return err
+			}
+			if _, err := io.WriteString(w, stmt); err != nil {
+				return err
+			}
+			if _, err := io.WriteString(w, ")"); err != nil {
+				return err
+			}
+
+			index += 1
+		}
+	}
+	return nil
+}
+
+func (this Eq) AppendToSQL(w io.Writer, args *Args) error {
+	return this.appendToSQL(true, w, args)
+}
+
+func (this Eq) ToSQL() (string, []interface{}, error) {
+	var sqlBuffer = &bytes.Buffer{}
+	var args = newArgs()
+	err := this.AppendToSQL(sqlBuffer, args)
+	return sqlBuffer.String(), args.values, err
+}
+
+// --------------------------------------------------------------------------------
+type NotEq Eq
+
+func (this NotEq) AppendToSQL(w io.Writer, args *Args) error {
+	return Eq(this).appendToSQL(false, w, args)
+}
+
+func (this NotEq) ToSQL() (string, []interface{}, error) {
+	var sqlBuffer = &bytes.Buffer{}
+	var args = newArgs()
+	err := this.AppendToSQL(sqlBuffer, args)
+	return sqlBuffer.String(), args.values, err
+}
+
+// --------------------------------------------------------------------------------
+func Placeholders(count int) string {
+	if count <= 0 {
+		return ""
+	}
+	return strings.Repeat(", ?", count)[2:]
+}
