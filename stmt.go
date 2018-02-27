@@ -376,7 +376,7 @@ func IN(sql string, args interface{}) Statement {
 	}
 
 	var pValue = reflect.ValueOf(args)
-	var pKind =pValue.Kind()
+	var pKind = pValue.Kind()
 	var params []interface{}
 
 	if pKind == reflect.Array || pKind == reflect.Slice {
@@ -414,9 +414,9 @@ func parseStmt(sql interface{}, args ...interface{}) Statement {
 }
 
 // --------------------------------------------------------------------------------
-var isMap = map[bool]string{true:"IS", false:"IS NOT"}
-var inMap = map[bool]string{true:"IN", false:"NOT IN"}
-var eqMap = map[bool]string{true:"=", false:"<>"}
+var isMap = map[bool]string{true: "IS", false: "IS NOT"}
+var inMap = map[bool]string{true: "IN", false: "NOT IN"}
+var eqMap = map[bool]string{true: "=", false: "<>"}
 
 type Eq map[string]interface{}
 
@@ -435,7 +435,7 @@ func (this Eq) appendToSQL(eq bool, w io.Writer, args *Args) error {
 			var pKind = pValue.Kind()
 			if pKind == reflect.Array || pKind == reflect.Slice {
 				if pValue.Len() > 0 {
-					for i :=0; i< pValue.Len(); i++ {
+					for i := 0; i < pValue.Len(); i++ {
 						args.Append(pValue.Index(i).Interface())
 					}
 					stmt = fmt.Sprintf("%s %s (%s)", key, inMap[eq], Placeholders(pValue.Len()))
