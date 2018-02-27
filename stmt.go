@@ -375,11 +375,11 @@ func IN(sql string, args interface{}) Statement {
 		return nil
 	}
 
-	var pType = reflect.TypeOf(args)
 	var pValue = reflect.ValueOf(args)
+	var pKind =pValue.Kind()
 	var params []interface{}
 
-	if pType.Kind() == reflect.Array || pType.Kind() == reflect.Slice {
+	if pKind == reflect.Array || pKind == reflect.Slice {
 		var l = pValue.Len()
 		params = make([]interface{}, l)
 		for i := 0; i < l; i++ {
@@ -388,7 +388,7 @@ func IN(sql string, args interface{}) Statement {
 	}
 
 	if len(params) > 0 {
-		sql = fmt.Sprintf("%s IN (%s)", sql, strings.Repeat(", ?", len(params))[2:])
+		sql = fmt.Sprintf("%s IN (%s)", sql, Placeholders(len(params)))
 	}
 
 	var s = &statement{}
@@ -431,8 +431,8 @@ func (this Eq) appendToSQL(eq bool, w io.Writer, args *Args) error {
 		if value == nil {
 			stmt = fmt.Sprintf("%s %s NULL", key, isMap[eq])
 		} else {
-			pValue := reflect.ValueOf(value)
-			pKind := pValue.Kind()
+			var pValue = reflect.ValueOf(value)
+			var pKind = pValue.Kind()
 			if pKind == reflect.Array || pKind == reflect.Slice {
 				if pValue.Len() > 0 {
 					for i :=0; i< pValue.Len(); i++ {
@@ -441,8 +441,18 @@ func (this Eq) appendToSQL(eq bool, w io.Writer, args *Args) error {
 					stmt = fmt.Sprintf("%s %s (%s)", key, inMap[eq], Placeholders(pValue.Len()))
 				}
 			} else {
-				stmt = fmt.Sprintf("%s %s ?", key, eqMap[eq])
-				args.Append(value)
+				switch v := value.(type) {
+				case Statement:
+					sql, arg, err := v.ToSQL()
+					if err != nil {
+						return err
+					}
+					stmt = fmt.Sprintf("%s %s %s", key, eqMap[eq], sql)
+					args.Append(arg...)
+				default:
+					stmt = fmt.Sprintf("%s %s ?", key, eqMap[eq])
+					args.Append(value)
+				}
 			}
 		}
 
@@ -462,7 +472,6 @@ func (this Eq) appendToSQL(eq bool, w io.Writer, args *Args) error {
 			if _, err := io.WriteString(w, ")"); err != nil {
 				return err
 			}
-
 			index += 1
 		}
 	}
