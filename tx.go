@@ -102,7 +102,7 @@ func (this *Tx) ExecDeleteBuilder(rb *DeleteBuilder) (result sql.Result, err err
 	return this.exec(sql, args, nil)
 }
 
-func (this *Tx) ExecBuilder(b *Builder, results interface{}) (result sql.Result, err error) {
+func (this *Tx) ExecBuilder(b Builder, results interface{}) (result sql.Result, err error) {
 	sql, args, err := b.ToSQL()
 	if err != nil {
 		this.Rollback()
