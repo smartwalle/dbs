@@ -59,6 +59,8 @@ type SQLExecutor interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 
 	Query(query string, args ...interface{}) (*sql.Rows, error)
+
+	Begin() (*sql.Tx, error)
 }
 
 func Exec(s SQLExecutor, query string, args ...interface{}) (sql.Result, error) {
