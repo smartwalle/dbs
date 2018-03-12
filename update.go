@@ -170,7 +170,7 @@ func (this *UpdateBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 		if _, err := io.WriteString(w, " WHERE "); err != nil {
 			return err
 		}
-		if err := this.wheres.AppendToSQL(w, " ", args); err != nil {
+		if err := this.wheres.AppendToSQL(w, " AND ", args); err != nil {
 			return err
 		}
 	}
