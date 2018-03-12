@@ -370,7 +370,7 @@ func OR(stmts ...Statement) *whereStmt {
 }
 
 // --------------------------------------------------------------------------------
-func IN(sql string, args interface{}) Statement {
+func in(sql, exp string, args interface{}) Statement {
 	if len(sql) == 0 {
 		return nil
 	}
@@ -388,13 +388,23 @@ func IN(sql string, args interface{}) Statement {
 	}
 
 	if len(params) > 0 {
-		sql = fmt.Sprintf("%s IN (%s)", sql, Placeholders(len(params)))
+		sql = fmt.Sprintf("%s %s (%s)", sql, exp, Placeholders(len(params)))
 	}
 
 	var s = &statement{}
 	s.sql = sql
 	s.args = params
 	return s
+}
+
+// --------------------------------------------------------------------------------
+func IN(sql string, args interface{}) Statement {
+	return in(sql, "IN", args)
+}
+
+// --------------------------------------------------------------------------------
+func NotIn(sql string, args interface{}) Statement {
+	return in(sql, "NOT IN", args)
 }
 
 // --------------------------------------------------------------------------------
