@@ -9,12 +9,25 @@ import (
 )
 
 // --------------------------------------------------------------------------------
+type SQLValue interface {
+	SQLValue() string
+}
+
+// --------------------------------------------------------------------------------
 type Args struct {
 	values []interface{}
 }
 
 func (this *Args) Append(args ...interface{}) {
-	this.values = append(this.values, args...)
+	//this.values = append(this.values, args...)
+	for _, v := range args {
+		switch vt := v.(type) {
+		case SQLValue:
+			this.values = append(this.values, vt.SQLValue())
+		default:
+			this.values = append(this.values, v)
+		}
+	}
 }
 
 func newArgs() *Args {
