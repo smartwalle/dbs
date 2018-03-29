@@ -57,6 +57,7 @@ func (this *Tx) exec(query string, args []interface{}, results interface{}) (res
 		var rows *sql.Rows
 		rows, err = this.tx.Query(query, args...)
 		if rows != nil {
+			defer rows.Close()
 			err = Scan(rows, results)
 		}
 	} else {

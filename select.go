@@ -250,6 +250,9 @@ func (this *SelectBuilder) Scan(s SQLExecutor, result interface{}) (err error) {
 	if err != nil {
 		return err
 	}
+	if rows != nil {
+		defer rows.Close()
+	}
 	err = Scan(rows, result)
 	return err
 }

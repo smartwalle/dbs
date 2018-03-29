@@ -16,7 +16,6 @@ func Scan(rows *sql.Rows, result interface{}) (err error) {
 	if rows == nil {
 		return errors.New("rows: rows is closed")
 	}
-	defer rows.Close()
 
 	var objType = reflect.TypeOf(result)
 	var objValue = reflect.ValueOf(result)
