@@ -3,6 +3,7 @@ package dbs
 import (
 	"database/sql"
 	"fmt"
+	"context"
 )
 
 func NewSQL(driver, url string, maxOpen, maxIdle int) (p *Pool) {
@@ -57,18 +58,29 @@ func (this *Session) Begin() (*sql.Tx, error) {
 // --------------------------------------------------------------------------------
 type SQLExecutor interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 
 	Query(query string, args ...interface{}) (*sql.Rows, error)
+	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 
 	Begin() (*sql.Tx, error)
+	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
 }
 
 func Exec(s SQLExecutor, query string, args ...interface{}) (sql.Result, error) {
 	return s.Exec(query, args...)
 }
 
+func ExecContext(ctx context.Context, s SQLExecutor, query string, args ...interface{}) (sql.Result, error) {
+	return s.ExecContext(ctx, query, args...)
+}
+
 func Query(s SQLExecutor, query string, args ...interface{}) (*sql.Rows, error) {
 	return s.Query(query, args...)
+}
+
+func QueryContext(ctx context.Context, s SQLExecutor, query string, args ...interface{}) (*sql.Rows, error) {
+	return s.QueryContext(ctx, query, args...)
 }
 
 // --------------------------------------------------------------------------------

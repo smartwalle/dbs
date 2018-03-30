@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"context"
 )
 
 type InsertBuilder struct {
@@ -64,6 +65,17 @@ func (this *InsertBuilder) SET(column string, value interface{}) *InsertBuilder 
 	vList = append(vList, value)
 	this.values[0] = vList
 	return this
+}
+
+func (this *InsertBuilder) ToSQL() (string, []interface{}, error) {
+	var sqlBuffer = &bytes.Buffer{}
+	var args = newArgs()
+	if err := this.AppendToSQL(sqlBuffer, args); err != nil {
+		return "", nil, err
+	}
+	sql := sqlBuffer.String()
+	log(sql, args.values)
+	return sql, args.values, nil
 }
 
 func (this *InsertBuilder) AppendToSQL(w io.Writer, args *Args) error {
@@ -155,6 +167,18 @@ func (this *InsertBuilder) Exec(s SQLExecutor) (sql.Result, error) {
 	return Exec(s, sql, args...)
 }
 
+func (this *InsertBuilder) ExecContext(ctx context.Context, s SQLExecutor) (sql.Result, error) {
+	sql, args, err := this.ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	return ExecContext(ctx, s, sql, args...)
+}
+
+func NewInsertBuilder() *InsertBuilder {
+	return &InsertBuilder{}
+}
+
 func Insert(s SQLExecutor, table string, data map[string]interface{}) (sql.Result, error) {
 	var in = NewInsertBuilder()
 	in.Table(table)
@@ -166,19 +190,4 @@ func Insert(s SQLExecutor, table string, data map[string]interface{}) (sql.Resul
 	}
 	in.Values(values...)
 	return in.Exec(s)
-}
-
-func NewInsertBuilder() *InsertBuilder {
-	return &InsertBuilder{}
-}
-
-func (this *InsertBuilder) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	if err := this.AppendToSQL(sqlBuffer, args); err != nil {
-		return "", nil, err
-	}
-	sql := sqlBuffer.String()
-	log(sql, args.values)
-	return sql, args.values, nil
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"context"
 )
 
 type SelectBuilder struct {
@@ -245,8 +246,28 @@ func (this *SelectBuilder) Query(s SQLExecutor) (*sql.Rows, error) {
 	return Query(s, sql, args...)
 }
 
+func (this *SelectBuilder) QueryContext(ctx context.Context, s SQLExecutor) (*sql.Rows, error) {
+	sql, args, err := this.ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	return QueryContext(ctx, s, sql, args...)
+}
+
 func (this *SelectBuilder) Scan(s SQLExecutor, result interface{}) (err error) {
 	rows, err := this.Query(s)
+	if err != nil {
+		return err
+	}
+	if rows != nil {
+		defer rows.Close()
+	}
+	err = Scan(rows, result)
+	return err
+}
+
+func (this *SelectBuilder) ScanContext(ctx context.Context, s SQLExecutor, result interface{}) (err error) {
+	rows, err := this.QueryContext(ctx, s)
 	if err != nil {
 		return err
 	}

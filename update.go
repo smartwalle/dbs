@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"context"
 )
 
 type UpdateBuilder struct {
@@ -214,6 +215,14 @@ func (this *UpdateBuilder) Exec(s SQLExecutor) (sql.Result, error) {
 		return nil, err
 	}
 	return Exec(s, sql, args...)
+}
+
+func (this *UpdateBuilder) ExecContext(ctx context.Context, s SQLExecutor) (sql.Result, error) {
+	sql, args, err := this.ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	return ExecContext(ctx, s, sql, args...)
 }
 
 func NewUpdateBuilder() *UpdateBuilder {

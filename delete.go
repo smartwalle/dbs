@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"context"
 )
 
 type DeleteBuilder struct {
@@ -97,6 +98,17 @@ func (this *DeleteBuilder) Offset(offset uint64) *DeleteBuilder {
 func (this *DeleteBuilder) Suffix(sql string, args ...interface{}) *DeleteBuilder {
 	this.suffixes = append(this.suffixes, NewStatement(sql, args...))
 	return this
+}
+
+func (this *DeleteBuilder) ToSQL() (string, []interface{}, error) {
+	var sqlBuffer = &bytes.Buffer{}
+	var args = newArgs()
+	if err := this.AppendToSQL(sqlBuffer, args); err != nil {
+		return "", nil, err
+	}
+	sql := sqlBuffer.String()
+	log(sql, args.values)
+	return sql, args.values, nil
 }
 
 func (this *DeleteBuilder) AppendToSQL(w io.Writer, args *Args) error {
@@ -201,23 +213,20 @@ func (this *DeleteBuilder) AppendToSQL(w io.Writer, args *Args) error {
 	return nil
 }
 
-func (this *DeleteBuilder) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	if err := this.AppendToSQL(sqlBuffer, args); err != nil {
-		return "", nil, err
-	}
-	sql := sqlBuffer.String()
-	log(sql, args.values)
-	return sql, args.values, nil
-}
-
 func (this *DeleteBuilder) Exec(s SQLExecutor) (sql.Result, error) {
 	sql, args, err := this.ToSQL()
 	if err != nil {
 		return nil, err
 	}
 	return Exec(s, sql, args...)
+}
+
+func (this *DeleteBuilder) ExecContext(ctx context.Context, s SQLExecutor) (sql.Result, error) {
+	sql, args, err := this.ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	return ExecContext(ctx, s, sql, args...)
 }
 
 func NewDeleteBuilder() *DeleteBuilder {
