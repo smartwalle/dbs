@@ -21,14 +21,6 @@ func (this *Tx) Tx() *sql.Tx {
 	return this.tx
 }
 
-func (this *Tx) Begin() (*sql.Tx, error) {
-	return this.db.Begin()
-}
-
-func (this *Tx) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
-	return this.db.BeginTx(ctx, opts)
-}
-
 func (this *Tx) Query(query string, args ...interface{}) (rows *sql.Rows, err error) {
 	defer func() {
 		if err != nil {
@@ -224,6 +216,16 @@ func (this *Tx) Rollback() error {
 func NewTx(db txDB) (tx *Tx, err error) {
 	tx = &Tx{}
 	tx.tx, err = db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	tx.db = db
+	return tx, err
+}
+
+func NewTxContext(ctx context.Context, db txDB, opts *sql.TxOptions) (tx *Tx, err error) {
+	tx = &Tx{}
+	tx.tx, err = db.BeginTx(ctx, opts)
 	if err != nil {
 		return nil, err
 	}

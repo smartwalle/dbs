@@ -50,11 +50,17 @@ type SQLExecutor interface {
 
 	Query(query string, args ...interface{}) (*sql.Rows, error)
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
+}
+
+// --------------------------------------------------------------------------------
+type DB interface {
+	SQLExecutor
 
 	Begin() (*sql.Tx, error)
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
 }
 
+// --------------------------------------------------------------------------------
 func Exec(s SQLExecutor, query string, args ...interface{}) (sql.Result, error) {
 	return s.Exec(query, args...)
 }
