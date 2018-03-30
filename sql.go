@@ -43,18 +43,6 @@ type Session struct {
 	*sql.DB
 }
 
-func (this *Session) Query(query string, args ...interface{}) (rows *sql.Rows, err error) {
-	return this.DB.Query(query, args...)
-}
-
-func (this *Session) QueryRow(query string, args ...interface{}) (row *sql.Row) {
-	return this.DB.QueryRow(query, args...)
-}
-
-func (this *Session) Begin() (*sql.Tx, error) {
-	return this.DB.Begin()
-}
-
 // --------------------------------------------------------------------------------
 type SQLExecutor interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
