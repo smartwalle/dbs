@@ -18,6 +18,32 @@ func TestSelectBuilder(t *testing.T) {
 	fmt.Println(sb.ToSQL())
 }
 
+func TestSelectBuilder2(t *testing.T) {
+	fmt.Println("===== SelectBuilder2 =====")
+	var sb = NewSelectBuilder()
+	sb.Selects("u.id")
+	sb.Select(Alias("u.f2", "f2"))
+	sb.Select(Alias(NewStatement("SELECT tt.id, tt.name FROM test_table AS tt WHERE tt.id=?", 100), "amount"))
+	sb.Select(Alias(Case("u.id").When("10", "20"), "uuid"))
+	sb.From("user", "AS u")
+	sb.LeftJoin("user_email", "AS ue ON ue.user_id=u.id")
+
+	fmt.Println(sb.ToSQL())
+}
+
+func TestSelectBuilder3(t *testing.T) {
+	fmt.Println("===== SelectBuilder3 =====")
+	var sb = NewSelectBuilder()
+	sb.Selects("u.id")
+	sb.Select(Alias("u.name", "name"))
+	sb.From("user", "AS u")
+
+	sb.Where("u.name=?", "yang")
+	sb.Where(OR().Append("u.id=?", 10).Append("u.id=?", 20))
+
+	fmt.Println(sb.ToSQL())
+}
+
 func TestSelectBuilderAnd(t *testing.T) {
 	fmt.Println("===== SelectBuilderAnd =====")
 	var sb = NewSelectBuilder()
@@ -61,18 +87,6 @@ func TestSelectBuilderOR(t *testing.T) {
 	fmt.Println(sb.ToSQL())
 }
 
-func TestSelectBuilder3(t *testing.T) {
-	fmt.Println("===== SelectBuilder3 =====")
-	var sb = NewSelectBuilder()
-	sb.Selects("u.id")
-	sb.Select(Alias("u.name", "name"))
-	sb.From("user", "AS u")
-
-	sb.Where("u.id=", Alias(SQL("SELECT id FROM user_email WHERE email=?", "test@qq.com"), "user_id"))
-
-	fmt.Println(sb.ToSQL())
-}
-
 func TestSelectBuilderIN(t *testing.T) {
 	fmt.Println("===== SelectBuilderIN =====")
 	var sb = NewSelectBuilder()
@@ -84,4 +98,17 @@ func TestSelectBuilderIN(t *testing.T) {
 	sb.Where(IN("u.status", []int{200, 300, 400}))
 
 	fmt.Println(sb.ToSQL())
+}
+
+func BenchmarkSelectBuilder(b *testing.B) {
+	fmt.Println("===== SelectBuilder3 =====")
+	for i:=0; i<b.N; i++ {
+		var sb = NewSelectBuilder()
+		sb.Selects("u.id")
+		sb.Select(Alias("u.name", "name"))
+		sb.From("user", "AS u")
+
+		sb.Where("u.name=?", "yang")
+		sb.Where(OR().Append("u.id=?", 10).Append("u.id=?", 20))
+	}
 }

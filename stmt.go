@@ -299,9 +299,25 @@ func (this statements) AppendToSQL(w io.Writer, sep string, args *Args) error {
 				return err
 			}
 		}
-		if err := stmt.AppendToSQL(w, args); err != nil {
-			return err
+		switch st := stmt.(type) {
+		case *whereStmt:
+			if _, err := io.WriteString(w, "("); err != nil {
+				return err
+			}
+			if err := st.AppendToSQL(w, args); err != nil {
+				return err
+			}
+			if _, err := io.WriteString(w, ")"); err != nil {
+				return err
+			}
+		default:
+			if err := st.AppendToSQL(w, args); err != nil {
+				return err
+			}
 		}
+		//if err := stmt.AppendToSQL(w, args); err != nil {
+		//	return err
+		//}
 	}
 	return nil
 }
