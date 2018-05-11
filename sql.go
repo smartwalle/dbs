@@ -2,20 +2,17 @@ package dbs
 
 import (
 	"database/sql"
-	"fmt"
 	"context"
 )
 
-func NewSQL(driver, url string, maxOpen, maxIdle int) (p *Pool) {
+func NewSQL(driver, url string, maxOpen, maxIdle int) (p *Pool, err error) {
 	db, err := sql.Open(driver, url)
 	if err != nil {
-		fmt.Println("连接 SQL 数据库失败:", err)
-		return nil
+		return nil, err
 	}
 
 	if err := db.Ping(); err != nil {
-		fmt.Println("连接 SQL 数据库失败:", err)
-		return nil
+		return nil, err
 	}
 
 	db.SetMaxIdleConns(maxIdle)
@@ -23,7 +20,7 @@ func NewSQL(driver, url string, maxOpen, maxIdle int) (p *Pool) {
 
 	p = &Pool{}
 	p.s = &Session{db}
-	return p
+	return p, nil
 }
 
 // --------------------------------------------------------------------------------
