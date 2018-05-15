@@ -2,12 +2,12 @@ package dbs
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"io"
 	"strings"
-	"context"
 )
 
 type SelectBuilder struct {
@@ -243,7 +243,7 @@ func (this *SelectBuilder) Query(s SQLExecutor) (*sql.Rows, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Query(s, sql, args...)
+	return s.Query(sql, args...)
 }
 
 func (this *SelectBuilder) QueryContext(ctx context.Context, s SQLExecutor) (*sql.Rows, error) {
@@ -251,7 +251,7 @@ func (this *SelectBuilder) QueryContext(ctx context.Context, s SQLExecutor) (*sq
 	if err != nil {
 		return nil, err
 	}
-	return QueryContext(ctx, s, sql, args...)
+	return s.QueryContext(ctx, sql, args...)
 }
 
 func (this *SelectBuilder) Scan(s SQLExecutor, result interface{}) (err error) {

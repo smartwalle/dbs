@@ -1,8 +1,9 @@
 package dbs
 
 import (
-	"database/sql"
 	"context"
+	"database/sql"
+	"sync"
 )
 
 func NewSQL(driver, url string, maxOpen, maxIdle int) (p *Pool, err error) {
@@ -19,7 +20,7 @@ func NewSQL(driver, url string, maxOpen, maxIdle int) (p *Pool, err error) {
 	db.SetMaxOpenConns(maxOpen)
 
 	p = &Pool{}
-	p.s = &Session{db}
+	p.s = NewSession(db)
 	return p, nil
 }
 
@@ -36,8 +37,104 @@ func (this *Pool) Release(s *Session) {
 	// do nothing
 }
 
+// --------------------------------------------------------------------------------
+func NewSession(db *sql.DB) *Session {
+	var s = &Session{}
+	s.DB = db
+	s.stmtCache = make(map[string]*sql.Stmt)
+	return s
+}
+
 type Session struct {
 	*sql.DB
+	mu        sync.Mutex
+	stmtCache map[string]*sql.Stmt
+}
+
+func (this *Session) Prepare(query string) (*sql.Stmt, error) {
+	this.mu.Lock()
+	defer this.mu.Unlock()
+
+	if stmt, ok := this.stmtCache[query]; ok {
+		return stmt, nil
+	}
+	stmt, err := this.DB.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	this.stmtCache[query] = stmt
+	return stmt, nil
+}
+
+func (this *Session) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	this.mu.Lock()
+	defer this.mu.Unlock()
+
+	if stmt, ok := this.stmtCache[query]; ok {
+		return stmt, nil
+	}
+	stmt, err := this.DB.PrepareContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	this.stmtCache[query] = stmt
+	return stmt, nil
+}
+
+func (this *Session) Exec(query string, args ...interface{}) (sql.Result, error) {
+	stmt, err := this.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	return stmt.Exec(args...)
+}
+
+func (this *Session) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	stmt, err := this.PrepareContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	return stmt.ExecContext(ctx, args...)
+}
+
+func (this *Session) Query(query string, args ...interface{}) (*sql.Rows, error) {
+	stmt, err := this.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	return stmt.Query(args...)
+}
+
+func (this *Session) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	stmt, err := this.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	return stmt.QueryContext(ctx, args...)
+}
+
+func (this *Session) QueryRow(query string, args ...interface{}) *sql.Row {
+	stmt, err := this.Prepare(query)
+	if err != nil {
+		return nil
+	}
+	return stmt.QueryRow(args...)
+}
+
+func (this *Session) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	stmt, err := this.PrepareContext(ctx, query)
+	if err != nil {
+		return nil
+	}
+	return stmt.QueryRow(args...)
+}
+
+func (this *Session) ExecRaw(query string, args ...interface{}) (sql.Result, error) {
+	return this.DB.Exec(query, args...)
+}
+
+func (this *Session) QueryRaw(query string, args ...interface{}) (*sql.Rows, error) {
+	return this.DB.Query(query, args...)
 }
 
 // --------------------------------------------------------------------------------
@@ -47,31 +144,23 @@ type SQLExecutor interface {
 
 	Query(query string, args ...interface{}) (*sql.Rows, error)
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
+
+	QueryRow(query string, args ...interface{}) *sql.Row
+	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
+
+	ExecRaw(query string, args ...interface{}) (sql.Result, error)
+	QueryRaw(query string, args ...interface{}) (*sql.Rows, error)
 }
 
 // --------------------------------------------------------------------------------
 type DB interface {
 	SQLExecutor
 
+	Prepare(query string) (*sql.Stmt, error)
+	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
+
 	Begin() (*sql.Tx, error)
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
-}
-
-// --------------------------------------------------------------------------------
-func Exec(s SQLExecutor, query string, args ...interface{}) (sql.Result, error) {
-	return s.Exec(query, args...)
-}
-
-func ExecContext(ctx context.Context, s SQLExecutor, query string, args ...interface{}) (sql.Result, error) {
-	return s.ExecContext(ctx, query, args...)
-}
-
-func Query(s SQLExecutor, query string, args ...interface{}) (*sql.Rows, error) {
-	return s.Query(query, args...)
-}
-
-func QueryContext(ctx context.Context, s SQLExecutor, query string, args ...interface{}) (*sql.Rows, error) {
-	return s.QueryContext(ctx, query, args...)
 }
 
 // --------------------------------------------------------------------------------

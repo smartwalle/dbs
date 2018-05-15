@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
-	"strings"
 	"io"
+	"strings"
 )
 
 // --------------------------------------------------------------------------------
@@ -61,7 +61,15 @@ func (this *RawBuilder) Exec(s SQLExecutor) (sql.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Exec(s, sql, args...)
+	return s.Exec(sql, args...)
+}
+
+func (this *RawBuilder) ExecRaw(s SQLExecutor) (sql.Result, error) {
+	sql, args, err := this.ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	return s.ExecRaw(sql, args...)
 }
 
 func (this *RawBuilder) Query(s SQLExecutor) (*sql.Rows, error) {
@@ -69,7 +77,15 @@ func (this *RawBuilder) Query(s SQLExecutor) (*sql.Rows, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Query(s, sql, args...)
+	return s.Query(sql, args...)
+}
+
+func (this *RawBuilder) QueryRaw(s SQLExecutor) (*sql.Rows, error) {
+	sql, args, err := this.ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	return s.QueryRaw(sql, args...)
 }
 
 func (this *RawBuilder) Scan(s SQLExecutor, result interface{}) (err error) {
@@ -142,7 +158,15 @@ func (this *LockBuilder) Exec(s SQLExecutor) (sql.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Exec(s, sql, args...)
+	return s.Exec(sql, args...)
+}
+
+func (this *LockBuilder) ExecRaw(s SQLExecutor) (sql.Result, error) {
+	sql, args, err := this.ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	return s.ExecRaw(sql, args...)
 }
 
 func WriteLock(table string, args ...string) *LockBuilder {

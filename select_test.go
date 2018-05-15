@@ -102,7 +102,7 @@ func TestSelectBuilderIN(t *testing.T) {
 
 func BenchmarkSelectBuilder(b *testing.B) {
 	fmt.Println("===== SelectBuilder3 =====")
-	for i:=0; i<b.N; i++ {
+	for i := 0; i < b.N; i++ {
 		var sb = NewSelectBuilder()
 		sb.Selects("u.id")
 		sb.Select(Alias("u.name", "name"))
