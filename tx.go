@@ -15,21 +15,21 @@ func (this *Tx) Tx() *sql.Tx {
 	return this.tx
 }
 
-func (this *Tx) Prepare(query string) (*sql.Stmt, error) {
-	var stmt, err = this.db.Prepare(query)
-	if err != nil {
-		return nil, err
-	}
-	return this.tx.Stmt(stmt), nil
-}
-
-func (this *Tx) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
-	var stmt, err = this.db.PrepareContext(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-	return this.tx.StmtContext(ctx, stmt), nil
-}
+//func (this *Tx) Prepare(query string) (*sql.Stmt, error) {
+//	var stmt, err = this.db.Prepare(query)
+//	if err != nil {
+//		return nil, err
+//	}
+//	return this.tx.Stmt(stmt), nil
+//}
+//
+//func (this *Tx) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+//	var stmt, err = this.db.PrepareContext(ctx, query)
+//	if err != nil {
+//		return nil, err
+//	}
+//	return this.tx.StmtContext(ctx, stmt), nil
+//}
 
 func (this *Tx) Exec(query string, args ...interface{}) (result sql.Result, err error) {
 	defer func() {
@@ -38,11 +38,13 @@ func (this *Tx) Exec(query string, args ...interface{}) (result sql.Result, err 
 			result = nil
 		}
 	}()
-	stmt, err := this.Prepare(query)
-	if err != nil {
-		return nil, err
-	}
-	return stmt.Exec(args...)
+	result, err = this.tx.Exec(query, args...)
+	return result, err
+	//stmt, err := this.Prepare(query)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//return stmt.Exec(args...)
 }
 
 func (this *Tx) ExecContext(ctx context.Context, query string, args ...interface{}) (result sql.Result, err error) {
@@ -52,11 +54,13 @@ func (this *Tx) ExecContext(ctx context.Context, query string, args ...interface
 			result = nil
 		}
 	}()
-	stmt, err := this.PrepareContext(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-	return stmt.ExecContext(ctx, args...)
+	result, err = this.tx.ExecContext(ctx, query, args...)
+	return result, err
+	//stmt, err := this.PrepareContext(ctx, query)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//return stmt.ExecContext(ctx, args...)
 }
 
 func (this *Tx) Query(query string, args ...interface{}) (rows *sql.Rows, err error) {
@@ -66,11 +70,13 @@ func (this *Tx) Query(query string, args ...interface{}) (rows *sql.Rows, err er
 			rows = nil
 		}
 	}()
-	stmt, err := this.Prepare(query)
-	if err != nil {
-		return nil, err
-	}
-	return stmt.Query(args...)
+	rows, err = this.tx.Query(query, args...)
+	return rows, err
+	//stmt, err := this.Prepare(query)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//return stmt.Query(args...)
 }
 
 func (this *Tx) QueryContext(ctx context.Context, query string, args ...interface{}) (rows *sql.Rows, err error) {
@@ -80,29 +86,33 @@ func (this *Tx) QueryContext(ctx context.Context, query string, args ...interfac
 			rows = nil
 		}
 	}()
-	stmt, err := this.PrepareContext(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-	return stmt.QueryContext(ctx, args...)
+	rows, err = this.tx.QueryContext(ctx, query, args...)
+	return rows, err
+	//stmt, err := this.PrepareContext(ctx, query)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//return stmt.QueryContext(ctx, args...)
 }
 
 func (this *Tx) QueryRow(query string, args ...interface{}) *sql.Row {
-	stmt, err := this.Prepare(query)
-	if err != nil {
-		this.Rollback()
-		return nil
-	}
-	return stmt.QueryRow(args...)
+	return this.tx.QueryRow(query, args...)
+	//stmt, err := this.Prepare(query)
+	//if err != nil {
+	//	this.Rollback()
+	//	return nil
+	//}
+	//return stmt.QueryRow(args...)
 }
 
 func (this *Tx) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
-	stmt, err := this.PrepareContext(ctx, query)
-	if err != nil {
-		this.Rollback()
-		return nil
-	}
-	return stmt.QueryRow(args...)
+	return this.tx.QueryRowContext(ctx, query, args...)
+	//stmt, err := this.PrepareContext(ctx, query)
+	//if err != nil {
+	//	this.Rollback()
+	//	return nil
+	//}
+	//return stmt.QueryRow(args...)
 }
 
 func (this *Tx) QueryEx(query string, args []interface{}, results interface{}) (err error) {
