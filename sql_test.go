@@ -8,7 +8,7 @@ var pool *Pool
 
 func getPool() *Pool {
 	if pool == nil {
-		pool = NewSQL("mysql", "localhost", 30, 10)
+		pool, _ = NewSQL("mysql", "localhost", 30, 10)
 	}
 	return pool
 }

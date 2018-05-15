@@ -541,11 +541,3 @@ func (this NotEq) ToSQL() (string, []interface{}, error) {
 	err := this.AppendToSQL(sqlBuffer, args)
 	return sqlBuffer.String(), args.values, err
 }
-
-// --------------------------------------------------------------------------------
-func Placeholders(count int) string {
-	if count <= 0 {
-		return ""
-	}
-	return strings.Repeat(", ?", count)[2:]
-}
