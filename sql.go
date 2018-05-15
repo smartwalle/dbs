@@ -58,23 +58,6 @@ type DB interface {
 }
 
 // --------------------------------------------------------------------------------
-func Exec(s SQLExecutor, query string, args ...interface{}) (sql.Result, error) {
-	return s.Exec(query, args...)
-}
-
-func ExecContext(ctx context.Context, s SQLExecutor, query string, args ...interface{}) (sql.Result, error) {
-	return s.ExecContext(ctx, query, args...)
-}
-
-func Query(s SQLExecutor, query string, args ...interface{}) (*sql.Rows, error) {
-	return s.Query(query, args...)
-}
-
-func QueryContext(ctx context.Context, s SQLExecutor, query string, args ...interface{}) (*sql.Rows, error) {
-	return s.QueryContext(ctx, query, args...)
-}
-
-// --------------------------------------------------------------------------------
 const k_SQL_KEY = "sql_session"
 
 type Setter interface {

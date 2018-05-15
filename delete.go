@@ -218,7 +218,7 @@ func (this *DeleteBuilder) Exec(s SQLExecutor) (sql.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Exec(s, sql, args...)
+	return s.Exec(sql, args...)
 }
 
 func (this *DeleteBuilder) ExecContext(ctx context.Context, s SQLExecutor) (sql.Result, error) {
@@ -226,7 +226,7 @@ func (this *DeleteBuilder) ExecContext(ctx context.Context, s SQLExecutor) (sql.
 	if err != nil {
 		return nil, err
 	}
-	return ExecContext(ctx, s, sql, args...)
+	return s.ExecContext(ctx, sql, args...)
 }
 
 func NewDeleteBuilder() *DeleteBuilder {

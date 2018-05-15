@@ -61,7 +61,7 @@ func (this *RawBuilder) Exec(s SQLExecutor) (sql.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Exec(s, sql, args...)
+	return s.Exec(sql, args...)
 }
 
 func (this *RawBuilder) Query(s SQLExecutor) (*sql.Rows, error) {
@@ -69,7 +69,7 @@ func (this *RawBuilder) Query(s SQLExecutor) (*sql.Rows, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Query(s, sql, args...)
+	return s.Query(sql, args...)
 }
 
 func (this *RawBuilder) Scan(s SQLExecutor, result interface{}) (err error) {
@@ -142,7 +142,7 @@ func (this *LockBuilder) Exec(s SQLExecutor) (sql.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Exec(s, sql, args...)
+	return s.Exec(sql, args...)
 }
 
 func WriteLock(table string, args ...string) *LockBuilder {
