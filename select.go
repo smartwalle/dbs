@@ -2,12 +2,12 @@ package dbs
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"io"
 	"strings"
-	"context"
 )
 
 type SelectBuilder struct {

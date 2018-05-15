@@ -1,17 +1,17 @@
 package dbs
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 func TestDollar(t *testing.T) {
-		fmt.Println("===== Dollar =====")
-		var sb = NewSelectBuilder()
-		sb.Selects("u.id")
-		sb.From("user", "AS u")
-		sb.Where("u.id = ? OR u.id = ? OR u.id = ?")
+	fmt.Println("===== Dollar =====")
+	var sb = NewSelectBuilder()
+	sb.Selects("u.id")
+	sb.From("user", "AS u")
+	sb.Where("u.id = ? OR u.id = ? OR u.id = ?")
 
-		var s, _, _ = sb.ToSQL()
-		fmt.Println(Dollar.Replace(s))
+	var s, _, _ = sb.ToSQL()
+	fmt.Println(Dollar.Replace(s))
 }
