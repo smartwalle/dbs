@@ -120,7 +120,7 @@ func (this *Tx) QueryEx(query string, args []interface{}, results interface{}) (
 	return err
 }
 
-func (this *Tx) ExecRaw(query string, args ...interface{}) (result sql.Result, err error) {
+func (this *Tx) ExecSQL(query string, args ...interface{}) (result sql.Result, err error) {
 	defer func() {
 		if err != nil {
 			this.Rollback()
@@ -130,7 +130,7 @@ func (this *Tx) ExecRaw(query string, args ...interface{}) (result sql.Result, e
 	return this.tx.Exec(query, args...)
 }
 
-func (this *Tx) QueryRaw(query string, args ...interface{}) (rows *sql.Rows, err error) {
+func (this *Tx) QuerySQL(query string, args ...interface{}) (rows *sql.Rows, err error) {
 	defer func() {
 		if err != nil {
 			this.Rollback()
@@ -148,15 +148,20 @@ func (this *Tx) exec(query string, args []interface{}, results interface{}) (res
 		}
 	}()
 
+	stmt, err := this.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+
 	if results != nil {
 		var rows *sql.Rows
-		rows, err = this.Query(query, args...)
+		rows, err = stmt.Query(args...)
 		if rows != nil {
 			defer rows.Close()
 			err = Scan(rows, results)
 		}
 	} else {
-		result, err = this.Exec(query, args...)
+		result, err = stmt.Exec(args...)
 	}
 	return result, err
 }
@@ -169,15 +174,20 @@ func (this *Tx) execContext(ctx context.Context, query string, args []interface{
 		}
 	}()
 
+	stmt, err := this.PrepareContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
 	if results != nil {
 		var rows *sql.Rows
-		rows, err = this.tx.QueryContext(ctx, query, args...)
+		rows, err = stmt.QueryContext(ctx, args...)
 		if rows != nil {
 			defer rows.Close()
 			err = Scan(rows, results)
 		}
 	} else {
-		result, err = this.tx.ExecContext(ctx, query, args...)
+		result, err = stmt.ExecContext(ctx, args...)
 	}
 	return result, err
 }
