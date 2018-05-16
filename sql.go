@@ -129,11 +129,11 @@ func (this *Session) QueryRowContext(ctx context.Context, query string, args ...
 	return stmt.QueryRow(args...)
 }
 
-func (this *Session) ExecRaw(query string, args ...interface{}) (sql.Result, error) {
+func (this *Session) ExecSQL(query string, args ...interface{}) (sql.Result, error) {
 	return this.DB.Exec(query, args...)
 }
 
-func (this *Session) QueryRaw(query string, args ...interface{}) (*sql.Rows, error) {
+func (this *Session) QuerySQL(query string, args ...interface{}) (*sql.Rows, error) {
 	return this.DB.Query(query, args...)
 }
 
@@ -148,8 +148,8 @@ type SQLExecutor interface {
 	QueryRow(query string, args ...interface{}) *sql.Row
 	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
 
-	ExecRaw(query string, args ...interface{}) (sql.Result, error)
-	QueryRaw(query string, args ...interface{}) (*sql.Rows, error)
+	ExecSQL(query string, args ...interface{}) (sql.Result, error)
+	QuerySQL(query string, args ...interface{}) (*sql.Rows, error)
 }
 
 // --------------------------------------------------------------------------------
