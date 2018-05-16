@@ -14,11 +14,3 @@ func TestBuilder(t *testing.T) {
 	b.Append("LIMIT ?").Params(20)
 	fmt.Println(b.ToSQL())
 }
-
-func TestLockBuilder(t *testing.T) {
-	fmt.Println("===== LockBuilder =====")
-	var b = NewLockBuilder()
-	b.WriteLock("table1", "AS t1")
-	b.WriteLock("table2", "AS t2")
-	fmt.Println(b.ToSQL())
-}
