@@ -38,6 +38,8 @@ func (this *Tx) Exec(query string, args ...interface{}) (result sql.Result, err 
 			result = nil
 		}
 	}()
+	//result, err = this.tx.Exec(query, args...)
+	//return result, err
 	stmt, err := this.Prepare(query)
 	if err != nil {
 		return nil, err
@@ -52,6 +54,8 @@ func (this *Tx) ExecContext(ctx context.Context, query string, args ...interface
 			result = nil
 		}
 	}()
+	//result, err = this.tx.ExecContext(ctx, query, args...)
+	//return result, err
 	stmt, err := this.PrepareContext(ctx, query)
 	if err != nil {
 		return nil, err
@@ -66,6 +70,8 @@ func (this *Tx) Query(query string, args ...interface{}) (rows *sql.Rows, err er
 			rows = nil
 		}
 	}()
+	//rows, err = this.tx.Query(query, args...)
+	//return rows, err
 	stmt, err := this.Prepare(query)
 	if err != nil {
 		return nil, err
@@ -80,6 +86,8 @@ func (this *Tx) QueryContext(ctx context.Context, query string, args ...interfac
 			rows = nil
 		}
 	}()
+	//rows, err = this.tx.QueryContext(ctx, query, args...)
+	//return rows, err
 	stmt, err := this.PrepareContext(ctx, query)
 	if err != nil {
 		return nil, err
@@ -88,6 +96,7 @@ func (this *Tx) QueryContext(ctx context.Context, query string, args ...interfac
 }
 
 func (this *Tx) QueryRow(query string, args ...interface{}) *sql.Row {
+	//return this.tx.QueryRow(query, args...)
 	stmt, err := this.Prepare(query)
 	if err != nil {
 		this.Rollback()
@@ -97,6 +106,7 @@ func (this *Tx) QueryRow(query string, args ...interface{}) *sql.Row {
 }
 
 func (this *Tx) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	//return this.tx.QueryRowContext(ctx, query, args...)
 	stmt, err := this.PrepareContext(ctx, query)
 	if err != nil {
 		this.Rollback()

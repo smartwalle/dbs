@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
-	"strings"
 )
 
 // --------------------------------------------------------------------------------
@@ -98,91 +97,4 @@ func (this *RawBuilder) Scan(s SQLExecutor, result interface{}) (err error) {
 	}
 	err = Scan(rows, result)
 	return err
-}
-
-// --------------------------------------------------------------------------------
-type LockBuilder struct {
-	tables statements
-}
-
-func NewLockBuilder() *LockBuilder {
-	var b = &LockBuilder{}
-	return b
-}
-
-func (this *LockBuilder) LockTable(lockType, table string, args ...string) *LockBuilder {
-	var ts []string
-	ts = append(ts, fmt.Sprintf("`%s`", table))
-	if len(args) > 0 {
-		ts = append(ts, args...)
-	}
-	ts = append(ts, lockType)
-	this.tables = append(this.tables, NewStatement(strings.Join(ts, " ")))
-	return this
-}
-
-func (this *LockBuilder) WriteLock(table string, args ...string) *LockBuilder {
-	return this.LockTable("WRITE", table, args...)
-}
-
-func (this *LockBuilder) ReadLock(table string, args ...string) *LockBuilder {
-	return this.LockTable("READ", table, args...)
-}
-
-func (this *LockBuilder) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	if err := this.AppendToSQL(sqlBuffer, args); err != nil {
-		return "", nil, err
-	}
-	sql := sqlBuffer.String()
-	log(sql, args.values)
-	return sql, args.values, nil
-}
-
-func (this *LockBuilder) AppendToSQL(w io.Writer, args *Args) error {
-	if len(this.tables) == 0 {
-		return nil
-	}
-	io.WriteString(w, "LOCK TABLES ")
-	if err := this.tables.AppendToSQL(w, ", ", args); err != nil {
-		return err
-	}
-	io.WriteString(w, ";")
-
-	return nil
-}
-
-func (this *LockBuilder) Exec(s SQLExecutor) (sql.Result, error) {
-	sql, args, err := this.ToSQL()
-	if err != nil {
-		return nil, err
-	}
-	return s.Exec(sql, args...)
-}
-
-func (this *LockBuilder) ExecRaw(s SQLExecutor) (sql.Result, error) {
-	sql, args, err := this.ToSQL()
-	if err != nil {
-		return nil, err
-	}
-	return s.ExecRaw(sql, args...)
-}
-
-func WriteLock(table string, args ...string) *LockBuilder {
-	var b = NewLockBuilder()
-	b.WriteLock(table, args...)
-	return b
-}
-
-func ReadLock(table string, args ...string) *LockBuilder {
-	var b = NewLockBuilder()
-	b.ReadLock(table, args...)
-	return b
-}
-
-func UnlockTable() *RawBuilder {
-	var b = NewBuilder()
-	b.Append("UNLOCK TABLES;")
-	return b
 }

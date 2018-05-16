@@ -87,12 +87,12 @@ func (this *UpdateBuilder) OrderBy(sql ...string) *UpdateBuilder {
 }
 
 func (this *UpdateBuilder) Limit(limit uint64) *UpdateBuilder {
-	this.limit = NewStatement(fmt.Sprintf(" LIMIT %d", limit))
+	this.limit = NewStatement(" LIMIT ?", limit)
 	return this
 }
 
 func (this *UpdateBuilder) Offset(offset uint64) *UpdateBuilder {
-	this.offset = NewStatement(fmt.Sprintf(" OFFSET %d", offset))
+	this.offset = NewStatement(" OFFSET ?", offset)
 	return this
 }
 

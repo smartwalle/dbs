@@ -102,12 +102,12 @@ func (this *SelectBuilder) OrderBy(sql ...string) *SelectBuilder {
 }
 
 func (this *SelectBuilder) Limit(limit uint64) *SelectBuilder {
-	this.limit = NewStatement(fmt.Sprintf(" LIMIT %d", limit))
+	this.limit = NewStatement(" LIMIT ?", limit)
 	return this
 }
 
 func (this *SelectBuilder) Offset(offset uint64) *SelectBuilder {
-	this.offset = NewStatement(fmt.Sprintf(" OFFSET %d", offset))
+	this.offset = NewStatement(" OFFSET ?", offset)
 	return this
 }
 
