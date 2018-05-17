@@ -108,7 +108,7 @@ func (this *InsertBuilder) AppendToSQL(w io.Writer, args *Args) error {
 		}
 	}
 
-	if _, err := io.WriteString(w, fmt.Sprintf("INTO `%s` ", this.table)); err != nil {
+	if _, err := fmt.Fprintf(w, "INTO `%s` ", this.table); err != nil {
 		return err
 	}
 

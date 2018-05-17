@@ -158,7 +158,7 @@ func (this *DeleteBuilder) AppendToSQL(w io.Writer, args *Args) error {
 	}
 
 	if len(this.using) > 0 {
-		if _, err := io.WriteString(w, fmt.Sprintf(" USING %s", this.using)); err != nil {
+		if _, err := fmt.Fprintf(w, " USING %s", this.using); err != nil {
 			return err
 		}
 	}
