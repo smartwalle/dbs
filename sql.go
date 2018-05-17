@@ -129,14 +129,6 @@ func (this *Session) QueryRowContext(ctx context.Context, query string, args ...
 	return stmt.QueryRow(args...)
 }
 
-func (this *Session) ExecSQL(query string, args ...interface{}) (sql.Result, error) {
-	return this.DB.Exec(query, args...)
-}
-
-func (this *Session) QuerySQL(query string, args ...interface{}) (*sql.Rows, error) {
-	return this.DB.Query(query, args...)
-}
-
 // --------------------------------------------------------------------------------
 type SQLExecutor interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
