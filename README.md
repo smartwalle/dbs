@@ -2,6 +2,10 @@
 
 SQL Builder 工具, 不是 ORM。
 
+## 帮助
+
+在集成的过程中有遇到问题，欢迎加 QQ 群 564704807 讨论。
+
 ### 安装
 ```shell
 $ go get github.com/smartwalle/dbs
