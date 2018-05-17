@@ -63,28 +63,12 @@ func (this *RawBuilder) Exec(s SQLExecutor) (sql.Result, error) {
 	return s.Exec(sql, args...)
 }
 
-func (this *RawBuilder) ExecSQL(s SQLExecutor) (sql.Result, error) {
-	sql, args, err := this.ToSQL()
-	if err != nil {
-		return nil, err
-	}
-	return s.ExecSQL(sql, args...)
-}
-
 func (this *RawBuilder) Query(s SQLExecutor) (*sql.Rows, error) {
 	sql, args, err := this.ToSQL()
 	if err != nil {
 		return nil, err
 	}
 	return s.Query(sql, args...)
-}
-
-func (this *RawBuilder) QuerySQL(s SQLExecutor) (*sql.Rows, error) {
-	sql, args, err := this.ToSQL()
-	if err != nil {
-		return nil, err
-	}
-	return s.QuerySQL(sql, args...)
 }
 
 func (this *RawBuilder) Scan(s SQLExecutor, result interface{}) (err error) {

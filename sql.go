@@ -147,9 +147,6 @@ type SQLExecutor interface {
 
 	QueryRow(query string, args ...interface{}) *sql.Row
 	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
-
-	ExecSQL(query string, args ...interface{}) (sql.Result, error)
-	QuerySQL(query string, args ...interface{}) (*sql.Rows, error)
 }
 
 // --------------------------------------------------------------------------------
