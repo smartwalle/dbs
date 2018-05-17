@@ -416,9 +416,9 @@ func in(sql, exp string, args interface{}) Statement {
 		}
 	}
 
-	if len(params) > 0 {
-		sql = fmt.Sprintf("%s %s (%s)", sql, exp, Placeholders(len(params)))
-	}
+	//if len(params) > 0 {
+	sql = fmt.Sprintf("%s %s (%s)", sql, exp, Placeholders(len(params)))
+	//}
 
 	var s = &statement{}
 	s.sql = sql
@@ -477,8 +477,8 @@ func (this Eq) appendToSQL(eq bool, w io.Writer, args *Args) error {
 					for i := 0; i < pValue.Len(); i++ {
 						args.Append(pValue.Index(i).Interface())
 					}
-					stmt = fmt.Sprintf("%s %s (%s)", key, inMap[eq], Placeholders(pValue.Len()))
 				}
+				stmt = fmt.Sprintf("%s %s (%s)", key, inMap[eq], Placeholders(pValue.Len()))
 			} else {
 				switch v := value.(type) {
 				case Statement:

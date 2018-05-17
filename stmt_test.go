@@ -65,10 +65,14 @@ func TestIN(t *testing.T) {
 	fmt.Println("===== IN =====")
 	var i1 = IN("a", []int{1, 2, 3, 4})
 	fmt.Println(i1.ToSQL())
+
+	//var eList []int
+	var i2 = IN("b", nil)
+	fmt.Println(i2.ToSQL())
 }
 
 func TestEq(t *testing.T) {
 	fmt.Println("===== EQ =====")
-	var e = Eq{"a": 100, "b": NewStatement("SELECT tt.id, tt.name FROM test_table AS tt WHERE tt.id=?", 1200)}
+	var e = Eq{"a": 10, "b": NewStatement("SELECT tt.id, tt.name FROM test_table AS tt WHERE tt.id=?", 1200)}
 	fmt.Println(e.ToSQL())
 }
