@@ -169,3 +169,6 @@ rb.Exec(db)
 ```
 
 更多内容请参考 test 文件。
+
+## License
+This project is licensed under the MIT License.
