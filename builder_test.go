@@ -7,7 +7,7 @@ import (
 
 func TestBuilder(t *testing.T) {
 	fmt.Println("===== RawBuilder =====")
-	var b = NewBuilder()
+	var b = NewBuilder("")
 	b.Append("SELECT a.id, a.name")
 	b.Format("FROM %s AS a", "add")
 	b.Append("WHERE id>?", 10)
