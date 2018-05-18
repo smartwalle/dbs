@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
+	"context"
 )
 
 // --------------------------------------------------------------------------------
@@ -16,12 +17,6 @@ type Builder interface {
 type RawBuilder struct {
 	sql  *bytes.Buffer
 	args []interface{}
-}
-
-func NewBuilder() *RawBuilder {
-	var b = &RawBuilder{}
-	b.sql = &bytes.Buffer{}
-	return b
 }
 
 func (this *RawBuilder) Append(sql string, args ...interface{}) *RawBuilder {
@@ -64,6 +59,14 @@ func (this *RawBuilder) Exec(s Executor) (sql.Result, error) {
 	return s.Exec(sql, args...)
 }
 
+func (this *RawBuilder) ExecContext(ctx context.Context, s Executor) (sql.Result, error) {
+	sql, args, err := this.ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	return s.ExecContext(ctx, sql, args...)
+}
+
 func (this *RawBuilder) ExecTx(tx TX) (result sql.Result, err error) {
 	defer func() {
 		if err != nil {
@@ -74,12 +77,31 @@ func (this *RawBuilder) ExecTx(tx TX) (result sql.Result, err error) {
 	return result, err
 }
 
+func (this *RawBuilder) ExecContextTx(ctx context.Context, tx TX) (result sql.Result, err error) {
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+	result, err = this.ExecContext(ctx, tx)
+	return result, err
+}
+
+// --------------------------------------------------------------------------------
 func (this *RawBuilder) Query(s Executor) (*sql.Rows, error) {
 	sql, args, err := this.ToSQL()
 	if err != nil {
 		return nil, err
 	}
 	return s.Query(sql, args...)
+}
+
+func (this *RawBuilder) QueryContext(ctx context.Context, s Executor) (*sql.Rows, error) {
+	sql, args, err := this.ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	return s.QueryContext(ctx, sql, args...)
 }
 
 func (this *RawBuilder) QueryTx(tx TX) (rows *sql.Rows, err error) {
@@ -93,8 +115,32 @@ func (this *RawBuilder) QueryTx(tx TX) (rows *sql.Rows, err error) {
 	return rows, err
 }
 
+func (this *RawBuilder) QueryContextTx(ctx context.Context, tx TX) (rows *sql.Rows, err error) {
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			rows = nil
+		}
+	}()
+	rows, err = this.QueryContext(ctx, tx)
+	return rows, err
+}
+
+// --------------------------------------------------------------------------------
 func (this *RawBuilder) Scan(s Executor, result interface{}) (err error) {
 	rows, err := this.Query(s)
+	if err != nil {
+		return err
+	}
+	if rows != nil {
+		defer rows.Close()
+	}
+	err = Scan(rows, result)
+	return err
+}
+
+func (this *RawBuilder) ScanContext(ctx context.Context, s Executor, result interface{}) (err error) {
+	rows, err := this.QueryContext(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -114,4 +160,23 @@ func (this *RawBuilder) ScanTx(tx TX, result interface{}) (err error) {
 	}()
 	err = this.Scan(tx, result)
 	return err
+}
+
+func (this *RawBuilder) ScanContextTx(ctx context.Context, tx TX, result interface{}) (err error) {
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			result = nil
+		}
+	}()
+	err = this.ScanContext(ctx, tx, result)
+	return err
+}
+
+// --------------------------------------------------------------------------------
+func NewBuilder(sql string, args ...interface{}) *RawBuilder {
+	var b = &RawBuilder{}
+	b.sql = &bytes.Buffer{}
+	b.Append(sql, args...)
+	return b
 }
