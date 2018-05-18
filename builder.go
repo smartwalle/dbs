@@ -55,7 +55,8 @@ func (this *RawBuilder) AppendToSQL(w io.Writer, args *Args) error {
 	return nil
 }
 
-func (this *RawBuilder) Exec(s SQLExecutor) (sql.Result, error) {
+// --------------------------------------------------------------------------------
+func (this *RawBuilder) Exec(s Executor) (sql.Result, error) {
 	sql, args, err := this.ToSQL()
 	if err != nil {
 		return nil, err
@@ -63,7 +64,17 @@ func (this *RawBuilder) Exec(s SQLExecutor) (sql.Result, error) {
 	return s.Exec(sql, args...)
 }
 
-func (this *RawBuilder) Query(s SQLExecutor) (*sql.Rows, error) {
+func (this *RawBuilder) ExecTx(tx TX) (result sql.Result, err error) {
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+	result, err = this.Exec(tx)
+	return result, err
+}
+
+func (this *RawBuilder) Query(s Executor) (*sql.Rows, error) {
 	sql, args, err := this.ToSQL()
 	if err != nil {
 		return nil, err
@@ -71,7 +82,18 @@ func (this *RawBuilder) Query(s SQLExecutor) (*sql.Rows, error) {
 	return s.Query(sql, args...)
 }
 
-func (this *RawBuilder) Scan(s SQLExecutor, result interface{}) (err error) {
+func (this *RawBuilder) QueryTx(tx TX) (rows *sql.Rows, err error) {
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			rows = nil
+		}
+	}()
+	rows, err = this.Query(tx)
+	return rows, err
+}
+
+func (this *RawBuilder) Scan(s Executor, result interface{}) (err error) {
 	rows, err := this.Query(s)
 	if err != nil {
 		return err
@@ -80,5 +102,16 @@ func (this *RawBuilder) Scan(s SQLExecutor, result interface{}) (err error) {
 		defer rows.Close()
 	}
 	err = Scan(rows, result)
+	return err
+}
+
+func (this *RawBuilder) ScanTx(tx TX, result interface{}) (err error) {
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			result = nil
+		}
+	}()
+	err = this.Scan(tx, result)
 	return err
 }

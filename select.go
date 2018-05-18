@@ -238,7 +238,8 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, args *Args) error {
 	return nil
 }
 
-func (this *SelectBuilder) Query(s SQLExecutor) (*sql.Rows, error) {
+// --------------------------------------------------------------------------------
+func (this *SelectBuilder) Query(s Executor) (*sql.Rows, error) {
 	sql, args, err := this.ToSQL()
 	if err != nil {
 		return nil, err
@@ -246,7 +247,7 @@ func (this *SelectBuilder) Query(s SQLExecutor) (*sql.Rows, error) {
 	return s.Query(sql, args...)
 }
 
-func (this *SelectBuilder) QueryContext(ctx context.Context, s SQLExecutor) (*sql.Rows, error) {
+func (this *SelectBuilder) QueryContext(ctx context.Context, s Executor) (*sql.Rows, error) {
 	sql, args, err := this.ToSQL()
 	if err != nil {
 		return nil, err
@@ -254,7 +255,31 @@ func (this *SelectBuilder) QueryContext(ctx context.Context, s SQLExecutor) (*sq
 	return s.QueryContext(ctx, sql, args...)
 }
 
-func (this *SelectBuilder) Scan(s SQLExecutor, result interface{}) (err error) {
+// --------------------------------------------------------------------------------
+func (this *SelectBuilder) QueryTx(tx TX) (rows *sql.Rows, err error) {
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			rows = nil
+		}
+	}()
+	rows, err = this.Query(tx)
+	return rows, err
+}
+
+func (this *SelectBuilder) QueryContextTx(ctx context.Context, tx TX) (rows *sql.Rows, err error) {
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			rows = nil
+		}
+	}()
+	rows, err = this.QueryContext(ctx, tx)
+	return rows, err
+}
+
+// --------------------------------------------------------------------------------
+func (this *SelectBuilder) Scan(s Executor, result interface{}) (err error) {
 	rows, err := this.Query(s)
 	if err != nil {
 		return err
@@ -266,7 +291,7 @@ func (this *SelectBuilder) Scan(s SQLExecutor, result interface{}) (err error) {
 	return err
 }
 
-func (this *SelectBuilder) ScanContext(ctx context.Context, s SQLExecutor, result interface{}) (err error) {
+func (this *SelectBuilder) ScanContext(ctx context.Context, s Executor, result interface{}) (err error) {
 	rows, err := this.QueryContext(ctx, s)
 	if err != nil {
 		return err
@@ -278,6 +303,30 @@ func (this *SelectBuilder) ScanContext(ctx context.Context, s SQLExecutor, resul
 	return err
 }
 
+// --------------------------------------------------------------------------------
+func (this *SelectBuilder) ScanTx(tx TX, result interface{}) (err error) {
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			result = nil
+		}
+	}()
+	err = this.Scan(tx, result)
+	return err
+}
+
+func (this *SelectBuilder) ScanContextTx(ctx context.Context, tx TX, result interface{}) (err error) {
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			result = nil
+		}
+	}()
+	err = this.ScanContext(ctx, tx, result)
+	return err
+}
+
+// --------------------------------------------------------------------------------
 func NewSelectBuilder() *SelectBuilder {
 	return &SelectBuilder{}
 }

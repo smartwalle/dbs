@@ -209,7 +209,8 @@ func (this *UpdateBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 	return nil
 }
 
-func (this *UpdateBuilder) Exec(s SQLExecutor) (sql.Result, error) {
+// --------------------------------------------------------------------------------
+func (this *UpdateBuilder) Exec(s Executor) (sql.Result, error) {
 	sql, args, err := this.ToSQL()
 	if err != nil {
 		return nil, err
@@ -217,7 +218,7 @@ func (this *UpdateBuilder) Exec(s SQLExecutor) (sql.Result, error) {
 	return s.Exec(sql, args...)
 }
 
-func (this *UpdateBuilder) ExecContext(ctx context.Context, s SQLExecutor) (sql.Result, error) {
+func (this *UpdateBuilder) ExecContext(ctx context.Context, s Executor) (sql.Result, error) {
 	sql, args, err := this.ToSQL()
 	if err != nil {
 		return nil, err
@@ -225,6 +226,28 @@ func (this *UpdateBuilder) ExecContext(ctx context.Context, s SQLExecutor) (sql.
 	return s.ExecContext(ctx, sql, args...)
 }
 
+// --------------------------------------------------------------------------------
+func (this *UpdateBuilder) ExecTx(tx TX) (result sql.Result, err error) {
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+	result, err = this.Exec(tx)
+	return result, err
+}
+
+func (this *UpdateBuilder) ExecContextTx(ctx context.Context, tx TX) (result sql.Result, err error) {
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+	result, err = this.ExecContext(ctx, tx)
+	return result, err
+}
+
+// --------------------------------------------------------------------------------
 func NewUpdateBuilder() *UpdateBuilder {
 	return &UpdateBuilder{}
 }
