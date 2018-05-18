@@ -20,21 +20,29 @@ type RawBuilder struct {
 }
 
 func (this *RawBuilder) Append(sql string, args ...interface{}) *RawBuilder {
-	this.sql.WriteString(sql)
-	this.sql.WriteString(" ")
-	this.args = append(this.args, args...)
+	if sql != "" {
+		this.sql.WriteString(sql)
+		this.sql.WriteString(" ")
+	}
+	if len(args) > 0 {
+		this.args = append(this.args, args...)
+	}
 	return this
 }
 
 func (this *RawBuilder) Format(format string, args ...interface{}) *RawBuilder {
 	var v = fmt.Sprintf(format, args...)
-	this.sql.WriteString(v)
-	this.sql.WriteString(" ")
+	if v != "" {
+		this.sql.WriteString(v)
+		this.sql.WriteString(" ")
+	}
 	return this
 }
 
 func (this *RawBuilder) Params(args ...interface{}) *RawBuilder {
-	this.args = append(this.args, args...)
+	if len(args) > 0 {
+		this.args = append(this.args, args...)
+	}
 	return this
 }
 
