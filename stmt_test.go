@@ -66,13 +66,24 @@ func TestIN(t *testing.T) {
 	var i1 = IN("a", []int{1, 2, 3, 4})
 	fmt.Println(i1.ToSQL())
 
-	//var eList []int
-	var i2 = IN("b", nil)
+	var i2 = IN("b", []int{})
 	fmt.Println(i2.ToSQL())
+
+	var a []int = nil
+	var i3 = IN("b", a)
+	fmt.Println(i3.ToSQL())
+
+	var sb = NewSelectBuilder()
+	sb.Selects("u.id", "u.name")
+	sb.From("user", "AS u")
+	sb.Where("u.id = ?", 10)
+
+	var i4 = IN("b", sb)
+	fmt.Println(i4.ToSQL())
 }
 
 func TestEq(t *testing.T) {
 	fmt.Println("===== EQ =====")
-	var e = Eq{"a": 10, "b": NewStatement("SELECT tt.id, tt.name FROM test_table AS tt WHERE tt.id=?", 1200)}
+	var e = Eq{"a": 10, "b": NewStatement("SELECT tt.id, tt.name FROM test_table AS tt WHERE tt.id=?", 1200), "c": nil}
 	fmt.Println(e.ToSQL())
 }

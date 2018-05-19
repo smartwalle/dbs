@@ -404,21 +404,28 @@ func in(sql, exp string, args interface{}) Statement {
 		return nil
 	}
 
-	var pValue = reflect.ValueOf(args)
-	var pKind = pValue.Kind()
 	var params []interface{}
+	if args == nil {
+		sql = fmt.Sprintf("%s %s (%s)", sql, exp, Placeholders(len(params)))
+	} else {
+		var pValue = reflect.ValueOf(args)
+		var pKind = pValue.Kind()
 
-	if pKind == reflect.Array || pKind == reflect.Slice {
-		var l = pValue.Len()
-		params = make([]interface{}, l)
-		for i := 0; i < l; i++ {
-			params[i] = pValue.Index(i).Interface()
+		if pKind == reflect.Array || pKind == reflect.Slice {
+			var l = pValue.Len()
+			params = make([]interface{}, l)
+			for i := 0; i < l; i++ {
+				params[i] = pValue.Index(i).Interface()
+			}
+			sql = fmt.Sprintf("%s %s (%s)", sql, exp, Placeholders(len(params)))
+		} else {
+			switch args.(type) {
+			case Statement:
+				sql = fmt.Sprintf("%s %s ", sql, exp)
+				params = append(params, args)
+			}
 		}
 	}
-
-	//if len(params) > 0 {
-	sql = fmt.Sprintf("%s %s (%s)", sql, exp, Placeholders(len(params)))
-	//}
 
 	var s = &statement{}
 	s.sql = sql
