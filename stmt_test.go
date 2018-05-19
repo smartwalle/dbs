@@ -87,3 +87,12 @@ func TestEq(t *testing.T) {
 	var e = Eq{"a": 10, "b": NewStatement("SELECT tt.id, tt.name FROM test_table AS tt WHERE tt.id=?", 1200), "c": nil}
 	fmt.Println(e.ToSQL())
 }
+
+func TestLike(t *testing.T) {
+	fmt.Println("===== Like =====")
+	var l = Like("a", "%", "haha", "%%")
+	fmt.Println(l.ToSQL())
+
+	var nl = NotLike("a", "%", "hehe", "%")
+	fmt.Println(nl.ToSQL())
+}

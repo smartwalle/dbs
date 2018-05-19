@@ -548,3 +548,23 @@ func (this NotEq) ToSQL() (string, []interface{}, error) {
 	err := this.AppendToSQL(sqlBuffer, args)
 	return sqlBuffer.String(), args.values, err
 }
+
+// --------------------------------------------------------------------------------
+func like(sql, exp string, a ...interface{}) Statement {
+	var buf = &bytes.Buffer{}
+	fmt.Fprintf(buf, "%s %s '", sql, exp)
+	fmt.Fprint(buf, a...)
+	fmt.Fprintf(buf, "'")
+
+	var s = &statement{}
+	s.sql = buf.String()
+	return s
+}
+
+func Like(sql string, args ...interface{}) Statement {
+	return like(sql, "LIKE", args...)
+}
+
+func NotLike(sql string, args ...interface{}) Statement {
+	return like(sql, "NOT LIKE", args...)
+}
