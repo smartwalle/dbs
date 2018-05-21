@@ -6,11 +6,16 @@ import (
 	"io"
 	"reflect"
 	"strings"
+	"database/sql/driver"
 )
 
 // --------------------------------------------------------------------------------
 type SQLValue interface {
 	SQLValue() string
+}
+
+type DriverValue interface {
+	Value() (driver.Value, error)
 }
 
 // --------------------------------------------------------------------------------
@@ -22,6 +27,11 @@ func (this *Args) Append(args ...interface{}) {
 	//this.values = append(this.values, args...)
 	for _, v := range args {
 		switch vt := v.(type) {
+		case DriverValue:
+			var v, err = vt.Value()
+			if err == nil {
+				this.values = append(this.values, v)
+			}
 		case SQLValue:
 			this.values = append(this.values, vt.SQLValue())
 		default:
@@ -251,7 +261,7 @@ func (this *setStmt) AppendToSQL(w io.Writer, args *Args) error {
 		}
 	default:
 		io.WriteString(w, "?")
-		if this.value != nil && args != nil {
+		if args != nil {
 			args.Append(this.value)
 		}
 	}
