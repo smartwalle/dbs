@@ -1,4 +1,4 @@
-## DBA
+## DBS
 
 SQL Builder 工具, 不是 ORM。
 
@@ -7,7 +7,7 @@ SQL Builder 工具, 不是 ORM。
 在集成的过程中有遇到问题，欢迎加 QQ 群 564704807 讨论。
 
 ### 安装
-```shell
+```bash
 $ go get github.com/smartwalle/dbs
 ```
 
@@ -36,7 +36,7 @@ func main() {
 
 上述代码会输出如下内容：
 
-```shell
+```bash
 sql: SELECT u.id, u.name, u.age FROM `user` AS u WHERE u.id = ? LIMIT ?
 args: [10 1]
 ```
