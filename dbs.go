@@ -3,8 +3,8 @@ package dbs
 import (
 	"context"
 	"database/sql"
-	"sync"
 	_ "github.com/go-sql-driver/mysql"
+	"sync"
 )
 
 func NewSQL(driver, url string, maxOpen, maxIdle int) (db *sql.DB, err error) {

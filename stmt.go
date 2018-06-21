@@ -552,12 +552,11 @@ func (this NotEq) ToSQL() (string, []interface{}, error) {
 // --------------------------------------------------------------------------------
 func like(sql, exp string, a ...interface{}) Statement {
 	var buf = &bytes.Buffer{}
-	fmt.Fprintf(buf, "%s %s '", sql, exp)
-	fmt.Fprint(buf, a...)
-	fmt.Fprintf(buf, "'")
+	fmt.Fprintf(buf, "%s %s ?", sql, exp)
 
 	var s = &statement{}
 	s.sql = buf.String()
+	s.args = append(s.args, fmt.Sprint(a...))
 	return s
 }
 

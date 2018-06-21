@@ -109,7 +109,7 @@ func NewTx(db DB) (TX, error) {
 	return db.Begin()
 }
 
-func MustTx(db DB) (TX) {
+func MustTx(db DB) TX {
 	tx, err := NewTx(db)
 	if err != nil {
 		panic(err)
@@ -132,7 +132,7 @@ func NewTxContext(ctx context.Context, db DB, opts *sql.TxOptions) (tx TX, err e
 	return db.BeginTx(ctx, opts)
 }
 
-func MustTxContext(ctx context.Context, db DB, opts *sql.TxOptions) (TX) {
+func MustTxContext(ctx context.Context, db DB, opts *sql.TxOptions) TX {
 	tx, err := NewTxContext(ctx, db, opts)
 	if err != nil {
 		panic(err)
