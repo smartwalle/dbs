@@ -255,8 +255,18 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, args *Args) error {
 	return nil
 }
 
-func (this *SelectBuilder) Count(args ...string) *CountBuilder {
-	return NewCountBuilder(this, args...)
+func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
+	var ts []string
+	ts = append(ts, "COUNT(*)")
+
+	if len(args) > 0 {
+		ts = append(ts, args...)
+	}
+	var sb = this.Clone()
+	sb.columns = statements{NewStatement(strings.Join(ts, " "))}
+	sb.limit = nil
+	sb.offset = nil
+	return sb
 }
 
 // --------------------------------------------------------------------------------
