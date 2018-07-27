@@ -256,8 +256,7 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, args *Args) error {
 }
 
 func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
-	var ts []string
-	ts = append(ts, "COUNT(*)")
+	var ts = []string{"COUNT(*)"}
 
 	if len(args) > 0 {
 		ts = append(ts, args...)
