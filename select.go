@@ -245,3 +245,10 @@ func NewSelectBuilder() *SelectBuilder {
 	sb.scan = &scan{qFunc: sb.QueryContext}
 	return sb
 }
+
+// --------------------------------------------------------------------------------
+func Select(columns ...string) *SelectBuilder {
+	var sb = NewSelectBuilder()
+	sb.Selects(columns...)
+	return sb
+}
