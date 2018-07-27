@@ -238,6 +238,10 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, args *Args) error {
 	return nil
 }
 
+func (this *SelectBuilder) Count(args ...string) *CountBuilder {
+	return NewCountBuilder(this, args...)
+}
+
 // --------------------------------------------------------------------------------
 func NewSelectBuilder() *SelectBuilder {
 	var sb = &SelectBuilder{}
