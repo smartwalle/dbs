@@ -2,8 +2,6 @@ package dbs
 
 import (
 	"bytes"
-	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +9,8 @@ import (
 )
 
 type SelectBuilder struct {
+	*query
+	*scan
 	prefixes statements
 	options  statements
 	columns  statements
@@ -239,94 +239,9 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, args *Args) error {
 }
 
 // --------------------------------------------------------------------------------
-func (this *SelectBuilder) Query(s Executor) (*sql.Rows, error) {
-	sql, args, err := this.ToSQL()
-	if err != nil {
-		return nil, err
-	}
-	return s.Query(sql, args...)
-}
-
-func (this *SelectBuilder) QueryContext(ctx context.Context, s Executor) (*sql.Rows, error) {
-	sql, args, err := this.ToSQL()
-	if err != nil {
-		return nil, err
-	}
-	return s.QueryContext(ctx, sql, args...)
-}
-
-// --------------------------------------------------------------------------------
-func (this *SelectBuilder) QueryTx(tx TX) (rows *sql.Rows, err error) {
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-			rows = nil
-		}
-	}()
-	rows, err = this.Query(tx)
-	return rows, err
-}
-
-func (this *SelectBuilder) QueryContextTx(ctx context.Context, tx TX) (rows *sql.Rows, err error) {
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-			rows = nil
-		}
-	}()
-	rows, err = this.QueryContext(ctx, tx)
-	return rows, err
-}
-
-// --------------------------------------------------------------------------------
-func (this *SelectBuilder) Scan(s Executor, result interface{}) (err error) {
-	rows, err := this.Query(s)
-	if err != nil {
-		return err
-	}
-	if rows != nil {
-		defer rows.Close()
-	}
-	err = Scan(rows, result)
-	return err
-}
-
-func (this *SelectBuilder) ScanContext(ctx context.Context, s Executor, result interface{}) (err error) {
-	rows, err := this.QueryContext(ctx, s)
-	if err != nil {
-		return err
-	}
-	if rows != nil {
-		defer rows.Close()
-	}
-	err = Scan(rows, result)
-	return err
-}
-
-// --------------------------------------------------------------------------------
-func (this *SelectBuilder) ScanTx(tx TX, result interface{}) (err error) {
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-			result = nil
-		}
-	}()
-	err = this.Scan(tx, result)
-	return err
-}
-
-func (this *SelectBuilder) ScanContextTx(ctx context.Context, tx TX, result interface{}) (err error) {
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-			result = nil
-		}
-	}()
-	err = this.ScanContext(ctx, tx, result)
-	return err
-}
-
-// --------------------------------------------------------------------------------
 func NewSelectBuilder() *SelectBuilder {
-	return &SelectBuilder{}
+	var sb = &SelectBuilder{}
+	sb.query = &query{sFunc: sb.ToSQL}
+	sb.scan = &scan{qFunc: sb.QueryContext}
+	return sb
 }

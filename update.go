@@ -2,8 +2,6 @@ package dbs
 
 import (
 	"bytes"
-	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +9,7 @@ import (
 )
 
 type UpdateBuilder struct {
+	*exec
 	prefixes statements
 	options  statements
 	tables   statements
@@ -210,44 +209,8 @@ func (this *UpdateBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 }
 
 // --------------------------------------------------------------------------------
-func (this *UpdateBuilder) Exec(s Executor) (sql.Result, error) {
-	sql, args, err := this.ToSQL()
-	if err != nil {
-		return nil, err
-	}
-	return s.Exec(sql, args...)
-}
-
-func (this *UpdateBuilder) ExecContext(ctx context.Context, s Executor) (sql.Result, error) {
-	sql, args, err := this.ToSQL()
-	if err != nil {
-		return nil, err
-	}
-	return s.ExecContext(ctx, sql, args...)
-}
-
-// --------------------------------------------------------------------------------
-func (this *UpdateBuilder) ExecTx(tx TX) (result sql.Result, err error) {
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		}
-	}()
-	result, err = this.Exec(tx)
-	return result, err
-}
-
-func (this *UpdateBuilder) ExecContextTx(ctx context.Context, tx TX) (result sql.Result, err error) {
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		}
-	}()
-	result, err = this.ExecContext(ctx, tx)
-	return result, err
-}
-
-// --------------------------------------------------------------------------------
 func NewUpdateBuilder() *UpdateBuilder {
-	return &UpdateBuilder{}
+	var ub = &UpdateBuilder{}
+	ub.exec = &exec{sFunc: ub.ToSQL}
+	return ub
 }

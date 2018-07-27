@@ -2,8 +2,6 @@ package dbs
 
 import (
 	"bytes"
-	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +9,7 @@ import (
 )
 
 type InsertBuilder struct {
+	*exec
 	prefixes statements
 	options  statements
 	columns  []string
@@ -160,44 +159,8 @@ func (this *InsertBuilder) AppendToSQL(w io.Writer, args *Args) error {
 }
 
 // --------------------------------------------------------------------------------
-func (this *InsertBuilder) Exec(s Executor) (sql.Result, error) {
-	sql, args, err := this.ToSQL()
-	if err != nil {
-		return nil, err
-	}
-	return s.Exec(sql, args...)
-}
-
-func (this *InsertBuilder) ExecContext(ctx context.Context, s Executor) (sql.Result, error) {
-	sql, args, err := this.ToSQL()
-	if err != nil {
-		return nil, err
-	}
-	return s.ExecContext(ctx, sql, args...)
-}
-
-// --------------------------------------------------------------------------------
-func (this *InsertBuilder) ExecTx(tx TX) (result sql.Result, err error) {
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		}
-	}()
-	result, err = this.Exec(tx)
-	return result, err
-}
-
-func (this *InsertBuilder) ExecContextTx(ctx context.Context, tx TX) (result sql.Result, err error) {
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		}
-	}()
-	result, err = this.ExecContext(ctx, tx)
-	return result, err
-}
-
-// --------------------------------------------------------------------------------
 func NewInsertBuilder() *InsertBuilder {
-	return &InsertBuilder{}
+	var ib = &InsertBuilder{}
+	ib.exec = &exec{sFunc: ib.ToSQL}
+	return ib
 }

@@ -2,8 +2,6 @@ package dbs
 
 import (
 	"bytes"
-	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +9,7 @@ import (
 )
 
 type DeleteBuilder struct {
+	*exec
 	prefixes statements
 	options  statements
 	alias    []string
@@ -214,43 +213,8 @@ func (this *DeleteBuilder) AppendToSQL(w io.Writer, args *Args) error {
 }
 
 // --------------------------------------------------------------------------------
-func (this *DeleteBuilder) Exec(s Executor) (sql.Result, error) {
-	sql, args, err := this.ToSQL()
-	if err != nil {
-		return nil, err
-	}
-	return s.Exec(sql, args...)
-}
-
-func (this *DeleteBuilder) ExecContext(ctx context.Context, s Executor) (sql.Result, error) {
-	sql, args, err := this.ToSQL()
-	if err != nil {
-		return nil, err
-	}
-	return s.ExecContext(ctx, sql, args...)
-}
-
-// --------------------------------------------------------------------------------
-func (this *DeleteBuilder) ExecTx(tx TX) (result sql.Result, err error) {
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		}
-	}()
-	result, err = this.Exec(tx)
-	return result, err
-}
-
-func (this *DeleteBuilder) ExecContextTx(ctx context.Context, tx TX) (result sql.Result, err error) {
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		}
-	}()
-	result, err = this.ExecContext(ctx, tx)
-	return result, err
-}
-
 func NewDeleteBuilder() *DeleteBuilder {
-	return &DeleteBuilder{}
+	var db = &DeleteBuilder{}
+	db.exec = &exec{sFunc: db.ToSQL}
+	return db
 }
