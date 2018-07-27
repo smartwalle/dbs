@@ -25,6 +25,23 @@ type SelectBuilder struct {
 	suffixes statements
 }
 
+func (this *SelectBuilder) Clone() *SelectBuilder {
+	var sb = NewSelectBuilder()
+	sb.prefixes = this.prefixes
+	sb.options = this.options
+	sb.columns = this.columns
+	sb.from = this.from
+	sb.joins = this.joins
+	sb.wheres = this.wheres
+	sb.groupBys = this.groupBys
+	sb.havings = this.havings
+	sb.orderBys = this.orderBys
+	sb.limit = this.limit
+	sb.offset = this.offset
+	sb.suffixes = this.suffixes
+	return sb
+}
+
 func (this *SelectBuilder) Prefix(sql string, args ...interface{}) *SelectBuilder {
 	this.prefixes = append(this.prefixes, NewStatement(sql, args...))
 	return this
