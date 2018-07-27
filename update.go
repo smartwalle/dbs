@@ -85,12 +85,12 @@ func (this *UpdateBuilder) OrderBy(sql ...string) *UpdateBuilder {
 	return this
 }
 
-func (this *UpdateBuilder) Limit(limit uint64) *UpdateBuilder {
+func (this *UpdateBuilder) Limit(limit int64) *UpdateBuilder {
 	this.limit = NewStatement(" LIMIT ?", limit)
 	return this
 }
 
-func (this *UpdateBuilder) Offset(offset uint64) *UpdateBuilder {
+func (this *UpdateBuilder) Offset(offset int64) *UpdateBuilder {
 	this.offset = NewStatement(" OFFSET ?", offset)
 	return this
 }

@@ -118,12 +118,12 @@ func (this *SelectBuilder) OrderBy(sql ...string) *SelectBuilder {
 	return this
 }
 
-func (this *SelectBuilder) Limit(limit uint64) *SelectBuilder {
+func (this *SelectBuilder) Limit(limit int64) *SelectBuilder {
 	this.limit = NewStatement(" LIMIT ?", limit)
 	return this
 }
 
-func (this *SelectBuilder) Offset(offset uint64) *SelectBuilder {
+func (this *SelectBuilder) Offset(offset int64) *SelectBuilder {
 	this.offset = NewStatement(" OFFSET ?", offset)
 	return this
 }

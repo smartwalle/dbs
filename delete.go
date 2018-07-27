@@ -84,12 +84,12 @@ func (this *DeleteBuilder) OrderBy(sql ...string) *DeleteBuilder {
 	return this
 }
 
-func (this *DeleteBuilder) Limit(limit uint64) *DeleteBuilder {
+func (this *DeleteBuilder) Limit(limit int64) *DeleteBuilder {
 	this.limit = NewStatement(" LIMIT ?", limit)
 	return this
 }
 
-func (this *DeleteBuilder) Offset(offset uint64) *DeleteBuilder {
+func (this *DeleteBuilder) Offset(offset int64) *DeleteBuilder {
 	this.offset = NewStatement(" OFFSET ?", offset)
 	return this
 }
