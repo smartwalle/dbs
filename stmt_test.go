@@ -90,7 +90,7 @@ func TestEq(t *testing.T) {
 
 func TestLike(t *testing.T) {
 	fmt.Println("===== Like =====")
-	var l = Like("a", "%", "haha", "%%")
+	var l = Like("a", "%", "haha", "%")
 	fmt.Println(l.ToSQL())
 
 	var nl = NotLike("a", "%", "hehe", "%")

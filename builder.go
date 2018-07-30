@@ -49,7 +49,10 @@ func (this *RawBuilder) Params(args ...interface{}) *RawBuilder {
 
 func (this *RawBuilder) ToSQL() (string, []interface{}, error) {
 	var sql = this.sql.String()
-	log(sql, this.args)
+	sql, err := Placeholder.Replace(sql)
+	if err != nil {
+		return "", nil, err
+	}
 	return sql, this.args, nil
 }
 

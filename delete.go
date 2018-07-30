@@ -105,8 +105,10 @@ func (this *DeleteBuilder) ToSQL() (string, []interface{}, error) {
 	if err := this.AppendToSQL(sqlBuffer, args); err != nil {
 		return "", nil, err
 	}
-	sql := sqlBuffer.String()
-	log(sql, args.values)
+	sql, err := Placeholder.Replace(sqlBuffer.String())
+	if err != nil {
+		return "", nil, err
+	}
 	return sql, args.values, nil
 }
 

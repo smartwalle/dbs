@@ -6,13 +6,16 @@ import (
 	"strings"
 )
 
+var Placeholder placeholder = Question
+
 // --------------------------------------------------------------------------------
-type Placeholder interface {
+type placeholder interface {
 	Replace(sql string) (string, error)
 }
 
 var (
 	Question = question{}
+	Default  = Question
 	Dollar   = dollar{}
 )
 

@@ -8,21 +8,26 @@ import (
 	"strings"
 )
 
+const (
+	SQL_CALC_FOUND_ROWS = "SQL_CALC_FOUND_ROWS"
+)
+
 type SelectBuilder struct {
 	*query
 	*scan
-	prefixes statements
-	options  statements
-	columns  statements
-	from     statements
-	joins    statements
-	wheres   statements
-	groupBys []string
-	havings  statements
-	orderBys []string
-	limit    Statement
-	offset   Statement
-	suffixes statements
+	prefixes  statements
+	options   statements
+	columns   statements
+	from      statements
+	joins     statements
+	wheres    statements
+	groupBys  []string
+	havings   statements
+	orderBys  []string
+	limit     Statement
+	offset    Statement
+	suffixes  statements
+	foundRows bool
 }
 
 func (this *SelectBuilder) Clone() *SelectBuilder {
@@ -39,6 +44,7 @@ func (this *SelectBuilder) Clone() *SelectBuilder {
 	sb.limit = this.limit
 	sb.offset = this.offset
 	sb.suffixes = this.suffixes
+	sb.foundRows = this.foundRows
 	return sb
 }
 
@@ -49,6 +55,9 @@ func (this *SelectBuilder) Prefix(sql string, args ...interface{}) *SelectBuilde
 
 func (this *SelectBuilder) Options(options ...string) *SelectBuilder {
 	for _, c := range options {
+		if c == SQL_CALC_FOUND_ROWS {
+			this.foundRows = true
+		}
 		this.options = append(this.options, NewStatement(c))
 	}
 	return this
@@ -139,8 +148,10 @@ func (this *SelectBuilder) ToSQL() (string, []interface{}, error) {
 	if err := this.AppendToSQL(sqlBuffer, args); err != nil {
 		return "", nil, err
 	}
-	sql := sqlBuffer.String()
-	log(sql, args.values)
+	sql, err := Placeholder.Replace(sqlBuffer.String())
+	if err != nil {
+		return "", nil, err
+	}
 	return sql, args.values, nil
 }
 
@@ -256,7 +267,12 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, args *Args) error {
 }
 
 func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
-	var ts = []string{"COUNT(*)"}
+	var ts []string
+	if this.foundRows {
+		ts = []string{"FOUND_ROWS()"}
+	} else {
+		ts = []string{"COUNT(*)"}
+	}
 
 	if len(args) > 0 {
 		ts = append(ts, args...)
