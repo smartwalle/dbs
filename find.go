@@ -65,7 +65,7 @@ func getTagList(dest interface{}) (result []string, err error) {
 }
 
 // --------------------------------------------------------------------------------
-func Find(s Executor, table string, dest interface{}, w Statement) (err error) {
+func Find(s Executor, table string, dest interface{}, limit, offset int64, w Statement) (err error) {
 	fieldList, err := getTagList(dest)
 	var sb = NewSelectBuilder()
 	sb.Selects(fieldList...)
@@ -73,11 +73,21 @@ func Find(s Executor, table string, dest interface{}, w Statement) (err error) {
 	if w != nil {
 		sb.Where(w)
 	}
+	if limit > 0 {
+		sb.Limit(limit)
+	}
+	if offset >= 0 {
+		sb.Offset(offset)
+	}
 	return sb.Scan(s, dest)
 }
 
 func FindAll(s Executor, table string, dest interface{}) (err error) {
-	return Find(s, table, dest, nil)
+	return Find(s, table, dest, -1, -1, nil)
+}
+
+func FindOne(s Executor, table string, dest interface{}, w Statement) (err error) {
+	return Find(s, table, dest, 1, -1, nil)
 }
 
 // --------------------------------------------------------------------------------
