@@ -7,16 +7,16 @@ import (
 	"sync"
 )
 
-var tagMap = sync.Map{}
+var fieldMap = sync.Map{}
 
-func getTagList(dest interface{}) (result []string, err error) {
+func GetFields(dest interface{}) (result []string, err error) {
 	var nDest = dest
 	var destType = reflect.TypeOf(nDest)
 	var destValue = reflect.ValueOf(nDest)
 	var destValueKind = destValue.Kind()
 
 	var key = destType.String()
-	if value, ok := tagMap.Load(key); ok {
+	if value, ok := fieldMap.Load(key); ok {
 		if tags, ok := value.([]string); ok {
 			return tags, nil
 		}
@@ -59,28 +59,14 @@ func getTagList(dest interface{}) (result []string, err error) {
 		}
 	}
 	if len(result) > 0 {
-		tagMap.Store(key, result)
+		fieldMap.Store(key, result)
 	}
-	return result, err
-}
-
-type FindResult struct {
-	s   Executor
-	sb  *SelectBuilder
-	err error
-}
-
-func (this *FindResult) Total() (result int64, err error) {
-	if this.err != nil {
-		return 0, this.err
-	}
-	err = this.sb.Count().ScanRow(this.s, &result)
 	return result, err
 }
 
 // --------------------------------------------------------------------------------
-func Find(s Executor, table string, dest interface{}, limit, offset int64, w Statement) (result *FindResult, err error) {
-	fieldList, err := getTagList(dest)
+func Find(s Executor, table string, dest interface{}, limit, offset int64, w Statement) (err error) {
+	fieldList, err := GetFields(dest)
 	var sb = NewSelectBuilder()
 	sb.Selects(fieldList...)
 	sb.From(table)
@@ -94,19 +80,17 @@ func Find(s Executor, table string, dest interface{}, limit, offset int64, w Sta
 		sb.Offset(offset)
 	}
 	if err = sb.Scan(s, dest); err != nil {
-		return nil, err
+		return err
 	}
-	result = &FindResult{s: s, sb: sb, err: err}
-	return result, err
+	return err
 }
 
-func FindAll(s Executor, table string, dest interface{}) (result *FindResult, err error) {
+func FindAll(s Executor, table string, dest interface{}) (err error) {
 	return Find(s, table, dest, -1, -1, nil)
 }
 
 func FindOne(s Executor, table string, dest interface{}, w Statement) (err error) {
-	_, err = Find(s, table, dest, 1, -1, w)
-	return err
+	return Find(s, table, dest, 1, -1, w)
 }
 
 // --------------------------------------------------------------------------------
