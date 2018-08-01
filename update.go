@@ -216,10 +216,3 @@ func NewUpdateBuilder() *UpdateBuilder {
 	ub.exec = &exec{sFunc: ub.ToSQL}
 	return ub
 }
-
-// --------------------------------------------------------------------------------
-func Update(table string, args ...string) *UpdateBuilder {
-	var ub = NewUpdateBuilder()
-	ub.Table(table, args...)
-	return ub
-}

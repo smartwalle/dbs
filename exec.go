@@ -11,11 +11,11 @@ type scan struct {
 	qFunc func(ctx context.Context, s Executor) (*sql.Rows, error)
 }
 
-func (this *scan) Scan(s Executor, result interface{}) (err error) {
-	return this.ScanContext(context.Background(), s, result)
+func (this *scan) Scan(s Executor, dest interface{}) (err error) {
+	return this.ScanContext(context.Background(), s, dest)
 }
 
-func (this *scan) ScanContext(ctx context.Context, s Executor, result interface{}) (err error) {
+func (this *scan) ScanContext(ctx context.Context, s Executor, dest interface{}) (err error) {
 	rows, err := this.qFunc(ctx, s)
 	if err != nil {
 		return err
@@ -23,22 +23,22 @@ func (this *scan) ScanContext(ctx context.Context, s Executor, result interface{
 	if rows != nil {
 		defer rows.Close()
 	}
-	err = Scan(rows, result)
+	err = Scan(rows, dest)
 	return err
 }
 
-func (this *scan) ScanTx(tx TX, result interface{}) (err error) {
-	return this.ScanContextTx(context.Background(), tx, result)
+func (this *scan) ScanTx(tx TX, dest interface{}) (err error) {
+	return this.ScanContextTx(context.Background(), tx, dest)
 }
 
-func (this *scan) ScanContextTx(ctx context.Context, tx TX, result interface{}) (err error) {
+func (this *scan) ScanContextTx(ctx context.Context, tx TX, dest interface{}) (err error) {
 	defer func() {
 		if err != nil {
 			tx.Rollback()
-			result = nil
+			dest = nil
 		}
 	}()
-	err = this.ScanContext(ctx, tx, result)
+	err = this.ScanContext(ctx, tx, dest)
 	return err
 }
 

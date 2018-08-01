@@ -220,10 +220,3 @@ func NewDeleteBuilder() *DeleteBuilder {
 	db.exec = &exec{sFunc: db.ToSQL}
 	return db
 }
-
-// --------------------------------------------------------------------------------
-func Delete(table string, args ...string) *DeleteBuilder {
-	var db = NewDeleteBuilder()
-	db.Table(table, args...)
-	return db
-}

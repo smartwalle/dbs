@@ -166,10 +166,3 @@ func NewInsertBuilder() *InsertBuilder {
 	ib.exec = &exec{sFunc: ib.ToSQL}
 	return ib
 }
-
-// --------------------------------------------------------------------------------
-func Insert(table string) *InsertBuilder {
-	var ib = NewInsertBuilder()
-	ib.Table(table)
-	return ib
-}
