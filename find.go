@@ -64,8 +64,22 @@ func getTagList(dest interface{}) (result []string, err error) {
 	return result, err
 }
 
+type FindResult struct {
+	s   Executor
+	sb  *SelectBuilder
+	err error
+}
+
+func (this *FindResult) Total() (result int64, err error) {
+	if this.err != nil {
+		return 0, this.err
+	}
+	err = this.sb.Count().ScanRow(this.s, &result)
+	return result, err
+}
+
 // --------------------------------------------------------------------------------
-func Find(s Executor, table string, dest interface{}, limit, offset int64, w Statement) (err error) {
+func Find(s Executor, table string, dest interface{}, limit, offset int64, w Statement) (result *FindResult, err error) {
 	fieldList, err := getTagList(dest)
 	var sb = NewSelectBuilder()
 	sb.Selects(fieldList...)
@@ -79,15 +93,20 @@ func Find(s Executor, table string, dest interface{}, limit, offset int64, w Sta
 	if offset >= 0 {
 		sb.Offset(offset)
 	}
-	return sb.Scan(s, dest)
+	if err = sb.Scan(s, dest); err != nil {
+		return nil, err
+	}
+	result = &FindResult{s: s, sb: sb, err: err}
+	return result, err
 }
 
-func FindAll(s Executor, table string, dest interface{}) (err error) {
+func FindAll(s Executor, table string, dest interface{}) (result *FindResult, err error) {
 	return Find(s, table, dest, -1, -1, nil)
 }
 
 func FindOne(s Executor, table string, dest interface{}, w Statement) (err error) {
-	return Find(s, table, dest, 1, -1, nil)
+	_, err = Find(s, table, dest, 1, -1, w)
+	return err
 }
 
 // --------------------------------------------------------------------------------
