@@ -1,7 +1,6 @@
 package dbs
 
 import (
-	"database/sql"
 	"errors"
 	"reflect"
 	"sync"
@@ -10,6 +9,10 @@ import (
 var fieldMap = sync.Map{}
 
 func GetFields(dest interface{}) (result []string, err error) {
+	if dest == nil {
+		return nil, errors.New("dest argument is nil")
+	}
+
 	var nDest = dest
 	var destType = reflect.TypeOf(nDest)
 	var destValue = reflect.ValueOf(nDest)
@@ -52,8 +55,8 @@ func GetFields(dest interface{}) (result []string, err error) {
 	var numField = destType.NumField()
 	result = make([]string, 0, numField)
 	for i := 0; i < numField; i++ {
-		var filedStruct = destType.Field(i)
-		var tag = filedStruct.Tag.Get(k_SQL_TAG)
+		var fieldStruct = destType.Field(i)
+		var tag = fieldStruct.Tag.Get(k_SQL_TAG)
 		if tag != "" && tag != k_SQL_NO_TAG {
 			result = append(result, tag)
 		}
@@ -67,6 +70,9 @@ func GetFields(dest interface{}) (result []string, err error) {
 // --------------------------------------------------------------------------------
 func Find(s Executor, table string, dest interface{}, limit, offset int64, w Statement) (err error) {
 	fieldList, err := GetFields(dest)
+	if err != nil {
+		return err
+	}
 	var sb = NewSelectBuilder()
 	sb.Selects(fieldList...)
 	sb.From(table)
@@ -91,37 +97,4 @@ func FindAll(s Executor, table string, dest interface{}) (err error) {
 
 func FindOne(s Executor, table string, dest interface{}, w Statement) (err error) {
 	return Find(s, table, dest, 1, -1, w)
-}
-
-// --------------------------------------------------------------------------------
-func Update(s Executor, table string, data map[string]interface{}, w Statement) (result sql.Result, err error) {
-	var ub = NewUpdateBuilder()
-	ub.Table(table)
-	for k, v := range data {
-		ub.SET(k, v)
-	}
-	if w != nil {
-		ub.Where(w)
-	}
-	return ub.Exec(s)
-}
-
-// --------------------------------------------------------------------------------
-func Insert(s Executor, table string, data map[string]interface{}) (result sql.Result, err error) {
-	var ib = NewInsertBuilder()
-	ib.Table(table)
-	for k, v := range data {
-		ib.SET(k, v)
-	}
-	return ib.Exec(s)
-}
-
-// --------------------------------------------------------------------------------
-func Delete(s Executor, table string, w Statement) (result sql.Result, err error) {
-	var db = NewDeleteBuilder()
-	db.Table(table)
-	if w != nil {
-		db.Where(w)
-	}
-	return db.Exec(s)
 }

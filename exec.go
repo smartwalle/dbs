@@ -16,6 +16,14 @@ func (this *scan) Scan(s Executor, dest interface{}) (err error) {
 }
 
 func (this *scan) ScanContext(ctx context.Context, s Executor, dest interface{}) (err error) {
+	defer func() {
+		if err != nil {
+			if tx, ok := s.(TX); ok {
+				tx.Rollback()
+			}
+		}
+	}()
+
 	rows, err := this.qFunc(ctx, s)
 	if err != nil {
 		return err
@@ -32,12 +40,6 @@ func (this *scan) ScanTx(tx TX, dest interface{}) (err error) {
 }
 
 func (this *scan) ScanContextTx(ctx context.Context, tx TX, dest interface{}) (err error) {
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-			dest = nil
-		}
-	}()
 	err = this.ScanContext(ctx, tx, dest)
 	return err
 }
@@ -47,6 +49,14 @@ func (this *scan) ScanRow(s Executor, dest ...interface{}) (err error) {
 }
 
 func (this *scan) ScanRowContext(ctx context.Context, s Executor, dest ...interface{}) (err error) {
+	defer func() {
+		if err != nil {
+			if tx, ok := s.(TX); ok {
+				tx.Rollback()
+			}
+		}
+	}()
+
 	rows, err := this.qFunc(ctx, s)
 	if err != nil {
 		return err
@@ -55,7 +65,8 @@ func (this *scan) ScanRowContext(ctx context.Context, s Executor, dest ...interf
 	defer rows.Close()
 	for _, dp := range dest {
 		if _, ok := dp.(*sql.RawBytes); ok {
-			return errors.New("sql: RawBytes isn't allowed on Row.Scan")
+			err = errors.New("sql: RawBytes isn't allowed on Row.Scan")
+			return err
 		}
 	}
 
@@ -63,7 +74,8 @@ func (this *scan) ScanRowContext(ctx context.Context, s Executor, dest ...interf
 		if err := rows.Err(); err != nil {
 			return err
 		}
-		return sql.ErrNoRows
+		err = sql.ErrNoRows
+		return err
 	}
 	if err = rows.Scan(dest...); err != nil {
 		return err
@@ -80,11 +92,6 @@ func (this *scan) ScanRowTx(tx TX, dest ...interface{}) (err error) {
 }
 
 func (this *scan) ScanRowContextTx(ctx context.Context, tx TX, dest ...interface{}) (err error) {
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		}
-	}()
 	err = this.ScanRowContext(ctx, tx, dest...)
 	return err
 }
@@ -98,27 +105,31 @@ func (this *query) Query(s Executor) (*sql.Rows, error) {
 	return this.QueryContext(context.Background(), s)
 }
 
-func (this *query) QueryContext(ctx context.Context, s Executor) (*sql.Rows, error) {
+func (this *query) QueryContext(ctx context.Context, s Executor) (result *sql.Rows, err error) {
+	defer func() {
+		if err != nil {
+			if tx, ok := s.(TX); ok {
+				tx.Rollback()
+				result = nil
+			}
+		}
+	}()
+
 	sql, args, err := this.sFunc()
 	if err != nil {
 		return nil, err
 	}
-	return s.QueryContext(ctx, sql, args...)
+	result, err = s.QueryContext(ctx, sql, args...)
+	return result, err
 }
 
 func (this *query) QueryTx(tx TX) (rows *sql.Rows, err error) {
 	return this.QueryContextTx(context.Background(), tx)
 }
 
-func (this *query) QueryContextTx(ctx context.Context, tx TX) (rows *sql.Rows, err error) {
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-			rows = nil
-		}
-	}()
-	rows, err = this.QueryContext(ctx, tx)
-	return rows, err
+func (this *query) QueryContextTx(ctx context.Context, tx TX) (result *sql.Rows, err error) {
+	result, err = this.QueryContext(ctx, tx)
+	return result, err
 }
 
 // --------------------------------------------------------------------------------
@@ -130,12 +141,21 @@ func (this *exec) Exec(s Executor) (sql.Result, error) {
 	return this.ExecContext(context.Background(), s)
 }
 
-func (this *exec) ExecContext(ctx context.Context, s Executor) (sql.Result, error) {
+func (this *exec) ExecContext(ctx context.Context, s Executor) (result sql.Result, err error) {
+	defer func() {
+		if err != nil {
+			if tx, ok := s.(TX); ok {
+				tx.Rollback()
+			}
+		}
+	}()
+
 	sql, args, err := this.sFunc()
 	if err != nil {
 		return nil, err
 	}
-	return s.ExecContext(ctx, sql, args...)
+	result, err =  s.ExecContext(ctx, sql, args...)
+	return result, err
 }
 
 func (this *exec) ExecTx(tx TX) (result sql.Result, err error) {
@@ -143,11 +163,6 @@ func (this *exec) ExecTx(tx TX) (result sql.Result, err error) {
 }
 
 func (this *exec) ExecContextTx(ctx context.Context, tx TX) (result sql.Result, err error) {
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		}
-	}()
 	result, err = this.ExecContext(ctx, tx)
 	return result, err
 }
