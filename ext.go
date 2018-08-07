@@ -13,10 +13,12 @@ func GetFields(dest interface{}) (result []string, err error) {
 		return nil, errors.New("dest argument is nil")
 	}
 
-	var nDest = dest
-	var destType = reflect.TypeOf(nDest)
-	var destValue = reflect.ValueOf(nDest)
+	var destType = reflect.TypeOf(dest)
+	var destValue = reflect.ValueOf(dest)
 	var destValueKind = destValue.Kind()
+
+	var rawType = destType
+	var rawValue = destValue
 
 	var key = destType.String()
 	if value, ok := fieldMap.Load(key); ok {
@@ -64,6 +66,9 @@ func GetFields(dest interface{}) (result []string, err error) {
 	if len(result) > 0 {
 		fieldMap.Store(key, result)
 	}
+
+	rawValue.Elem().Set(reflect.Zero(rawType.Elem()))
+
 	return result, err
 }
 
