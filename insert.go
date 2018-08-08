@@ -16,6 +16,8 @@ type InsertBuilder struct {
 	table    string
 	values   [][]interface{}
 	suffixes statements
+
+	sb *SelectBuilder
 }
 
 func (this *InsertBuilder) Prefix(sql string, args ...interface{}) *InsertBuilder {
@@ -66,6 +68,11 @@ func (this *InsertBuilder) SET(column string, value interface{}) *InsertBuilder 
 	return this
 }
 
+func (this *InsertBuilder) Select(sb *SelectBuilder) *InsertBuilder {
+	this.sb = sb
+	return this
+}
+
 func (this *InsertBuilder) ToSQL() (string, []interface{}, error) {
 	var sqlBuffer = &bytes.Buffer{}
 	var args = newArgs()
@@ -83,7 +90,7 @@ func (this *InsertBuilder) AppendToSQL(w io.Writer, args *Args) error {
 	if len(this.table) == 0 {
 		return errors.New("insert statements must specify a table")
 	}
-	if len(this.values) == 0 {
+	if len(this.values) == 0 && this.sb == nil {
 		return errors.New("insert statements must have at least one set of values")
 	}
 
@@ -125,28 +132,40 @@ func (this *InsertBuilder) AppendToSQL(w io.Writer, args *Args) error {
 		}
 	}
 
-	if _, err := io.WriteString(w, " VALUES "); err != nil {
-		return err
-	}
-
-	var valuesPlaceholder = make([]string, len(this.values))
-	for index, value := range this.values {
-		var valuePlaceholder = make([]string, len(value))
-		for i, v := range value {
-			switch vt := v.(type) {
-			case Statement:
-				vSQL, vArgs, _ := vt.ToSQL()
-				valuePlaceholder[i] = vSQL
-				args.Append(vArgs...)
-			default:
-				valuePlaceholder[i] = "?"
-				args.Append(v)
-			}
+	if len(this.values) > 0 {
+		if _, err := io.WriteString(w, " VALUES "); err != nil {
+			return err
 		}
-		valuesPlaceholder[index] = fmt.Sprintf("(%s)", strings.Join(valuePlaceholder, ", "))
-	}
-	if _, err := io.WriteString(w, strings.Join(valuesPlaceholder, ", ")); err != nil {
-		return err
+
+		var valuesPlaceholder = make([]string, len(this.values))
+		for index, value := range this.values {
+			var valuePlaceholder = make([]string, len(value))
+			for i, v := range value {
+				switch vt := v.(type) {
+				case Statement:
+					vSQL, vArgs, _ := vt.ToSQL()
+					valuePlaceholder[i] = vSQL
+					args.Append(vArgs...)
+				default:
+					valuePlaceholder[i] = "?"
+					args.Append(v)
+				}
+			}
+			valuesPlaceholder[index] = fmt.Sprintf("(%s)", strings.Join(valuePlaceholder, ", "))
+		}
+		if _, err := io.WriteString(w, strings.Join(valuesPlaceholder, ", ")); err != nil {
+			return err
+		}
+	} else if this.sb != nil {
+		if _, err := io.WriteString(w, " ("); err != nil {
+			return err
+		}
+		if err := this.sb.AppendToSQL(w, args); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, ")"); err != nil {
+			return err
+		}
 	}
 
 	if len(this.suffixes) > 0 {
