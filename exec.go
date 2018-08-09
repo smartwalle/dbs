@@ -35,15 +35,6 @@ func (this *scan) ScanContext(ctx context.Context, s Executor, dest interface{})
 	return err
 }
 
-func (this *scan) ScanTx(tx TX, dest interface{}) (err error) {
-	return this.ScanContextTx(context.Background(), tx, dest)
-}
-
-func (this *scan) ScanContextTx(ctx context.Context, tx TX, dest interface{}) (err error) {
-	err = this.ScanContext(ctx, tx, dest)
-	return err
-}
-
 func (this *scan) ScanRow(s Executor, dest ...interface{}) (err error) {
 	return this.ScanRowContext(context.Background(), s, dest...)
 }
@@ -87,15 +78,6 @@ func (this *scan) ScanRowContext(ctx context.Context, s Executor, dest ...interf
 	return nil
 }
 
-func (this *scan) ScanRowTx(tx TX, dest ...interface{}) (err error) {
-	return this.ScanRowContextTx(context.Background(), tx, dest...)
-}
-
-func (this *scan) ScanRowContextTx(ctx context.Context, tx TX, dest ...interface{}) (err error) {
-	err = this.ScanRowContext(ctx, tx, dest...)
-	return err
-}
-
 // --------------------------------------------------------------------------------
 type query struct {
 	sFunc func() (string, []interface{}, error)
@@ -123,15 +105,6 @@ func (this *query) QueryContext(ctx context.Context, s Executor) (result *sql.Ro
 	return result, err
 }
 
-func (this *query) QueryTx(tx TX) (rows *sql.Rows, err error) {
-	return this.QueryContextTx(context.Background(), tx)
-}
-
-func (this *query) QueryContextTx(ctx context.Context, tx TX) (result *sql.Rows, err error) {
-	result, err = this.QueryContext(ctx, tx)
-	return result, err
-}
-
 // --------------------------------------------------------------------------------
 type exec struct {
 	sFunc func() (string, []interface{}, error)
@@ -155,14 +128,5 @@ func (this *exec) ExecContext(ctx context.Context, s Executor) (result sql.Resul
 		return nil, err
 	}
 	result, err =  s.ExecContext(ctx, sql, args...)
-	return result, err
-}
-
-func (this *exec) ExecTx(tx TX) (result sql.Result, err error) {
-	return this.ExecContextTx(context.Background(), tx)
-}
-
-func (this *exec) ExecContextTx(ctx context.Context, tx TX) (result sql.Result, err error) {
-	result, err = this.ExecContext(ctx, tx)
 	return result, err
 }
