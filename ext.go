@@ -4,6 +4,7 @@ import (
 	"errors"
 	"reflect"
 	"sync"
+	"time"
 )
 
 var fieldMap = sync.Map{}
@@ -54,15 +55,7 @@ func GetFields(dest interface{}) (result []string, err error) {
 		break
 	}
 
-	var numField = destType.NumField()
-	result = make([]string, 0, numField)
-	for i := 0; i < numField; i++ {
-		var fieldStruct = destType.Field(i)
-		var tag = fieldStruct.Tag.Get(k_SQL_TAG)
-		if tag != "" && tag != k_SQL_NO_TAG {
-			result = append(result, tag)
-		}
-	}
+	result = getField(destType, destValue)
 	if len(result) > 0 {
 		fieldMap.Store(key, result)
 	}
@@ -70,6 +63,44 @@ func GetFields(dest interface{}) (result []string, err error) {
 	rawValue.Elem().Set(reflect.Zero(rawType.Elem()))
 
 	return result, err
+}
+
+func getField(destType reflect.Type, destValue reflect.Value) (result []string) {
+	var numField = destType.NumField()
+	result = make([]string, 0, numField)
+	for i := 0; i < numField; i++ {
+		var fieldStruct = destType.Field(i)
+		var tag = fieldStruct.Tag.Get(k_SQL_TAG)
+		if tag == k_SQL_NO_TAG {
+			continue
+		}
+
+		if tag == "" {
+			var fieldValue = destValue.Field(i)
+			if fieldValue.Kind() == reflect.Ptr {
+				if fieldValue.Type() == reflect.TypeOf(&time.Time{}) {
+					continue
+				}
+				if fieldValue.IsNil() {
+					fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
+				}
+				fieldValue = fieldValue.Elem()
+			}
+
+			if fieldValue.Kind() == reflect.Struct {
+				if fieldValue.Type() == reflect.TypeOf(time.Time{}) {
+					continue
+				}
+				result = append(result, getField(fieldValue.Type(), fieldValue)...)
+				continue
+			}
+		}
+
+		if tag != "" {
+			result = append(result, tag)
+		}
+	}
+	return result
 }
 
 // --------------------------------------------------------------------------------
