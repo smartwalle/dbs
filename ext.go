@@ -118,7 +118,7 @@ func Find(s Executor, table string, dest interface{}, limit, offset int64, w Sta
 	if limit > 0 {
 		sb.Limit(limit)
 	}
-	if offset >= 0 {
+	if offset > 0 {
 		sb.Offset(offset)
 	}
 	if err = sb.Scan(s, dest); err != nil {
