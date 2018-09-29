@@ -42,7 +42,7 @@ func (this *DeleteBuilder) Alias(alias ...string) *DeleteBuilder {
 
 func (this *DeleteBuilder) Table(table string, args ...string) *DeleteBuilder {
 	var ts []string
-	ts = append(ts, fmt.Sprintf("`%s`", table))
+	ts = append(ts, fmt.Sprintf("%s", table))
 	ts = append(ts, args...)
 	this.tables = append(this.tables, NewStatement(strings.Join(ts, " ")))
 	return this
@@ -66,7 +66,7 @@ func (this *DeleteBuilder) LeftJoin(table, suffix string, args ...interface{}) *
 }
 
 func (this *DeleteBuilder) join(join, table, suffix string, args ...interface{}) *DeleteBuilder {
-	var sql = []string{join, fmt.Sprintf("`%s`", table), suffix}
+	var sql = []string{join, fmt.Sprintf("%s", table), suffix}
 	this.joins = append(this.joins, NewStatement(strings.Join(sql, " "), args...))
 	return this
 }

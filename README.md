@@ -37,7 +37,7 @@ func main() {
 上述代码会输出如下内容：
 
 ```bash
-sql: SELECT u.id, u.name, u.age FROM `user` AS u WHERE u.id = ? LIMIT ?
+sql: SELECT u.id, u.name, u.age FROM user AS u WHERE u.id = ? LIMIT ?
 args: [10 1]
 ```
 

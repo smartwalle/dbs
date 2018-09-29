@@ -82,7 +82,7 @@ func (this *SelectBuilder) Select(column interface{}, args ...interface{}) *Sele
 
 func (this *SelectBuilder) From(table string, args ...string) *SelectBuilder {
 	var ts []string
-	ts = append(ts, fmt.Sprintf("`%s`", table))
+	ts = append(ts, fmt.Sprintf("%s", table))
 	ts = append(ts, args...)
 	this.from = append(this.from, NewStatement(strings.Join(ts, " ")))
 	return this
@@ -101,7 +101,7 @@ func (this *SelectBuilder) LeftJoin(table, suffix string, args ...interface{}) *
 }
 
 func (this *SelectBuilder) join(join, table, suffix string, args ...interface{}) *SelectBuilder {
-	var sql = []string{join, fmt.Sprintf("`%s`", table), suffix}
+	var sql = []string{join, fmt.Sprintf("%s", table), suffix}
 	this.joins = append(this.joins, NewStatement(strings.Join(sql, " "), args...))
 	return this
 }

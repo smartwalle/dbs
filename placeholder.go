@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-var Placeholder placeholder = Question
+var Placeholder placeholder = Default
 
 // --------------------------------------------------------------------------------
 type placeholder interface {

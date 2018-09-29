@@ -116,18 +116,18 @@ func (this *InsertBuilder) AppendToSQL(w io.Writer, args *Args) error {
 		}
 	}
 
-	if _, err := fmt.Fprintf(w, "INTO `%s` ", this.table); err != nil {
+	if _, err := fmt.Fprintf(w, "INTO %s ", this.table); err != nil {
 		return err
 	}
 
 	if len(this.columns) > 0 {
-		if _, err := io.WriteString(w, "(`"); err != nil {
+		if _, err := io.WriteString(w, "("); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, strings.Join(this.columns, "`, `")); err != nil {
+		if _, err := io.WriteString(w, strings.Join(this.columns, ", ")); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, "`)"); err != nil {
+		if _, err := io.WriteString(w, ")"); err != nil {
 			return err
 		}
 	}
