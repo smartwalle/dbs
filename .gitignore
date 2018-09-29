@@ -26,5 +26,5 @@ _testmain.go
 *.prof
 
 .idea
-dba.iml
+*.iml
 .DS_Store
