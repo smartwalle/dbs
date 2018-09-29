@@ -127,6 +127,6 @@ func (this *exec) ExecContext(ctx context.Context, s Executor) (result sql.Resul
 	if err != nil {
 		return nil, err
 	}
-	result, err =  s.ExecContext(ctx, sql, args...)
+	result, err = s.ExecContext(ctx, sql, args...)
 	return result, err
 }
