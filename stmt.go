@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"strings"
 )
 
 // --------------------------------------------------------------------------------
@@ -447,14 +446,11 @@ func NotIn(sql string, args interface{}) Statement {
 func parseStmt(sql interface{}, args ...interface{}) Statement {
 	switch s := sql.(type) {
 	case string:
-		if strings.TrimSpace(s) == "" {
-			return nil
-		}
 		return NewStatement(s, args...)
 	case Statement:
 		return s
 	default:
-		return nil
+		return NewStatement(fmt.Sprintf("%v", sql), args...)
 	}
 	return nil
 }
