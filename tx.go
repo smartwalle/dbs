@@ -94,18 +94,7 @@ func (this *StmtCacheTx) Rollback() error {
 
 // --------------------------------------------------------------------------------
 func NewTx(db DB) (TX, error) {
-	switch db.(type) {
-	case *StmtCache:
-		var tx = &StmtCacheTx{}
-		var err error
-		tx.tx, err = db.Begin()
-		if err != nil {
-			return nil, err
-		}
-		tx.db = db
-		return tx, err
-	}
-	return db.Begin()
+	return NewTxContext(context.Background(), db, nil)
 }
 
 func MustTx(db DB) TX {
