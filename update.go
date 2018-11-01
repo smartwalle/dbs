@@ -213,6 +213,6 @@ func (this *UpdateBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 // --------------------------------------------------------------------------------
 func NewUpdateBuilder() *UpdateBuilder {
 	var ub = &UpdateBuilder{}
-	ub.exec = &exec{sFunc: ub.ToSQL}
+	ub.exec = &exec{b: ub}
 	return ub
 }

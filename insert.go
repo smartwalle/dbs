@@ -182,6 +182,6 @@ func (this *InsertBuilder) AppendToSQL(w io.Writer, args *Args) error {
 // --------------------------------------------------------------------------------
 func NewInsertBuilder() *InsertBuilder {
 	var ib = &InsertBuilder{}
-	ib.exec = &exec{sFunc: ib.ToSQL}
+	ib.exec = &exec{b: ib}
 	return ib
 }

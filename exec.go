@@ -8,7 +8,7 @@ import (
 
 // --------------------------------------------------------------------------------
 type scan struct {
-	qFunc func(ctx context.Context, s Executor) (*sql.Rows, error)
+	b Builder
 }
 
 func (this *scan) Scan(s Executor, dest interface{}) (err error) {
@@ -24,13 +24,18 @@ func (this *scan) ScanContext(ctx context.Context, s Executor, dest interface{})
 		}
 	}()
 
-	rows, err := this.qFunc(ctx, s)
+	sql, args, err := this.b.ToSQL()
+	if err != nil {
+		return err
+	}
+	rows, err := s.QueryContext(ctx, sql, args...)
 	if err != nil {
 		return err
 	}
 	if rows != nil {
 		defer rows.Close()
 	}
+
 	err = Scan(rows, dest)
 	return err
 }
@@ -48,12 +53,18 @@ func (this *scan) ScanRowContext(ctx context.Context, s Executor, dest ...interf
 		}
 	}()
 
-	rows, err := this.qFunc(ctx, s)
+	sqlStr, args, err := this.b.ToSQL()
 	if err != nil {
 		return err
 	}
+	rows, err := s.QueryContext(ctx, sqlStr, args...)
+	if err != nil {
+		return err
+	}
+	if rows != nil {
+		defer rows.Close()
+	}
 
-	defer rows.Close()
 	for _, dp := range dest {
 		if _, ok := dp.(*sql.RawBytes); ok {
 			err = errors.New("sql: RawBytes isn't allowed on Row.Scan")
@@ -80,7 +91,7 @@ func (this *scan) ScanRowContext(ctx context.Context, s Executor, dest ...interf
 
 // --------------------------------------------------------------------------------
 type query struct {
-	sFunc func() (string, []interface{}, error)
+	b Builder
 }
 
 func (this *query) Query(s Executor) (*sql.Rows, error) {
@@ -97,7 +108,7 @@ func (this *query) QueryContext(ctx context.Context, s Executor) (result *sql.Ro
 		}
 	}()
 
-	sql, args, err := this.sFunc()
+	sql, args, err := this.b.ToSQL()
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +118,7 @@ func (this *query) QueryContext(ctx context.Context, s Executor) (result *sql.Ro
 
 // --------------------------------------------------------------------------------
 type exec struct {
-	sFunc func() (string, []interface{}, error)
+	b Builder
 }
 
 func (this *exec) Exec(s Executor) (sql.Result, error) {
@@ -123,7 +134,7 @@ func (this *exec) ExecContext(ctx context.Context, s Executor) (result sql.Resul
 		}
 	}()
 
-	sql, args, err := this.sFunc()
+	sql, args, err := this.b.ToSQL()
 	if err != nil {
 		return nil, err
 	}

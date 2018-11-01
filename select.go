@@ -289,8 +289,8 @@ func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
 // --------------------------------------------------------------------------------
 func NewSelectBuilder() *SelectBuilder {
 	var sb = &SelectBuilder{}
-	sb.query = &query{sFunc: sb.ToSQL}
-	sb.scan = &scan{qFunc: sb.QueryContext}
+	sb.query = &query{b: sb}
+	sb.scan = &scan{b: sb}
 	return sb
 }
 

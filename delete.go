@@ -217,6 +217,6 @@ func (this *DeleteBuilder) AppendToSQL(w io.Writer, args *Args) error {
 // --------------------------------------------------------------------------------
 func NewDeleteBuilder() *DeleteBuilder {
 	var db = &DeleteBuilder{}
-	db.exec = &exec{sFunc: db.ToSQL}
+	db.exec = &exec{b: db}
 	return db
 }

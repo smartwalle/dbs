@@ -65,9 +65,9 @@ func (this *RawBuilder) AppendToSQL(w io.Writer, args *Args) error {
 // --------------------------------------------------------------------------------
 func NewBuilder(sql string, args ...interface{}) *RawBuilder {
 	var b = &RawBuilder{}
-	b.query = &query{sFunc: b.ToSQL}
-	b.exec = &exec{sFunc: b.ToSQL}
-	b.scan = &scan{qFunc: b.QueryContext}
+	b.query = &query{b: b}
+	b.exec = &exec{b: b}
+	b.scan = &scan{b: b}
 	b.sql = &bytes.Buffer{}
 	b.Append(sql, args...)
 	return b
