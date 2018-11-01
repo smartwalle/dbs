@@ -24,11 +24,11 @@ func (this *scan) ScanContext(ctx context.Context, s Executor, dest interface{})
 		}
 	}()
 
-	sql, args, err := this.b.ToSQL()
+	sqlStr, args, err := this.b.ToSQL()
 	if err != nil {
 		return err
 	}
-	rows, err := s.QueryContext(ctx, sql, args...)
+	rows, err := s.QueryContext(ctx, sqlStr, args...)
 	if err != nil {
 		return err
 	}
@@ -108,11 +108,11 @@ func (this *query) QueryContext(ctx context.Context, s Executor) (result *sql.Ro
 		}
 	}()
 
-	sql, args, err := this.b.ToSQL()
+	sqlStr, args, err := this.b.ToSQL()
 	if err != nil {
 		return nil, err
 	}
-	result, err = s.QueryContext(ctx, sql, args...)
+	result, err = s.QueryContext(ctx, sqlStr, args...)
 	return result, err
 }
 
@@ -134,10 +134,10 @@ func (this *exec) ExecContext(ctx context.Context, s Executor) (result sql.Resul
 		}
 	}()
 
-	sql, args, err := this.b.ToSQL()
+	sqlStr, args, err := this.b.ToSQL()
 	if err != nil {
 		return nil, err
 	}
-	result, err = s.ExecContext(ctx, sql, args...)
+	result, err = s.ExecContext(ctx, sqlStr, args...)
 	return result, err
 }
