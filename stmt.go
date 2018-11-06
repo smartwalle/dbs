@@ -164,7 +164,7 @@ func Case(what ...interface{}) *caseStmt {
 	//case 1:
 	//	c.what(what[0])
 	default:
-		c.what(parseStmt(what[0]))
+		c.what(what[0])
 	}
 	return c
 }
