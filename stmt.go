@@ -149,6 +149,7 @@ func (this *aliasStmt) ToSQL() (string, []interface{}, error) {
 type whenStmt struct {
 	when Statement
 	then Statement
+	args []interface{}
 }
 type caseStmt struct {
 	whatPart Statement
@@ -160,8 +161,8 @@ func Case(what ...interface{}) *caseStmt {
 	var c = &caseStmt{}
 	switch len(what) {
 	case 0:
-	case 1:
-		c.what(what[0])
+	//case 1:
+	//	c.what(what[0])
 	default:
 		c.what(parseStmt(what[0]))
 	}
@@ -191,6 +192,7 @@ func (this *caseStmt) AppendToSQL(w io.Writer, args *Args) error {
 		if err := wp.then.AppendToSQL(w, args); err != nil {
 			return err
 		}
+		args.Append(wp.args...)
 	}
 
 	if this.elsePart != nil {
@@ -220,13 +222,13 @@ func (this *caseStmt) what(what interface{}) *caseStmt {
 	return this
 }
 
-func (this *caseStmt) When(when, then interface{}) *caseStmt {
-	this.whenPart = append(this.whenPart, whenStmt{parseStmt(when), parseStmt(then)})
+func (this *caseStmt) When(when, then interface{}, args ...interface{}) *caseStmt {
+	this.whenPart = append(this.whenPart, whenStmt{parseStmt(when), parseStmt(then), args})
 	return this
 }
 
-func (this *caseStmt) Else(sql interface{}) *caseStmt {
-	this.elsePart = parseStmt(sql)
+func (this *caseStmt) Else(sql interface{}, args ...interface{}) *caseStmt {
+	this.elsePart = parseStmt(sql, args...)
 	return this
 }
 
