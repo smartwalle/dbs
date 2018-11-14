@@ -106,7 +106,7 @@ func (this *UpdateBuilder) ToSQL() (string, []interface{}, error) {
 	if err := this.AppendToSQL(sqlBuffer, "", args); err != nil {
 		return "", nil, err
 	}
-	sql, err := this.d.ParseVal(sqlBuffer.String())
+	sql, err := this.parseVal(sqlBuffer.String())
 	if err != nil {
 		return "", nil, err
 	}
