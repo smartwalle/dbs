@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestDollar(t *testing.T) {
+func TestPostgreSQL(t *testing.T) {
 	fmt.Println("===== PostgreSQL =====")
 	Dialect = PostgreSQL
 

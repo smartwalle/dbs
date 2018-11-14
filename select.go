@@ -70,13 +70,20 @@ func (this *SelectBuilder) Options(options ...string) *SelectBuilder {
 
 func (this *SelectBuilder) Selects(columns ...string) *SelectBuilder {
 	for _, c := range columns {
-		this.columns = append(this.columns, NewStatement(c))
+		this.columns = append(this.columns, NewStatement(this.quote(c)))
 	}
 	return this
 }
 
 func (this *SelectBuilder) Select(column interface{}, args ...interface{}) *SelectBuilder {
-	var stmt = parseStmt(column, args...)
+	var stmt Statement
+	switch s := column.(type) {
+	case string:
+		stmt = NewStatement(this.quote(s), args...)
+	default:
+		stmt = parseStmt(column, args...)
+	}
+
 	if stmt != nil {
 		this.columns = append(this.columns, stmt)
 	}
