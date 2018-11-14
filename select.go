@@ -34,9 +34,7 @@ type SelectBuilder struct {
 
 func (this *SelectBuilder) Clone() *SelectBuilder {
 	var sb = NewSelectBuilder()
-	sb.builder = this.builder
-	sb.query = this.query
-	sb.scan = this.scan
+	sb.builder.d = this.builder.d
 	sb.prefixes = this.prefixes
 	sb.options = this.options
 	sb.columns = this.columns
@@ -70,19 +68,13 @@ func (this *SelectBuilder) Options(options ...string) *SelectBuilder {
 
 func (this *SelectBuilder) Selects(columns ...string) *SelectBuilder {
 	for _, c := range columns {
-		this.columns = append(this.columns, NewStatement(this.quote(c)))
+		this.columns = append(this.columns, NewStatement(c))
 	}
 	return this
 }
 
 func (this *SelectBuilder) Select(column interface{}, args ...interface{}) *SelectBuilder {
-	var stmt Statement
-	switch s := column.(type) {
-	case string:
-		stmt = NewStatement(this.quote(s), args...)
-	default:
-		stmt = parseStmt(column, args...)
-	}
+	var stmt = parseStmt(column, args...)
 
 	if stmt != nil {
 		this.columns = append(this.columns, stmt)
