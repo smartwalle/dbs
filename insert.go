@@ -9,6 +9,7 @@ import (
 )
 
 type InsertBuilder struct {
+	*builder
 	*exec
 	prefixes statements
 	options  statements
@@ -16,8 +17,14 @@ type InsertBuilder struct {
 	table    string
 	values   [][]interface{}
 	suffixes statements
+	sb       *SelectBuilder
+}
 
-	sb *SelectBuilder
+func (this *InsertBuilder) UseDialect(d dialect) {
+	this.d = d
+	if this.sb != nil {
+		this.sb.UseDialect(this.d)
+	}
 }
 
 func (this *InsertBuilder) Prefix(sql string, args ...interface{}) *InsertBuilder {
@@ -70,6 +77,9 @@ func (this *InsertBuilder) SET(column string, value interface{}) *InsertBuilder 
 
 func (this *InsertBuilder) Select(sb *SelectBuilder) *InsertBuilder {
 	this.sb = sb
+	if this.sb != nil {
+		this.sb.UseDialect(this.d)
+	}
 	return this
 }
 
@@ -79,7 +89,7 @@ func (this *InsertBuilder) ToSQL() (string, []interface{}, error) {
 	if err := this.AppendToSQL(sqlBuffer, args); err != nil {
 		return "", nil, err
 	}
-	sql, err := Placeholder.Replace(sqlBuffer.String())
+	sql, err := this.parseVal(sqlBuffer.String())
 	if err != nil {
 		return "", nil, err
 	}
@@ -116,7 +126,7 @@ func (this *InsertBuilder) AppendToSQL(w io.Writer, args *Args) error {
 		}
 	}
 
-	if _, err := fmt.Fprintf(w, "INTO %s ", this.table); err != nil {
+	if _, err := fmt.Fprintf(w, "INTO %s ", this.quote(this.table)); err != nil {
 		return err
 	}
 
@@ -124,7 +134,11 @@ func (this *InsertBuilder) AppendToSQL(w io.Writer, args *Args) error {
 		if _, err := io.WriteString(w, "("); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, strings.Join(this.columns, ", ")); err != nil {
+		var ncs = make([]string, 0, len(this.columns))
+		for _, c := range this.columns {
+			ncs = append(ncs, this.quote(c))
+		}
+		if _, err := io.WriteString(w, strings.Join(ncs, ", ")); err != nil {
 			return err
 		}
 		if _, err := io.WriteString(w, ")"); err != nil {
@@ -182,6 +196,7 @@ func (this *InsertBuilder) AppendToSQL(w io.Writer, args *Args) error {
 // --------------------------------------------------------------------------------
 func NewInsertBuilder() *InsertBuilder {
 	var ib = &InsertBuilder{}
+	ib.builder = newBuilder()
 	ib.exec = &exec{b: ib}
 	return ib
 }

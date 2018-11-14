@@ -4,7 +4,38 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 )
+
+// --------------------------------------------------------------------------------
+type builder struct {
+	d dialect
+}
+
+func (this *builder) UseDialect(d dialect) {
+	this.d = d
+}
+
+func (this *builder) quote(s string) string {
+	if strings.Index(s, ".") != -1 {
+		var newStrs []string
+		for _, s := range strings.Split(s, ".") {
+			newStrs = append(newStrs, this.d.Quote(s))
+		}
+		return strings.Join(newStrs, ".")
+	}
+	return this.d.Quote(s)
+}
+
+func (this *builder) parseVal(sql string) (string, error) {
+	return this.d.ParseVal(sql)
+}
+
+func newBuilder() *builder {
+	var b = &builder{}
+	b.d = Dialect
+	return b
+}
 
 // --------------------------------------------------------------------------------
 type Builder interface {
@@ -13,6 +44,7 @@ type Builder interface {
 
 // --------------------------------------------------------------------------------
 type RawBuilder struct {
+	*builder
 	*query
 	*exec
 	*scan
@@ -49,7 +81,7 @@ func (this *RawBuilder) Params(args ...interface{}) *RawBuilder {
 
 func (this *RawBuilder) ToSQL() (string, []interface{}, error) {
 	var sql = this.sql.String()
-	sql, err := Placeholder.Replace(sql)
+	sql, err := this.parseVal(sql)
 	if err != nil {
 		return "", nil, err
 	}
@@ -65,6 +97,7 @@ func (this *RawBuilder) AppendToSQL(w io.Writer, args *Args) error {
 // --------------------------------------------------------------------------------
 func NewBuilder(sql string, args ...interface{}) *RawBuilder {
 	var b = &RawBuilder{}
+	b.builder = newBuilder()
 	b.query = &query{b: b}
 	b.exec = &exec{b: b}
 	b.scan = &scan{b: b}

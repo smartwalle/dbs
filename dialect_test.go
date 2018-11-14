@@ -6,8 +6,8 @@ import (
 )
 
 func TestDollar(t *testing.T) {
-	fmt.Println("===== Dollar =====")
-	Placeholder = Dollar
+	fmt.Println("===== PostgreSQL =====")
+	Dialect = PostgreSQL
 
 	var sb = NewSelectBuilder()
 	sb.Selects("u.id")
@@ -17,5 +17,5 @@ func TestDollar(t *testing.T) {
 	var s, _, _ = sb.ToSQL()
 	fmt.Println(s)
 
-	Placeholder = Question
+	Dialect = MySQL
 }

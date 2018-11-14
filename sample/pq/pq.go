@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	dbs.Placeholder = dbs.Dollar
+	dbs.Dialect = dbs.PostgreSQL
 
 	db, err := sql.Open("postgres", "user=postgres password=yangfeng dbname=test sslmode=disable")
 	if err != nil {

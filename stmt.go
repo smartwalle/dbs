@@ -5,7 +5,16 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strings"
 )
+
+// --------------------------------------------------------------------------------
+func placeholders(count int) string {
+	if count <= 0 {
+		return ""
+	}
+	return strings.Repeat(", ?", count)[2:]
+}
 
 // --------------------------------------------------------------------------------
 type SQLValue interface {
@@ -407,7 +416,7 @@ func in(sql, exp string, args interface{}) Statement {
 
 	var params []interface{}
 	if args == nil {
-		sql = fmt.Sprintf("%s %s (%s)", sql, exp, Placeholders(len(params)))
+		sql = fmt.Sprintf("%s %s (%s)", sql, exp, placeholders(len(params)))
 	} else {
 		var pValue = reflect.ValueOf(args)
 		var pKind = pValue.Kind()
@@ -418,7 +427,7 @@ func in(sql, exp string, args interface{}) Statement {
 			for i := 0; i < l; i++ {
 				params[i] = pValue.Index(i).Interface()
 			}
-			sql = fmt.Sprintf("%s %s (%s)", sql, exp, Placeholders(len(params)))
+			sql = fmt.Sprintf("%s %s (%s)", sql, exp, placeholders(len(params)))
 		} else {
 			switch args.(type) {
 			case Statement:
@@ -483,7 +492,7 @@ func (this Eq) appendToSQL(eq bool, w io.Writer, args *Args) error {
 						args.Append(pValue.Index(i).Interface())
 					}
 				}
-				stmt = fmt.Sprintf("%s %s (%s)", key, inMap[eq], Placeholders(pValue.Len()))
+				stmt = fmt.Sprintf("%s %s (%s)", key, inMap[eq], placeholders(pValue.Len()))
 			} else {
 				switch v := value.(type) {
 				case Statement:

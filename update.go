@@ -3,12 +3,12 @@ package dbs
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"strings"
 )
 
 type UpdateBuilder struct {
+	*builder
 	*exec
 	prefixes statements
 	options  statements
@@ -36,7 +36,7 @@ func (this *UpdateBuilder) Options(options ...string) *UpdateBuilder {
 
 func (this *UpdateBuilder) Table(table string, args ...string) *UpdateBuilder {
 	var ts []string
-	ts = append(ts, fmt.Sprintf("%s", table))
+	ts = append(ts, this.quote(table))
 	ts = append(ts, args...)
 	this.tables = append(this.tables, NewStatement(strings.Join(ts, " ")))
 	return this
@@ -55,13 +55,13 @@ func (this *UpdateBuilder) LeftJoin(table, suffix string, args ...interface{}) *
 }
 
 func (this *UpdateBuilder) join(join, table, suffix string, args ...interface{}) *UpdateBuilder {
-	var sql = []string{join, fmt.Sprintf("%s", table), suffix}
+	var sql = []string{join, this.quote(table), suffix}
 	this.joins = append(this.joins, NewStatement(strings.Join(sql, " "), args...))
 	return this
 }
 
 func (this *UpdateBuilder) SET(column string, value interface{}) *UpdateBuilder {
-	this.columns = append(this.columns, newSet(column, value))
+	this.columns = append(this.columns, newSet(this.quote(column), value))
 	return this
 }
 
@@ -106,7 +106,7 @@ func (this *UpdateBuilder) ToSQL() (string, []interface{}, error) {
 	if err := this.AppendToSQL(sqlBuffer, "", args); err != nil {
 		return "", nil, err
 	}
-	sql, err := Placeholder.Replace(sqlBuffer.String())
+	sql, err := this.d.ParseVal(sqlBuffer.String())
 	if err != nil {
 		return "", nil, err
 	}
@@ -213,6 +213,7 @@ func (this *UpdateBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 // --------------------------------------------------------------------------------
 func NewUpdateBuilder() *UpdateBuilder {
 	var ub = &UpdateBuilder{}
+	ub.builder = newBuilder()
 	ub.exec = &exec{b: ub}
 	return ub
 }

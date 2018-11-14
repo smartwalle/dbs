@@ -3,7 +3,6 @@ package dbs
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"strings"
 )
@@ -15,6 +14,7 @@ const (
 )
 
 type SelectBuilder struct {
+	*builder
 	*query
 	*scan
 	prefixes  statements
@@ -34,6 +34,9 @@ type SelectBuilder struct {
 
 func (this *SelectBuilder) Clone() *SelectBuilder {
 	var sb = NewSelectBuilder()
+	sb.builder = this.builder
+	sb.query = this.query
+	sb.scan = this.scan
 	sb.prefixes = this.prefixes
 	sb.options = this.options
 	sb.columns = this.columns
@@ -82,7 +85,7 @@ func (this *SelectBuilder) Select(column interface{}, args ...interface{}) *Sele
 
 func (this *SelectBuilder) From(table string, args ...string) *SelectBuilder {
 	var ts []string
-	ts = append(ts, fmt.Sprintf("%s", table))
+	ts = append(ts, this.quote(table))
 	ts = append(ts, args...)
 	this.from = append(this.from, NewStatement(strings.Join(ts, " ")))
 	return this
@@ -101,7 +104,7 @@ func (this *SelectBuilder) LeftJoin(table, suffix string, args ...interface{}) *
 }
 
 func (this *SelectBuilder) join(join, table, suffix string, args ...interface{}) *SelectBuilder {
-	var sql = []string{join, fmt.Sprintf("%s", table), suffix}
+	var sql = []string{join, this.quote(table), suffix}
 	this.joins = append(this.joins, NewStatement(strings.Join(sql, " "), args...))
 	return this
 }
@@ -150,7 +153,7 @@ func (this *SelectBuilder) ToSQL() (string, []interface{}, error) {
 	if err := this.AppendToSQL(sqlBuffer, args); err != nil {
 		return "", nil, err
 	}
-	sql, err := Placeholder.Replace(sqlBuffer.String())
+	sql, err := this.parseVal(sqlBuffer.String())
 	if err != nil {
 		return "", nil, err
 	}
@@ -289,6 +292,7 @@ func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
 // --------------------------------------------------------------------------------
 func NewSelectBuilder() *SelectBuilder {
 	var sb = &SelectBuilder{}
+	sb.builder = newBuilder()
 	sb.query = &query{b: sb}
 	sb.scan = &scan{b: sb}
 	return sb
