@@ -10,7 +10,7 @@ import (
 const (
 	k_SQL_CALC_FOUND_ROWS = "SQL_CALC_FOUND_ROWS"
 	k_FOUND_ROWS          = "FOUND_ROWS()"
-	k_COUNT               = "COUNT(*)"
+	k_COUNT               = "COUNT(1)"
 )
 
 type SelectBuilder struct {
