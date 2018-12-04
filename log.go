@@ -20,7 +20,7 @@ type Logger interface {
 var logger Logger
 
 func SetLogger(l Logger) {
-	if l.Prefix() == "" {
+	if l != nil && l.Prefix() == "" {
 		l.SetPrefix("[dbs] ")
 	}
 	logger = l
