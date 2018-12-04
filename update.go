@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+const (
+	kUpdateBuilder = "UpdateBuilder"
+)
+
 type UpdateBuilder struct {
 	*builder
 	*exec
@@ -20,6 +24,10 @@ type UpdateBuilder struct {
 	limit    Statement
 	offset   Statement
 	suffixes statements
+}
+
+func (this *UpdateBuilder) Type() string {
+	return kUpdateBuilder
 }
 
 func (this *UpdateBuilder) Prefix(sql string, args ...interface{}) *UpdateBuilder {

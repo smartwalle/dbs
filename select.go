@@ -13,6 +13,10 @@ const (
 	k_COUNT               = "COUNT(1)"
 )
 
+const (
+	kSelectBuilder = "SelectBuilder"
+)
+
 type SelectBuilder struct {
 	*builder
 	*query
@@ -30,6 +34,10 @@ type SelectBuilder struct {
 	offset    Statement
 	suffixes  statements
 	foundRows bool
+}
+
+func (this *SelectBuilder) Type() string {
+	return kSelectBuilder
 }
 
 func (this *SelectBuilder) Clone() *SelectBuilder {

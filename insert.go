@@ -8,6 +8,10 @@ import (
 	"strings"
 )
 
+const (
+	kInsertBuilder = "InsertBuilder"
+)
+
 type InsertBuilder struct {
 	*builder
 	*exec
@@ -18,6 +22,10 @@ type InsertBuilder struct {
 	values   [][]interface{}
 	suffixes statements
 	sb       *SelectBuilder
+}
+
+func (this *InsertBuilder) Type() string {
+	return kInsertBuilder
 }
 
 func (this *InsertBuilder) UseDialect(d dialect) {

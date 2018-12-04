@@ -38,7 +38,13 @@ func newBuilder() *builder {
 }
 
 // --------------------------------------------------------------------------------
+const (
+	kRawBuilder = "RawBuilder"
+)
+
+// --------------------------------------------------------------------------------
 type Builder interface {
+	Type() string
 	ToSQL() (string, []interface{}, error)
 }
 
@@ -50,6 +56,10 @@ type RawBuilder struct {
 	*scan
 	sql  *bytes.Buffer
 	args []interface{}
+}
+
+func (this *RawBuilder) Type() string {
+	return kRawBuilder
 }
 
 func (this *RawBuilder) Append(sql string, args ...interface{}) *RawBuilder {

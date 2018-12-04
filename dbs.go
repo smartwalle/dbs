@@ -9,6 +9,7 @@ import (
 func NewSQL(driver, url string, maxOpen, maxIdle int) (db *sql.DB, err error) {
 	db, err = sql.Open(driver, url)
 	if err != nil {
+		logger.Println("连接数据库失败:", err)
 		return nil, err
 	}
 
@@ -34,6 +35,14 @@ type StmtCache struct {
 	db        DB
 	mu        sync.Mutex
 	stmtCache map[string]*sql.Stmt
+}
+
+func (this *StmtCache) Ping() error {
+	return this.db.Ping()
+}
+
+func (this *StmtCache) PingContext(ctx context.Context) error {
+	return this.db.PingContext(ctx)
 }
 
 func (this *StmtCache) Prepare(query string) (*sql.Stmt, error) {
@@ -125,6 +134,9 @@ type Preparer interface {
 type DB interface {
 	Executor
 	Preparer
+
+	Ping() error
+	PingContext(ctx context.Context) error
 
 	Begin() (*sql.Tx, error)
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)

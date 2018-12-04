@@ -8,6 +8,10 @@ import (
 	"strings"
 )
 
+const (
+	kDeleteBuilder = "DeleteBuilder"
+)
+
 type DeleteBuilder struct {
 	*builder
 	*exec
@@ -22,6 +26,10 @@ type DeleteBuilder struct {
 	limit    Statement
 	offset   Statement
 	suffixes statements
+}
+
+func (this *DeleteBuilder) Type() string {
+	return kDeleteBuilder
 }
 
 func (this *DeleteBuilder) Prefix(sql string, args ...interface{}) *DeleteBuilder {
