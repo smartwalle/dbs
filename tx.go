@@ -106,18 +106,18 @@ func (this *dbsTx) QueryContext(ctx context.Context, query string, args ...inter
 
 func (this *dbsTx) Commit() (err error) {
 	if err = this.tx.Commit(); err != nil {
-		logger.Output(2, fmt.Sprintf("事务 [%s] 提交失败: %s \n", this.id, err))
+		logger.Output(2, fmt.Sprintf("提交事务 [%s] 失败: %s \n", this.id, err))
 	} else {
-		logger.Output(2, fmt.Sprintf("事务 [%s] 提交成功\n", this.id))
+		logger.Output(2, fmt.Sprintf("提交事务 [%s] 成功\n", this.id))
 	}
 	return err
 }
 
 func (this *dbsTx) Rollback() (err error) {
 	if err = this.tx.Rollback(); err != nil {
-		logger.Output(2, fmt.Sprintf("事务 [%s] 回滚失败: %s \n", this.id, err))
+		logger.Output(2, fmt.Sprintf("回滚事务 [%s] 失败: %s \n", this.id, err))
 	} else {
-		logger.Output(2, fmt.Sprintf("事务 [%s] 回滚成功\n", this.id))
+		logger.Output(2, fmt.Sprintf("回滚事务 [%s] 成功\n", this.id))
 	}
 	return err
 }
