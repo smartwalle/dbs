@@ -106,11 +106,8 @@ func (this *dbsTx) QueryContext(ctx context.Context, query string, args ...inter
 
 func (this *dbsTx) Commit() (err error) {
 	if err = this.tx.Commit(); err != nil {
-		if logger != nil {
-			logger.Output(2, fmt.Sprintf("事务 [%s] 提交失败\n", this.id))
-		}
-	}
-	if logger != nil {
+		logger.Output(2, fmt.Sprintf("事务 [%s] 提交失败: %s \n", this.id, err))
+	} else {
 		logger.Output(2, fmt.Sprintf("事务 [%s] 提交成功\n", this.id))
 	}
 	return err
@@ -118,11 +115,8 @@ func (this *dbsTx) Commit() (err error) {
 
 func (this *dbsTx) Rollback() (err error) {
 	if err = this.tx.Rollback(); err != nil {
-		if logger != nil {
-			logger.Output(2, fmt.Sprintf("事务 [%s] 回滚失败\n", this.id))
-		}
-	}
-	if logger != nil {
+		logger.Output(2, fmt.Sprintf("事务 [%s] 回滚失败: %s \n", this.id, err))
+	} else {
 		logger.Output(2, fmt.Sprintf("事务 [%s] 回滚成功\n", this.id))
 	}
 	return err
@@ -151,16 +145,12 @@ func newTxContext(ctx context.Context, db DB, opts *sql.TxOptions) (TX, error) {
 
 	tx.tx, err = db.BeginTx(ctx, opts)
 	if err != nil {
-		if logger != nil {
-			logger.Output(3, fmt.Sprintln("开启事务失败:", err))
-		}
+		logger.Output(3, fmt.Sprintln("开启事务失败:", err))
 		return nil, err
 	}
 	tx.db = db
-	if logger != nil {
-		tx.id = genTxId() // 目前只有日志会用到 id
-		logger.Output(3, fmt.Sprintf("开启事务 [%s] 成功\n", tx.id))
-	}
+	tx.id = genTxId() // 目前只有日志会用到 id
+	logger.Output(3, fmt.Sprintf("开启事务 [%s] 成功\n", tx.id))
 	_, tx.cache = db.(*StmtCache)
 	return tx, err
 }
