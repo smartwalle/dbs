@@ -36,8 +36,7 @@ func (this *scan) ScanContext(ctx context.Context, s Executor, dest interface{})
 		defer rows.Close()
 	}
 
-	err = Scan(rows, dest)
-	return err
+	return Scan(rows, dest)
 }
 
 func (this *scan) ScanRow(s Executor, dest ...interface{}) (err error) {
@@ -76,17 +75,12 @@ func (this *scan) ScanRowContext(ctx context.Context, s Executor, dest ...interf
 		if err := rows.Err(); err != nil {
 			return err
 		}
-		err = sql.ErrNoRows
-		return err
+		return sql.ErrNoRows
 	}
 	if err = rows.Scan(dest...); err != nil {
 		return err
 	}
-
-	if err := rows.Close(); err != nil {
-		return err
-	}
-	return nil
+	return rows.Close()
 }
 
 // --------------------------------------------------------------------------------
