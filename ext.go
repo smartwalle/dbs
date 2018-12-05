@@ -1,6 +1,7 @@
 package dbs
 
 import (
+	"context"
 	"errors"
 	"reflect"
 	"sync"
@@ -121,16 +122,43 @@ func Find(s Executor, table string, dest interface{}, limit, offset int64, w Sta
 	if offset > 0 {
 		sb.Offset(offset)
 	}
-	if err = sb.Scan(s, dest); err != nil {
+	if err = sb.scanContext(context.Background(), s, dest); err != nil {
 		return err
 	}
 	return err
 }
 
-func FindAll(s Executor, table string, dest interface{}) (err error) {
-	return Find(s, table, dest, -1, -1, nil)
+func FindAll(s Executor, table string, dest interface{}, w Statement) (err error) {
+	fieldList, err := GetFields(dest)
+	if err != nil {
+		return err
+	}
+	var sb = NewSelectBuilder()
+	sb.Selects(fieldList...)
+	sb.From(table)
+	if w != nil {
+		sb.Where(w)
+	}
+	if err = sb.scanContext(context.Background(), s, dest); err != nil {
+		return err
+	}
+	return err
 }
 
 func FindOne(s Executor, table string, dest interface{}, w Statement) (err error) {
-	return Find(s, table, dest, 1, -1, w)
+	fieldList, err := GetFields(dest)
+	if err != nil {
+		return err
+	}
+	var sb = NewSelectBuilder()
+	sb.Selects(fieldList...)
+	sb.From(table)
+	if w != nil {
+		sb.Where(w)
+	}
+	sb.Limit(1)
+	if err = sb.scanContext(context.Background(), s, dest); err != nil {
+		return err
+	}
+	return err
 }
