@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	k_SQL_CALC_FOUND_ROWS = "SQL_CALC_FOUND_ROWS"
-	k_FOUND_ROWS          = "FOUND_ROWS()"
-	k_COUNT               = "COUNT(1)"
+	kSQLCalcFoundRows = "SQL_CALC_FOUND_ROWS"
+	kFoundRows        = "FOUND_ROWS()"
+	kCount            = "COUNT(1)"
 )
 
 const (
@@ -66,7 +66,7 @@ func (this *SelectBuilder) Prefix(sql string, args ...interface{}) *SelectBuilde
 
 func (this *SelectBuilder) Options(options ...string) *SelectBuilder {
 	for _, c := range options {
-		if c == k_SQL_CALC_FOUND_ROWS {
+		if c == kSQLCalcFoundRows {
 			this.foundRows = true
 		}
 		this.options = append(this.options, NewStatement(c))
@@ -281,9 +281,9 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, args *Args) error {
 func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
 	var ts []string
 	if this.foundRows {
-		ts = []string{k_FOUND_ROWS}
+		ts = []string{kFoundRows}
 	} else {
-		ts = []string{k_COUNT}
+		ts = []string{kCount}
 	}
 
 	if len(args) > 0 {
