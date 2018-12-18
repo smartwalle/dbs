@@ -2,6 +2,7 @@ package dbs
 
 import (
 	"bytes"
+	"database/sql/driver"
 	"fmt"
 	"io"
 	"reflect"
@@ -30,6 +31,9 @@ func (this *Args) Append(args ...interface{}) {
 	//this.values = append(this.values, args...)
 	for _, v := range args {
 		switch vt := v.(type) {
+		case driver.Valuer:
+			v, _ := vt.Value()
+			this.values = append(this.values, v)
 		case SQLValue:
 			this.values = append(this.values, vt.SQLValue())
 		default:
