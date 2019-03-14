@@ -291,6 +291,7 @@ func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
 	}
 	var sb = this.Clone()
 	sb.columns = statements{NewStatement(strings.Join(ts, " "))}
+	sb.groupBys = nil
 	sb.limit = nil
 	sb.offset = nil
 	return sb
