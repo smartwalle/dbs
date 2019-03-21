@@ -314,8 +314,6 @@ func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
 		}
 	}
 
-	fmt.Println(sb.ToSQL())
-
 	return sb
 }
 
