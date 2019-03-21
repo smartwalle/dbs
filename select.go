@@ -3,6 +3,7 @@ package dbs
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 )
@@ -95,6 +96,11 @@ func (this *SelectBuilder) From(table string, args ...string) *SelectBuilder {
 	ts = append(ts, this.quote(table))
 	ts = append(ts, args...)
 	this.from = append(this.from, NewStatement(strings.Join(ts, " ")))
+	return this
+}
+
+func (this *SelectBuilder) FromStmt(stmt Statement) *SelectBuilder {
+	this.from = statements{stmt}
 	return this
 }
 
@@ -279,24 +285,31 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, args *Args) error {
 }
 
 func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
-	var sb *SelectBuilder
 	var ts []string
+
 	if this.foundRows {
 		ts = []string{kFoundRows}
-		sb = NewSelectBuilder()
 	} else {
 		ts = []string{kCount}
-		sb = this.Clone()
 	}
 
 	if len(args) > 0 {
 		ts = append(ts, args...)
 	}
 
-	sb.columns = statements{NewStatement(strings.Join(ts, " "))}
-	sb.groupBys = nil
-	sb.limit = nil
-	sb.offset = nil
+	var sb = NewSelectBuilder()
+	if this.foundRows {
+		sb.columns = statements{NewStatement(strings.Join(ts, " "))}
+	} else {
+		var cb = this.Clone()
+		cb.limit = nil
+		cb.offset = nil
+		sb.FromStmt(Alias(cb, "c"))
+		sb.columns = statements{NewStatement(strings.Join(ts, " "))}
+	}
+
+	fmt.Println(sb.ToSQL())
+
 	return sb
 }
 
