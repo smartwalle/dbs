@@ -302,10 +302,16 @@ func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
 		sb.columns = statements{NewStatement(strings.Join(ts, " "))}
 	} else {
 		var cb = this.Clone()
+		cb.columns = statements{NewStatement(strings.Join(ts, " "))}
 		cb.limit = nil
 		cb.offset = nil
-		sb.FromStmt(Alias(cb, "c"))
-		sb.columns = statements{NewStatement(strings.Join(ts, " "))}
+
+		if len(cb.groupBys) > 0 {
+			sb.FromStmt(Alias(cb, "c"))
+			sb.columns = statements{NewStatement(strings.Join(ts, " "))}
+		} else {
+			sb = cb
+		}
 	}
 
 	fmt.Println(sb.ToSQL())
