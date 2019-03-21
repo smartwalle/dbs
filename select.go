@@ -279,17 +279,20 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, args *Args) error {
 }
 
 func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
+	var sb *SelectBuilder
 	var ts []string
 	if this.foundRows {
 		ts = []string{kFoundRows}
+		sb = NewSelectBuilder()
 	} else {
 		ts = []string{kCount}
+		sb = this.Clone()
 	}
 
 	if len(args) > 0 {
 		ts = append(ts, args...)
 	}
-	var sb = this.Clone()
+
 	sb.columns = statements{NewStatement(strings.Join(ts, " "))}
 	sb.groupBys = nil
 	sb.limit = nil
