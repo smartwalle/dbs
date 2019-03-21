@@ -3,7 +3,6 @@ package dbs
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"strings"
 )
