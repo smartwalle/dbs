@@ -21,19 +21,19 @@ type SelectBuilder struct {
 	*builder
 	*query
 	*scan
-	prefixes  statements
-	options   statements
-	columns   statements
-	from      statements
-	joins     statements
-	wheres    statements
-	groupBys  []string
-	havings   statements
-	orderBys  []string
-	limit     Statement
-	offset    Statement
-	suffixes  statements
-	foundRows bool
+	prefixes     statements
+	options      statements
+	columns      statements
+	from         statements
+	joins        statements
+	wheres       statements
+	groupBys     []string
+	havings      statements
+	orderBys     []string
+	limit        Statement
+	offset       Statement
+	suffixes     statements
+	useFoundRows bool
 }
 
 func (this *SelectBuilder) Type() string {
@@ -55,7 +55,7 @@ func (this *SelectBuilder) Clone() *SelectBuilder {
 	sb.limit = this.limit
 	sb.offset = this.offset
 	sb.suffixes = this.suffixes
-	sb.foundRows = this.foundRows
+	sb.useFoundRows = this.useFoundRows
 	return sb
 }
 
@@ -67,7 +67,7 @@ func (this *SelectBuilder) Prefix(sql string, args ...interface{}) *SelectBuilde
 func (this *SelectBuilder) Options(options ...string) *SelectBuilder {
 	for _, c := range options {
 		if c == kSQLCalcFoundRows {
-			this.foundRows = true
+			this.useFoundRows = true
 		}
 		this.options = append(this.options, NewStatement(c))
 	}
@@ -286,7 +286,7 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, args *Args) error {
 func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
 	var ts []string
 
-	if this.foundRows {
+	if this.useFoundRows {
 		ts = []string{kFoundRows}
 	} else {
 		ts = []string{kCount}
@@ -297,7 +297,7 @@ func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
 	}
 
 	var sb = NewSelectBuilder()
-	if this.foundRows {
+	if this.useFoundRows {
 		sb.columns = statements{NewStatement(strings.Join(ts, " "))}
 	} else {
 		var cb = this.Clone()
