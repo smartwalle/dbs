@@ -66,7 +66,7 @@ func (this *SelectBuilder) Prefix(sql string, args ...interface{}) *SelectBuilde
 
 func (this *SelectBuilder) Options(options ...string) *SelectBuilder {
 	for _, c := range options {
-		if c == kSQLCalcFoundRows {
+		if strings.ToUpper(strings.TrimSpace(c)) == kSQLCalcFoundRows {
 			this.useFoundRows = true
 		}
 		this.options = append(this.options, NewStatement(c))
