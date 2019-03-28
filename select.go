@@ -8,9 +8,7 @@ import (
 )
 
 const (
-	kSQLCalcFoundRows = "SQL_CALC_FOUND_ROWS"
-	kFoundRows        = "FOUND_ROWS()"
-	kCount            = "COUNT(1)"
+	kCount = "COUNT(1)"
 )
 
 const (
@@ -21,19 +19,18 @@ type SelectBuilder struct {
 	*builder
 	*query
 	*scan
-	prefixes     statements
-	options      statements
-	columns      statements
-	from         statements
-	joins        statements
-	wheres       statements
-	groupBys     []string
-	havings      statements
-	orderBys     []string
-	limit        Statement
-	offset       Statement
-	suffixes     statements
-	useFoundRows bool
+	prefixes statements
+	options  statements
+	columns  statements
+	from     statements
+	joins    statements
+	wheres   statements
+	groupBys []string
+	havings  statements
+	orderBys []string
+	limit    Statement
+	offset   Statement
+	suffixes statements
 }
 
 func (this *SelectBuilder) Type() string {
@@ -55,7 +52,6 @@ func (this *SelectBuilder) Clone() *SelectBuilder {
 	sb.limit = this.limit
 	sb.offset = this.offset
 	sb.suffixes = this.suffixes
-	sb.useFoundRows = this.useFoundRows
 	return sb
 }
 
@@ -66,9 +62,6 @@ func (this *SelectBuilder) Prefix(sql string, args ...interface{}) *SelectBuilde
 
 func (this *SelectBuilder) Options(options ...string) *SelectBuilder {
 	for _, c := range options {
-		if strings.ToUpper(strings.TrimSpace(c)) == kSQLCalcFoundRows {
-			this.useFoundRows = true
-		}
 		this.options = append(this.options, NewStatement(c))
 	}
 	return this
@@ -287,33 +280,23 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, args *Args) error {
 }
 
 func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
-	var ts []string
-
-	if this.useFoundRows {
-		ts = []string{kFoundRows}
-	} else {
-		ts = []string{kCount}
-	}
+	var ts = []string{kCount}
 
 	if len(args) > 0 {
 		ts = append(ts, args...)
 	}
 
 	var sb = NewSelectBuilder()
-	if this.useFoundRows {
+	var cb = this.Clone()
+	cb.columns = statements{NewStatement(strings.Join(ts, " "))}
+	cb.limit = nil
+	cb.offset = nil
+
+	if len(cb.groupBys) > 0 {
+		sb.FromStmt(Alias(cb, "c"))
 		sb.columns = statements{NewStatement(strings.Join(ts, " "))}
 	} else {
-		var cb = this.Clone()
-		cb.columns = statements{NewStatement(strings.Join(ts, " "))}
-		cb.limit = nil
-		cb.offset = nil
-
-		if len(cb.groupBys) > 0 {
-			sb.FromStmt(Alias(cb, "c"))
-			sb.columns = statements{NewStatement(strings.Join(ts, " "))}
-		} else {
-			sb = cb
-		}
+		sb = cb
 	}
 
 	return sb

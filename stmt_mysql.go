@@ -3,12 +3,36 @@ package dbs
 import (
 	"bytes"
 	"io"
+	"strings"
 )
 
 const (
-	kOnDuplicateKeyUpdateStmt = "ON DUPLICATE KEY UPDATE "
+	kSQLCalcFoundRows = "SQL_CALC_FOUND_ROWS"
+	kFoundRows        = "FOUND_ROWS()"
 )
 
+const (
+	kOnDuplicateKeyUpdate = "ON DUPLICATE KEY UPDATE "
+)
+
+// --------------------------------------------------------------------------------
+func (this *SelectBuilder) UseSQLCalcFoundRows() *SelectBuilder {
+	return this.Options(kSQLCalcFoundRows)
+}
+
+func (this *SelectBuilder) FoundRows(args ...string) *SelectBuilder {
+	var ts = []string{kFoundRows}
+
+	if len(args) > 0 {
+		ts = append(ts, args...)
+	}
+
+	var sb = NewSelectBuilder()
+	sb.columns = statements{NewStatement(strings.Join(ts, " "))}
+	return sb
+}
+
+// --------------------------------------------------------------------------------
 type onDuplicateKeyUpdateStmt struct {
 	stmts statements
 }
@@ -18,7 +42,7 @@ func (this *onDuplicateKeyUpdateStmt) AppendToSQL(w io.Writer, args *Args) error
 		return nil
 	}
 
-	if _, err := io.WriteString(w, kOnDuplicateKeyUpdateStmt); err != nil {
+	if _, err := io.WriteString(w, kOnDuplicateKeyUpdate); err != nil {
 		return err
 	}
 
