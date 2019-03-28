@@ -5,6 +5,10 @@ import (
 	"io"
 )
 
+const (
+	kOnDuplicateKeyUpdateStmt = "ON DUPLICATE KEY UPDATE "
+)
+
 type onDuplicateKeyUpdateStmt struct {
 	stmts statements
 }
@@ -14,7 +18,7 @@ func (this *onDuplicateKeyUpdateStmt) AppendToSQL(w io.Writer, args *Args) error
 		return nil
 	}
 
-	if _, err := io.WriteString(w, "ON DUPLICATE KEY UPDATE "); err != nil {
+	if _, err := io.WriteString(w, kOnDuplicateKeyUpdateStmt); err != nil {
 		return err
 	}
 
