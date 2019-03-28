@@ -154,8 +154,11 @@ func (this *SelectBuilder) Offset(offset int64) *SelectBuilder {
 	return this
 }
 
-func (this *SelectBuilder) Suffix(sql string, args ...interface{}) *SelectBuilder {
-	this.suffixes = append(this.suffixes, NewStatement(sql, args...))
+func (this *SelectBuilder) Suffix(sql interface{}, args ...interface{}) *SelectBuilder {
+	var stmt = parseStmt(sql, args...)
+	if stmt != nil {
+		this.suffixes = append(this.suffixes, stmt)
+	}
 	return this
 }
 

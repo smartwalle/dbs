@@ -67,8 +67,11 @@ func (this *InsertBuilder) Values(values ...interface{}) *InsertBuilder {
 	return this
 }
 
-func (this *InsertBuilder) Suffix(sql string, args ...interface{}) *InsertBuilder {
-	this.suffixes = append(this.suffixes, NewStatement(sql, args...))
+func (this *InsertBuilder) Suffix(sql interface{}, args ...interface{}) *InsertBuilder {
+	var stmt = parseStmt(sql, args...)
+	if stmt != nil {
+		this.suffixes = append(this.suffixes, stmt)
+	}
 	return this
 }
 

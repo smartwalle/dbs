@@ -103,8 +103,11 @@ func (this *DeleteBuilder) Offset(offset int64) *DeleteBuilder {
 	return this
 }
 
-func (this *DeleteBuilder) Suffix(sql string, args ...interface{}) *DeleteBuilder {
-	this.suffixes = append(this.suffixes, NewStatement(sql, args...))
+func (this *DeleteBuilder) Suffix(sql interface{}, args ...interface{}) *DeleteBuilder {
+	var stmt = parseStmt(sql, args...)
+	if stmt != nil {
+		this.suffixes = append(this.suffixes, stmt)
+	}
 	return this
 }
 
