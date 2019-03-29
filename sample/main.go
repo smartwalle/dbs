@@ -31,29 +31,29 @@ func main() {
 	}
 
 	// 事务示例
-	var tx = dbs.MustTx(db)
-
-	var sb2 = dbs.NewSelectBuilder()
-	if err = sb2.Scan(tx, &user); err != nil {
-		return
-	}
-
-	var ib = dbs.NewInsertBuilder()
-	if _, err = ib.Exec(tx); err != nil {
-		return
-	}
-
-	var ub = dbs.NewUpdateBuilder()
-	if _, err = ub.Exec(tx); err != nil {
-		return
-	}
-
-	var rb = dbs.NewDeleteBuilder()
-	if _, err = rb.Exec(tx); err != nil {
-		return
-	}
-
-	tx.Commit()
+	//var tx = dbs.MustTx(db)
+	//
+	//var sb2 = dbs.NewSelectBuilder()
+	//if err = sb2.Scan(tx, &user); err != nil {
+	//	return
+	//}
+	//
+	//var ib = dbs.NewInsertBuilder()
+	//if _, err = ib.Exec(tx); err != nil {
+	//	return
+	//}
+	//
+	//var ub = dbs.NewUpdateBuilder()
+	//if _, err = ub.Exec(tx); err != nil {
+	//	return
+	//}
+	//
+	//var rb = dbs.NewDeleteBuilder()
+	//if _, err = rb.Exec(tx); err != nil {
+	//	return
+	//}
+	//
+	//tx.Commit()
 }
 
 type User struct {
