@@ -8,18 +8,18 @@ import (
 )
 
 func main() {
-	var sb = dbs.NewSelectBuilder()
-	sb.Selects("u.id", "u.name", "u.age")
-	sb.From("user", "AS u")
-	sb.Where("u.id = ?", 1)
-	sb.Limit(1)
-
 	db, err := sql.Open("mysql", "xxx")
 	if err != nil {
 		fmt.Println("连接数据库出错：", err)
 		return
 	}
 	defer db.Close()
+
+	var sb = dbs.NewSelectBuilder()
+	sb.Selects("u.id", "u.name", "u.age")
+	sb.From("user", "AS u")
+	sb.Where("u.id = ?", 1)
+	sb.Limit(1)
 
 	var user *User
 	if err := sb.Scan(db, &user); err != nil {
@@ -29,6 +29,31 @@ func main() {
 	if user != nil {
 		fmt.Println(user.Id, user.Name, user.Age)
 	}
+
+	// 事务示例
+	var tx = dbs.MustTx(db)
+
+	var sb2 = dbs.NewSelectBuilder()
+	if err = sb2.Scan(tx, &user); err != nil {
+		return
+	}
+
+	var ib = dbs.NewInsertBuilder()
+	if _, err = ib.Exec(tx); err != nil {
+		return
+	}
+
+	var ub = dbs.NewUpdateBuilder()
+	if _, err = ub.Exec(tx); err != nil {
+		return
+	}
+
+	var rb = dbs.NewDeleteBuilder()
+	if _, err = rb.Exec(tx); err != nil {
+		return
+	}
+
+	tx.Commit()
 }
 
 type User struct {
