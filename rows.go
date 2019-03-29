@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	k_SQL_TAG    = "sql"
-	k_SQL_NO_TAG = "-"
+	kSQLTag   = "sql"
+	kSQLNoTag = "-"
 )
 
 func Scan(rows *sql.Rows, dest interface{}) (err error) {
@@ -171,9 +171,9 @@ func getFields(fields map[string]*field, objType reflect.Type, objValue reflect.
 		var fieldStruct = objType.Field(i)
 		var fieldValue = objValue.Field(i)
 
-		var tag = fieldStruct.Tag.Get(k_SQL_TAG)
+		var tag = fieldStruct.Tag.Get(kSQLTag)
 
-		if tag == k_SQL_NO_TAG {
+		if tag == kSQLNoTag {
 			continue
 		}
 

@@ -71,8 +71,8 @@ func getField(destType reflect.Type, destValue reflect.Value) (result []string) 
 	result = make([]string, 0, numField)
 	for i := 0; i < numField; i++ {
 		var fieldStruct = destType.Field(i)
-		var tag = fieldStruct.Tag.Get(k_SQL_TAG)
-		if tag == k_SQL_NO_TAG {
+		var tag = fieldStruct.Tag.Get(kSQLTag)
+		if tag == kSQLNoTag {
 			continue
 		}
 
