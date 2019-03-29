@@ -35,52 +35,41 @@ func Scan(rows *sql.Rows, dest interface{}) (err error) {
 		return err
 	}
 
-	//var hasData = false
 	var isInit = false
 	var isSlice = false
 	var sliceValue reflect.Value
 
 	for rows.Next() {
-		//hasData = true
-
 		if !isInit {
-			for {
-				if destValueKind == reflect.Ptr && destValue.IsNil() {
-					destValue.Set(reflect.New(destType.Elem()))
-				}
+			destType, destValue, destValueKind = p(destType, destValue, destValueKind)
 
-				if destValueKind == reflect.Ptr {
-					destValue = destValue.Elem()
-					destType = destType.Elem()
-					destValueKind = destValue.Kind()
-					continue
-				}
-				break
-			}
 			isInit = true
 
 			if destValueKind == reflect.Slice {
 				isSlice = true
-
 				if destValue.IsValid() {
 					destValue.Set(reflect.MakeSlice(destType, 0, 0))
 				}
-
 				sliceValue = destValue
 			}
 		}
 
 		if isSlice {
-			var obj = reflect.New(sliceValue.Type().Elem())
+			var nItem = reflect.New(sliceValue.Type().Elem())
+			var nItemInterface = nItem.Interface()
 
-			err = _scan(rows, columns, obj.Interface())
-			if err != nil {
+			var itemType = reflect.TypeOf(nItemInterface)
+			var itemValue = reflect.ValueOf(nItemInterface)
+			var itemValueKind = itemValue.Kind()
+
+			itemType, itemValue, itemValueKind = p(itemType, itemValue, itemValueKind)
+
+			if err = scanRows(rows, columns, itemType, itemValue); err != nil {
 				return err
 			}
-
-			sliceValue = reflect.Append(sliceValue, obj.Elem())
+			sliceValue = reflect.Append(sliceValue, nItem.Elem())
 		} else {
-			return _scan(rows, columns, dest)
+			return scanRows(rows, columns, destType, destValue)
 		}
 	}
 
@@ -92,26 +81,10 @@ func Scan(rows *sql.Rows, dest interface{}) (err error) {
 		return e
 	}
 
-	//if !hasData {
-	//	return errors.New("rows: no rows in result set")
-	//}
-
 	return err
 }
 
-func _scan(rows *sql.Rows, columns []string, dest interface{}) (err error) {
-	var destType = reflect.TypeOf(dest)
-	var destValue = reflect.ValueOf(dest)
-	var destValueKind = destValue.Kind()
-
-	if destValueKind == reflect.Struct {
-		return errors.New("rows: dest argument is struct")
-	}
-
-	if destValue.IsNil() {
-		return errors.New("rows: dest argument is nil")
-	}
-
+func p(destType reflect.Type, destValue reflect.Value, destValueKind reflect.Kind) (reflect.Type, reflect.Value, reflect.Kind) {
 	for {
 		if destValueKind == reflect.Ptr && destValue.IsNil() {
 			destValue.Set(reflect.New(destType.Elem()))
@@ -125,7 +98,10 @@ func _scan(rows *sql.Rows, columns []string, dest interface{}) (err error) {
 		}
 		break
 	}
+	return destType, destValue, destValueKind
+}
 
+func scanRows(rows *sql.Rows, columns []string, destType reflect.Type, destValue reflect.Value) (err error) {
 	var fields = make(map[string]*field)
 	getFields(fields, destType, destValue)
 
