@@ -6,10 +6,10 @@ import (
 	"strings"
 )
 
-var Dialect dialect = Default
+var gDialect dialect = Default
 
 func UseDialect(d dialect) {
-	Dialect = d
+	gDialect = d
 }
 
 // --------------------------------------------------------------------------------

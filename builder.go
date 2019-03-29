@@ -33,7 +33,7 @@ func (this *builder) parseVal(sql string) (string, error) {
 
 func newBuilder() *builder {
 	var b = &builder{}
-	b.d = Dialect
+	b.d = gDialect
 	return b
 }
 
