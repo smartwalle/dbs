@@ -8,6 +8,10 @@ import (
 
 var Dialect dialect = Default
 
+func UseDialect(d dialect) {
+	Dialect = d
+}
+
 // --------------------------------------------------------------------------------
 type dialect interface {
 	ParseVal(sql string) (string, error)
