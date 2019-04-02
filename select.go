@@ -26,7 +26,7 @@ type SelectBuilder struct {
 	joins    statements
 	wheres   statements
 	groupBys []string
-	havings  statements
+	having   statements
 	orderBys []string
 	limit    Statement
 	offset   Statement
@@ -47,7 +47,7 @@ func (this *SelectBuilder) Clone() *SelectBuilder {
 	sb.joins = this.joins
 	sb.wheres = this.wheres
 	sb.groupBys = this.groupBys
-	sb.havings = this.havings
+	sb.having = this.having
 	sb.orderBys = this.orderBys
 	sb.limit = this.limit
 	sb.offset = this.offset
@@ -127,8 +127,11 @@ func (this *SelectBuilder) GroupBy(groupBys ...string) *SelectBuilder {
 	return this
 }
 
-func (this *SelectBuilder) Having(sql string, args ...interface{}) *SelectBuilder {
-	this.havings = append(this.havings, NewStatement(sql, args...))
+func (this *SelectBuilder) Having(sql interface{}, args ...interface{}) *SelectBuilder {
+	var stmt = parseStmt(sql, args...)
+	if stmt != nil {
+		this.having = append(this.having, stmt)
+	}
 	return this
 }
 
@@ -237,11 +240,11 @@ func (this *SelectBuilder) AppendToSQL(w io.Writer, args *Args) error {
 		}
 	}
 
-	if len(this.havings) > 0 {
+	if len(this.having) > 0 {
 		if _, err := io.WriteString(w, " HAVING "); err != nil {
 			return err
 		}
-		if err := this.havings.AppendToSQL(w, " AND ", args); err != nil {
+		if err := this.having.AppendToSQL(w, " AND ", args); err != nil {
 			return err
 		}
 	}
