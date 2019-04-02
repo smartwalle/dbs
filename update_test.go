@@ -16,3 +16,9 @@ func TestUpdateBuilder(t *testing.T) {
 	ub.Limit(1)
 	fmt.Println(ub.ToSQL())
 }
+
+func TestUpdate(t *testing.T) {
+	fmt.Println("===== Update =====")
+	var v2 = 1000
+	fmt.Println(Update("table_name").SETS("c1", "v1", "c2", v2).Where("c2 = ?", 10).ToSQL())
+}

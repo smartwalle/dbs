@@ -73,6 +73,21 @@ func (this *UpdateBuilder) SET(column string, value interface{}) *UpdateBuilder 
 	return this
 }
 
+// SETS 批量设置需要更新的字段及其值
+// var name = "my name"
+// SETS("name", name, "age", 10)
+func (this *UpdateBuilder) SETS(kvs ...interface{}) *UpdateBuilder {
+	var column string
+	for i, value := range kvs {
+		if i%2 == 0 {
+			column = value.(string)
+			continue
+		}
+		this.SET(column, value)
+	}
+	return this
+}
+
 func (this *UpdateBuilder) SetMap(data map[string]interface{}) *UpdateBuilder {
 	for k, v := range data {
 		this.SET(k, v)
@@ -226,5 +241,12 @@ func NewUpdateBuilder() *UpdateBuilder {
 	var ub = &UpdateBuilder{}
 	ub.builder = newBuilder()
 	ub.exec = &exec{b: ub}
+	return ub
+}
+
+// --------------------------------------------------------------------------------
+func Update(table string, args ...string) *UpdateBuilder {
+	var ub = NewUpdateBuilder()
+	ub.Table(table, args...)
 	return ub
 }
