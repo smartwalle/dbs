@@ -5,6 +5,18 @@ import (
 	"testing"
 )
 
+var ibUser = Insert("name", "first_name", "last_name").Table("user")
+
+func TestInsertBuilder_Clone(t *testing.T) {
+	var ib = ibUser.Clone()
+	ib.Values("n1", "f1", "l1")
+	fmt.Println(ib.ToSQL())
+
+	ib = ibUser.Clone()
+	ib.Values("n2", "f2", "l2")
+	fmt.Println(ib.ToSQL())
+}
+
 func TestInsertBuilder(t *testing.T) {
 	fmt.Println("===== InsertBuilder =====")
 	var ib = NewInsertBuilder()

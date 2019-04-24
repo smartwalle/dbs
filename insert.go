@@ -28,6 +28,18 @@ func (this *InsertBuilder) Type() string {
 	return kInsertBuilder
 }
 
+func (this *InsertBuilder) Clone() *InsertBuilder {
+	var ib = NewInsertBuilder()
+	ib.builder.d = this.builder.d
+	ib.prefixes = this.prefixes
+	ib.options = this.options
+	ib.columns = this.columns
+	ib.table = this.table
+	ib.suffixes = this.suffixes
+	ib.sb = this.sb
+	return ib
+}
+
 func (this *InsertBuilder) UseDialect(d dialect) {
 	this.d = d
 	if this.sb != nil {
@@ -209,5 +221,12 @@ func NewInsertBuilder() *InsertBuilder {
 	var ib = &InsertBuilder{}
 	ib.builder = newBuilder()
 	ib.exec = &exec{b: ib}
+	return ib
+}
+
+// --------------------------------------------------------------------------------
+func Insert(columns ...string) *InsertBuilder {
+	var ib = NewInsertBuilder()
+	ib.Columns(columns...)
 	return ib
 }

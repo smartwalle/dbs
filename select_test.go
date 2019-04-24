@@ -5,6 +5,22 @@ import (
 	"testing"
 )
 
+var sbUser = Select("u.name", "u.first_name", "u.last_name").From("user", "AS u").Where("a = ?", 10)
+
+func TestSelectBuilder_Clone(t *testing.T) {
+	var sb = sbUser.Clone()
+	sb.Where("u.id = ?", 10)
+	fmt.Println(sb.ToSQL())
+
+	sb = sbUser.Clone()
+	sb.Where("u.id = ?", 20)
+	fmt.Println(sb.ToSQL())
+
+	sb = sbUser.Clone()
+	sb.Where("u.email = ?", "qqq@qq.com")
+	fmt.Println(sb.ToSQL())
+}
+
 func TestSelectBuilder(t *testing.T) {
 	fmt.Println("===== SelectBuilder =====")
 	var sb = NewSelectBuilder()
