@@ -5,7 +5,29 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 )
+
+// --------------------------------------------------------------------------------
+var bufferPool *sync.Pool
+
+func init() {
+	bufferPool = &sync.Pool{
+		New: func() interface{} {
+			return bytes.NewBuffer(make([]byte, 0, 1024))
+		},
+	}
+}
+
+func getBuffer() *bytes.Buffer {
+	var bf = bufferPool.Get().(*bytes.Buffer)
+	bf.Reset()
+	return bf
+}
+
+func releaseBuffer(bf *bytes.Buffer) {
+	bufferPool.Put(bf)
+}
 
 // --------------------------------------------------------------------------------
 type builder struct {

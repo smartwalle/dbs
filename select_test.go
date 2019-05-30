@@ -125,6 +125,7 @@ func BenchmarkSelectBuilder(b *testing.B) {
 		sb.From("user", "AS u")
 
 		sb.Where("u.name=?", "yang")
-		sb.Where(OR().Append("u.id=?", 10).Append("u.id=?", 20))
+		sb.Where(OR().Append("u.id=?", i).Append("u.id=?", 20))
+		sb.ToSQL()
 	}
 }

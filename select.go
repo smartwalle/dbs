@@ -1,7 +1,6 @@
 package dbs
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"strings"
@@ -158,17 +157,45 @@ func (this *SelectBuilder) Suffix(sql interface{}, args ...interface{}) *SelectB
 	return this
 }
 
+//func (this *SelectBuilder) ToSQL() (string, []interface{}, error) {
+//	var sqlBuffer = &bytes.Buffer{}
+//	var args = getArgs()
+//	if err := this.AppendToSQL(sqlBuffer, args); err != nil {
+//		return "", nil, err
+//	}
+//	var values = args.Values()
+//	releaseArgs(args)
+//
+//	sql, err := this.parseVal(sqlBuffer.String())
+//	if err != nil {
+//		return "", nil, err
+//	}
+//	return sql, values, nil
+//}
+
+//var pp = sync.Pool{New: func() interface{} {
+//	return bytes.NewBuffer(make([]byte, 0, 1024))
+//}}
+//
 func (this *SelectBuilder) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
+	var sqlBuffer = getBuffer()
+	var args = getArgs()
+
+	defer releaseArgs(args)
+	defer releaseBuffer(sqlBuffer)
+
 	if err := this.AppendToSQL(sqlBuffer, args); err != nil {
 		return "", nil, err
 	}
-	sql, err := this.parseVal(sqlBuffer.String())
+
+	var values = args.Values()
+	var sql = sqlBuffer.String()
+	sql, err := this.parseVal(sql)
+
 	if err != nil {
 		return "", nil, err
 	}
-	return sql, args.values, nil
+	return sql, values, nil
 }
 
 func (this *SelectBuilder) AppendToSQL(w io.Writer, args *Args) error {
