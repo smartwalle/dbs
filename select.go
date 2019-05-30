@@ -165,7 +165,6 @@ func (this *SelectBuilder) ToSQL() (string, []interface{}, error) {
 	}
 
 	sql, err := this.parseVal(sqlBuf.String())
-
 	if err != nil {
 		return "", nil, err
 	}

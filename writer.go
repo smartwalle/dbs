@@ -81,7 +81,9 @@ func (this *SQLBuffer) Reset() {
 }
 
 func (this *SQLBuffer) Values() []interface{} {
-	return this.vs
+	var vs = make([]interface{}, 0, len(this.vs))
+	vs = append(vs, this.vs...)
+	return vs
 }
 
 func (this *SQLBuffer) String() string {

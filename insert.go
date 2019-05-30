@@ -113,7 +113,6 @@ func (this *InsertBuilder) ToSQL() (string, []interface{}, error) {
 	}
 
 	sql, err := this.parseVal(sqlBuf.String())
-
 	if err != nil {
 		return "", nil, err
 	}

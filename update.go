@@ -126,7 +126,6 @@ func (this *UpdateBuilder) Suffix(sql interface{}, args ...interface{}) *UpdateB
 
 func (this *UpdateBuilder) ToSQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
-
 	defer sqlBuf.Release()
 
 	if err := this.WriteToSQL(sqlBuf); err != nil {
@@ -134,7 +133,6 @@ func (this *UpdateBuilder) ToSQL() (string, []interface{}, error) {
 	}
 
 	sql, err := this.parseVal(sqlBuf.String())
-
 	if err != nil {
 		return "", nil, err
 	}
