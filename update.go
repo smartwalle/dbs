@@ -1,9 +1,7 @@
 package dbs
 
 import (
-	"bytes"
 	"errors"
-	"io"
 	"strings"
 )
 
@@ -127,19 +125,23 @@ func (this *UpdateBuilder) Suffix(sql interface{}, args ...interface{}) *UpdateB
 }
 
 func (this *UpdateBuilder) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	if err := this.AppendToSQL(sqlBuffer, "", args); err != nil {
+	var sqlBuf = getBuffer()
+
+	defer sqlBuf.Release()
+
+	if err := this.WriteToSQL(sqlBuf); err != nil {
 		return "", nil, err
 	}
-	sql, err := this.parseVal(sqlBuffer.String())
+
+	sql, err := this.parseVal(sqlBuf.String())
+
 	if err != nil {
 		return "", nil, err
 	}
-	return sql, args.values, nil
+	return sql, sqlBuf.Values(), nil
 }
 
-func (this *UpdateBuilder) AppendToSQL(w io.Writer, sep string, args *Args) error {
+func (this *UpdateBuilder) WriteToSQL(w SQLWriter) error {
 	if len(this.tables) == 0 {
 		return errors.New("update statements must specify a table")
 	}
@@ -148,87 +150,87 @@ func (this *UpdateBuilder) AppendToSQL(w io.Writer, sep string, args *Args) erro
 	}
 
 	if len(this.prefixes) > 0 {
-		if err := this.prefixes.AppendToSQL(w, " ", args); err != nil {
+		if err := this.prefixes.WriteToSQL(w, " "); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, " "); err != nil {
+		if _, err := w.WriteString(" "); err != nil {
 			return err
 		}
 	}
 
-	if _, err := io.WriteString(w, "UPDATE "); err != nil {
+	if _, err := w.WriteString("UPDATE "); err != nil {
 		return err
 	}
 
 	if len(this.options) > 0 {
-		if err := this.options.AppendToSQL(w, " ", args); err != nil {
+		if err := this.options.WriteToSQL(w, " "); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, " "); err != nil {
+		if _, err := w.WriteString(" "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.tables) > 0 {
-		if err := this.tables.AppendToSQL(w, ", ", args); err != nil {
+		if err := this.tables.WriteToSQL(w, ", "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.joins) > 0 {
-		if _, err := io.WriteString(w, " "); err != nil {
+		if _, err := w.WriteString(" "); err != nil {
 			return err
 		}
-		if err := this.joins.AppendToSQL(w, " ", args); err != nil {
+		if err := this.joins.WriteToSQL(w, " "); err != nil {
 			return err
 		}
 	}
 
-	if _, err := io.WriteString(w, " SET "); err != nil {
+	if _, err := w.WriteString(" SET "); err != nil {
 		return err
 	}
 
 	if len(this.columns) > 0 {
-		if err := this.columns.AppendToSQL(w, ", ", args); err != nil {
+		if err := this.columns.WriteToSQL(w, ", "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.wheres) > 0 {
-		if _, err := io.WriteString(w, " WHERE "); err != nil {
+		if _, err := w.WriteString(" WHERE "); err != nil {
 			return err
 		}
-		if err := this.wheres.AppendToSQL(w, " AND ", args); err != nil {
+		if err := this.wheres.WriteToSQL(w, " AND "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.orderBys) > 0 {
-		if _, err := io.WriteString(w, " ORDER BY "); err != nil {
+		if _, err := w.WriteString(" ORDER BY "); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, strings.Join(this.orderBys, ", ")); err != nil {
+		if _, err := w.WriteString(strings.Join(this.orderBys, ", ")); err != nil {
 			return err
 		}
 	}
 
 	if this.limit != nil {
-		if err := this.limit.AppendToSQL(w, args); err != nil {
+		if err := this.limit.WriteToSQL(w); err != nil {
 			return err
 		}
 	}
 
 	if this.offset != nil {
-		if err := this.offset.AppendToSQL(w, args); err != nil {
+		if err := this.offset.WriteToSQL(w); err != nil {
 			return err
 		}
 	}
 
 	if len(this.suffixes) > 0 {
-		if _, err := io.WriteString(w, " "); err != nil {
+		if _, err := w.WriteString(" "); err != nil {
 			return err
 		}
-		if err := this.suffixes.AppendToSQL(w, " ", args); err != nil {
+		if err := this.suffixes.WriteToSQL(w, " "); err != nil {
 			return err
 		}
 	}

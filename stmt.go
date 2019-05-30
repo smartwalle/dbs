@@ -3,7 +3,6 @@ package dbs
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"reflect"
 	"strings"
 )
@@ -23,7 +22,7 @@ type SQLValue interface {
 
 // --------------------------------------------------------------------------------
 type Statement interface {
-	AppendToSQL(w io.Writer, args *Args) error
+	WriteToSQL(w SQLWriter) error
 	ToSQL() (string, []interface{}, error)
 }
 
@@ -44,14 +43,14 @@ func SQL(sql string, args ...interface{}) *statement {
 	return NewStatement(sql, args...)
 }
 
-func (this *statement) AppendToSQL(w io.Writer, args *Args) error {
+func (this *statement) WriteToSQL(w SQLWriter) error {
 	switch ts := this.sql.(type) {
 	case Statement:
-		if err := ts.AppendToSQL(w, args); err != nil {
+		if err := ts.WriteToSQL(w); err != nil {
 			return err
 		}
 	case string:
-		if _, err := io.WriteString(w, ts); err != nil {
+		if _, err := w.WriteString(ts); err != nil {
 			return err
 		}
 	default:
@@ -60,29 +59,28 @@ func (this *statement) AppendToSQL(w io.Writer, args *Args) error {
 	for _, arg := range this.args {
 		switch ta := arg.(type) {
 		case Statement:
-			if _, err := io.WriteString(w, "("); err != nil {
+			if _, err := w.WriteString("("); err != nil {
 				return err
 			}
-			if err := ta.AppendToSQL(w, args); err != nil {
+			if err := ta.WriteToSQL(w); err != nil {
 				return err
 			}
-			if _, err := io.WriteString(w, ")"); err != nil {
+			if _, err := w.WriteString(")"); err != nil {
 				return err
 			}
 		default:
-			if args != nil {
-				args.Append(ta)
-			}
+			w.WriteArgs(ta)
 		}
 	}
 	return nil
 }
 
 func (this *statement) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	err := this.AppendToSQL(sqlBuffer, args)
-	return sqlBuffer.String(), args.values, err
+	var sqlBuf = getBuffer()
+	defer sqlBuf.Release()
+
+	err := this.WriteToSQL(sqlBuf)
+	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
 // --------------------------------------------------------------------------------
@@ -98,39 +96,40 @@ func Alias(sql interface{}, alias string) *aliasStmt {
 	return s
 }
 
-func (this *aliasStmt) AppendToSQL(w io.Writer, args *Args) error {
+func (this *aliasStmt) WriteToSQL(w SQLWriter) error {
 	switch ts := this.sql.(type) {
 	case Statement:
-		if _, err := io.WriteString(w, "("); err != nil {
+		if _, err := w.WriteString("("); err != nil {
 			return err
 		}
-		if err := ts.AppendToSQL(w, args); err != nil {
+		if err := ts.WriteToSQL(w); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, ")"); err != nil {
+		if _, err := w.WriteString(")"); err != nil {
 			return err
 		}
 	case string:
-		if _, err := io.WriteString(w, ts); err != nil {
+		if _, err := w.WriteString(ts); err != nil {
 			return err
 		}
 	default:
 	}
 
-	if _, err := io.WriteString(w, " AS "); err != nil {
+	if _, err := w.WriteString(" AS "); err != nil {
 		return err
 	}
-	if _, err := io.WriteString(w, this.alias); err != nil {
+	if _, err := w.WriteString(this.alias); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (this *aliasStmt) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	err := this.AppendToSQL(sqlBuffer, args)
-	return sqlBuffer.String(), args.values, err
+	var sqlBuf = getBuffer()
+	defer sqlBuf.Release()
+
+	err := this.WriteToSQL(sqlBuf)
+	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
 // --------------------------------------------------------------------------------
@@ -157,52 +156,53 @@ func Case(what ...interface{}) *caseStmt {
 	return c
 }
 
-func (this *caseStmt) AppendToSQL(w io.Writer, args *Args) error {
-	if _, err := io.WriteString(w, "CASE "); err != nil {
+func (this *caseStmt) WriteToSQL(w SQLWriter) error {
+	if _, err := w.WriteString("CASE "); err != nil {
 		return err
 	}
 	if this.whatPart != nil {
-		if err := this.whatPart.AppendToSQL(w, args); err != nil {
+		if err := this.whatPart.WriteToSQL(w); err != nil {
 			return err
 		}
 	}
 
 	for _, wp := range this.whenPart {
-		if _, err := io.WriteString(w, " WHEN "); err != nil {
+		if _, err := w.WriteString(" WHEN "); err != nil {
 			return err
 		}
-		if err := wp.when.AppendToSQL(w, args); err != nil {
+		if err := wp.when.WriteToSQL(w); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, " THEN "); err != nil {
+		if _, err := w.WriteString(" THEN "); err != nil {
 			return err
 		}
-		if err := wp.then.AppendToSQL(w, args); err != nil {
+		if err := wp.then.WriteToSQL(w); err != nil {
 			return err
 		}
-		args.Append(wp.args...)
+		w.WriteArgs(wp.args...)
 	}
 
 	if this.elsePart != nil {
-		if _, err := io.WriteString(w, " ELSE "); err != nil {
+		if _, err := w.WriteString(" ELSE "); err != nil {
 			return err
 		}
-		if err := this.elsePart.AppendToSQL(w, args); err != nil {
+		if err := this.elsePart.WriteToSQL(w); err != nil {
 			return err
 		}
 	}
 
-	if _, err := io.WriteString(w, " END"); err != nil {
+	if _, err := w.WriteString(" END"); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (this *caseStmt) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	err := this.AppendToSQL(sqlBuffer, args)
-	return sqlBuffer.String(), args.values, err
+	var sqlBuf = getBuffer()
+	defer sqlBuf.Release()
+
+	err := this.WriteToSQL(sqlBuf)
+	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
 func (this *caseStmt) what(what interface{}) *caseStmt {
@@ -230,41 +230,40 @@ func newSet(column string, value interface{}) *setStmt {
 	return &setStmt{column, value}
 }
 
-func (this *setStmt) AppendToSQL(w io.Writer, args *Args) error {
-	io.WriteString(w, this.column)
-	io.WriteString(w, "=")
+func (this *setStmt) WriteToSQL(w SQLWriter) error {
+	w.WriteString(this.column)
+	w.WriteString("=")
 	switch tv := this.value.(type) {
 	case Statement:
-		if err := tv.AppendToSQL(w, args); err != nil {
+		if err := tv.WriteToSQL(w); err != nil {
 			return err
 		}
 	default:
-		io.WriteString(w, "?")
-		if args != nil {
-			args.Append(this.value)
-		}
+		w.WriteString("?")
+		w.WriteArgs(this.value)
 	}
 	return nil
 }
 
 func (this *setStmt) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	err := this.AppendToSQL(sqlBuffer, args)
-	return sqlBuffer.String(), args.values, err
+	var sqlBuf = getBuffer()
+	defer sqlBuf.Release()
+
+	err := this.WriteToSQL(sqlBuf)
+	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
 // --------------------------------------------------------------------------------
 type setStmts []*setStmt
 
-func (this setStmts) AppendToSQL(w io.Writer, sep string, args *Args) error {
+func (this setStmts) WriteToSQL(w SQLWriter, sep string) error {
 	for i, c := range this {
 		if i != 0 {
-			if _, err := io.WriteString(w, sep); err != nil {
+			if _, err := w.WriteString(sep); err != nil {
 				return err
 			}
 		}
-		if err := c.AppendToSQL(w, args); err != nil {
+		if err := c.WriteToSQL(w); err != nil {
 			return err
 		}
 	}
@@ -272,39 +271,40 @@ func (this setStmts) AppendToSQL(w io.Writer, sep string, args *Args) error {
 }
 
 func (this setStmts) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	err := this.AppendToSQL(sqlBuffer, ", ", args)
-	return sqlBuffer.String(), args.values, err
+	var sqlBuf = getBuffer()
+	defer sqlBuf.Release()
+
+	err := this.WriteToSQL(sqlBuf, ", ")
+	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
 // --------------------------------------------------------------------------------
 type statements []Statement
 
-func (this statements) AppendToSQL(w io.Writer, sep string, args *Args) error {
+func (this statements) WriteToSQL(w SQLWriter, sep string) error {
 	for i, stmt := range this {
 		if i != 0 {
-			if _, err := io.WriteString(w, sep); err != nil {
+			if _, err := w.WriteString(sep); err != nil {
 				return err
 			}
 		}
 		switch st := stmt.(type) {
 		case *whereStmt:
-			if _, err := io.WriteString(w, "("); err != nil {
+			if _, err := w.WriteString("("); err != nil {
 				return err
 			}
-			if err := st.AppendToSQL(w, args); err != nil {
+			if err := st.WriteToSQL(w); err != nil {
 				return err
 			}
-			if _, err := io.WriteString(w, ")"); err != nil {
+			if _, err := w.WriteString(")"); err != nil {
 				return err
 			}
 		default:
-			if err := st.AppendToSQL(w, args); err != nil {
+			if err := st.WriteToSQL(w); err != nil {
 				return err
 			}
 		}
-		//if err := stmt.AppendToSQL(w, args); err != nil {
+		//if err := stmt.WriteToSQL(w, args); err != nil {
 		//	return err
 		//}
 	}
@@ -312,10 +312,11 @@ func (this statements) AppendToSQL(w io.Writer, sep string, args *Args) error {
 }
 
 func (this statements) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	err := this.AppendToSQL(sqlBuffer, ", ", args)
-	return sqlBuffer.String(), args.values, err
+	var sqlBuf = getBuffer()
+	defer sqlBuf.Release()
+
+	err := this.WriteToSQL(sqlBuf, ", ")
+	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
 // --------------------------------------------------------------------------------
@@ -324,27 +325,27 @@ type whereStmt struct {
 	sep   string
 }
 
-func (this *whereStmt) AppendToSQL(w io.Writer, args *Args) error {
+func (this *whereStmt) WriteToSQL(w SQLWriter) error {
 	for i, stmt := range this.stmts {
 		if i != 0 {
-			if _, err := io.WriteString(w, this.sep); err != nil {
+			if _, err := w.WriteString(this.sep); err != nil {
 				return err
 			}
 		}
 
 		switch st := stmt.(type) {
 		case *whereStmt:
-			if _, err := io.WriteString(w, "("); err != nil {
+			if _, err := w.WriteString("("); err != nil {
 				return err
 			}
-			if err := st.AppendToSQL(w, args); err != nil {
+			if err := st.WriteToSQL(w); err != nil {
 				return err
 			}
-			if _, err := io.WriteString(w, ")"); err != nil {
+			if _, err := w.WriteString(")"); err != nil {
 				return err
 			}
 		default:
-			if err := st.AppendToSQL(w, args); err != nil {
+			if err := st.WriteToSQL(w); err != nil {
 				return err
 			}
 		}
@@ -354,10 +355,11 @@ func (this *whereStmt) AppendToSQL(w io.Writer, args *Args) error {
 }
 
 func (this *whereStmt) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	err := this.AppendToSQL(sqlBuffer, args)
-	return sqlBuffer.String(), args.values, err
+	var sqlBuf = getBuffer()
+	defer sqlBuf.Release()
+
+	err := this.WriteToSQL(sqlBuf)
+	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
 func (this *whereStmt) Appends(stmts ...Statement) *whereStmt {
@@ -452,7 +454,7 @@ var eqMap = map[bool]string{true: "=", false: "<>"}
 
 type Eq map[string]interface{}
 
-func (this Eq) appendToSQL(eq bool, w io.Writer, args *Args) error {
+func (this Eq) writeToSQL(eq bool, w SQLWriter) error {
 	var index = 0
 	for key, value := range this {
 		if key == "" {
@@ -468,7 +470,7 @@ func (this Eq) appendToSQL(eq bool, w io.Writer, args *Args) error {
 			if pKind == reflect.Array || pKind == reflect.Slice {
 				if pValue.Len() > 0 {
 					for i := 0; i < pValue.Len(); i++ {
-						args.Append(pValue.Index(i).Interface())
+						w.WriteArgs(pValue.Index(i).Interface())
 					}
 				}
 				stmt = fmt.Sprintf("%s %s (%s)", key, inMap[eq], placeholders(pValue.Len()))
@@ -480,28 +482,28 @@ func (this Eq) appendToSQL(eq bool, w io.Writer, args *Args) error {
 						return err
 					}
 					stmt = fmt.Sprintf("%s %s %s", key, eqMap[eq], sql)
-					args.Append(arg...)
+					w.WriteArgs(arg...)
 				default:
 					stmt = fmt.Sprintf("%s %s ?", key, eqMap[eq])
-					args.Append(value)
+					w.WriteArgs(value)
 				}
 			}
 		}
 
 		if stmt != "" {
 			if index != 0 {
-				if _, err := io.WriteString(w, " AND "); err != nil {
+				if _, err := w.WriteString(" AND "); err != nil {
 					return err
 				}
 			}
 
-			if _, err := io.WriteString(w, "("); err != nil {
+			if _, err := w.WriteString("("); err != nil {
 				return err
 			}
-			if _, err := io.WriteString(w, stmt); err != nil {
+			if _, err := w.WriteString(stmt); err != nil {
 				return err
 			}
-			if _, err := io.WriteString(w, ")"); err != nil {
+			if _, err := w.WriteString(")"); err != nil {
 				return err
 			}
 			index += 1
@@ -510,29 +512,31 @@ func (this Eq) appendToSQL(eq bool, w io.Writer, args *Args) error {
 	return nil
 }
 
-func (this Eq) AppendToSQL(w io.Writer, args *Args) error {
-	return this.appendToSQL(true, w, args)
+func (this Eq) WriteToSQL(w SQLWriter) error {
+	return this.writeToSQL(true, w)
 }
 
 func (this Eq) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	err := this.AppendToSQL(sqlBuffer, args)
-	return sqlBuffer.String(), args.values, err
+	var sqlBuf = getBuffer()
+	defer sqlBuf.Release()
+
+	err := this.WriteToSQL(sqlBuf)
+	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
 // --------------------------------------------------------------------------------
 type NotEq Eq
 
-func (this NotEq) AppendToSQL(w io.Writer, args *Args) error {
-	return Eq(this).appendToSQL(false, w, args)
+func (this NotEq) WriteToSQL(w SQLWriter) error {
+	return Eq(this).writeToSQL(false, w)
 }
 
 func (this NotEq) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	err := this.AppendToSQL(sqlBuffer, args)
-	return sqlBuffer.String(), args.values, err
+	var sqlBuf = getBuffer()
+	defer sqlBuf.Release()
+
+	err := this.WriteToSQL(sqlBuf)
+	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
 // --------------------------------------------------------------------------------

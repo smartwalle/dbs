@@ -3,31 +3,8 @@ package dbs
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"strings"
-	"sync"
 )
-
-// --------------------------------------------------------------------------------
-var bufferPool *sync.Pool
-
-func init() {
-	bufferPool = &sync.Pool{
-		New: func() interface{} {
-			return bytes.NewBuffer(make([]byte, 0, 1024))
-		},
-	}
-}
-
-func getBuffer() *bytes.Buffer {
-	var bf = bufferPool.Get().(*bytes.Buffer)
-	bf.Reset()
-	return bf
-}
-
-func releaseBuffer(bf *bytes.Buffer) {
-	bufferPool.Put(bf)
-}
 
 // --------------------------------------------------------------------------------
 type builder struct {
@@ -120,9 +97,9 @@ func (this *RawBuilder) ToSQL() (string, []interface{}, error) {
 	return sql, this.args, nil
 }
 
-func (this *RawBuilder) AppendToSQL(w io.Writer, args *Args) error {
-	io.WriteString(w, this.sql.String())
-	args.Append(this.args...)
+func (this *RawBuilder) WriteToSQL(w SQLWriter) error {
+	w.WriteString(this.sql.String())
+	w.WriteArgs(this.args...)
 	return nil
 }
 

@@ -2,7 +2,6 @@ package dbs
 
 import (
 	"errors"
-	"io"
 	"strings"
 )
 
@@ -157,151 +156,126 @@ func (this *SelectBuilder) Suffix(sql interface{}, args ...interface{}) *SelectB
 	return this
 }
 
-//func (this *SelectBuilder) ToSQL() (string, []interface{}, error) {
-//	var sqlBuffer = &bytes.Buffer{}
-//	var args = getArgs()
-//	if err := this.AppendToSQL(sqlBuffer, args); err != nil {
-//		return "", nil, err
-//	}
-//	var values = args.Values()
-//	releaseArgs(args)
-//
-//	sql, err := this.parseVal(sqlBuffer.String())
-//	if err != nil {
-//		return "", nil, err
-//	}
-//	return sql, values, nil
-//}
-
-//var pp = sync.Pool{New: func() interface{} {
-//	return bytes.NewBuffer(make([]byte, 0, 1024))
-//}}
-//
 func (this *SelectBuilder) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = getBuffer()
-	var args = getArgs()
+	var sqlBuf = getBuffer()
+	defer sqlBuf.Release()
 
-	defer releaseArgs(args)
-	defer releaseBuffer(sqlBuffer)
-
-	if err := this.AppendToSQL(sqlBuffer, args); err != nil {
+	if err := this.WriteToSQL(sqlBuf); err != nil {
 		return "", nil, err
 	}
 
-	var values = args.Values()
-	var sql = sqlBuffer.String()
-	sql, err := this.parseVal(sql)
+	sql, err := this.parseVal(sqlBuf.String())
 
 	if err != nil {
 		return "", nil, err
 	}
-	return sql, values, nil
+	return sql, sqlBuf.Values(), nil
 }
 
-func (this *SelectBuilder) AppendToSQL(w io.Writer, args *Args) error {
+func (this *SelectBuilder) WriteToSQL(w SQLWriter) error {
 	if len(this.columns) == 0 {
 		return errors.New("SELECT statements must have at least on result column")
 	}
 
 	if len(this.prefixes) > 0 {
-		if err := this.prefixes.AppendToSQL(w, " ", args); err != nil {
+		if err := this.prefixes.WriteToSQL(w, " "); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, " "); err != nil {
+		if _, err := w.WriteString(" "); err != nil {
 			return err
 		}
 	}
 
-	if _, err := io.WriteString(w, "SELECT "); err != nil {
+	if _, err := w.WriteString("SELECT "); err != nil {
 		return err
 	}
 
 	if len(this.options) > 0 {
-		if err := this.options.AppendToSQL(w, " ", args); err != nil {
+		if err := this.options.WriteToSQL(w, " "); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, " "); err != nil {
+		if _, err := w.WriteString(" "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.columns) > 0 {
-		if err := this.columns.AppendToSQL(w, ", ", args); err != nil {
+		if err := this.columns.WriteToSQL(w, ", "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.from) > 0 {
-		if _, err := io.WriteString(w, " FROM "); err != nil {
+		if _, err := w.WriteString(" FROM "); err != nil {
 			return err
 		}
-		if err := this.from.AppendToSQL(w, ", ", args); err != nil {
+		if err := this.from.WriteToSQL(w, ", "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.joins) > 0 {
-		if _, err := io.WriteString(w, " "); err != nil {
+		if _, err := w.WriteString(" "); err != nil {
 			return err
 		}
-		if err := this.joins.AppendToSQL(w, " ", args); err != nil {
+		if err := this.joins.WriteToSQL(w, " "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.wheres) > 0 {
-		if _, err := io.WriteString(w, " WHERE "); err != nil {
+		if _, err := w.WriteString(" WHERE "); err != nil {
 			return err
 		}
-		if err := this.wheres.AppendToSQL(w, " AND ", args); err != nil {
+		if err := this.wheres.WriteToSQL(w, " AND "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.groupBys) > 0 {
-		if _, err := io.WriteString(w, " GROUP BY "); err != nil {
+		if _, err := w.WriteString(" GROUP BY "); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, strings.Join(this.groupBys, ", ")); err != nil {
+		if _, err := w.WriteString(strings.Join(this.groupBys, ", ")); err != nil {
 			return err
 		}
 	}
 
 	if len(this.having) > 0 {
-		if _, err := io.WriteString(w, " HAVING "); err != nil {
+		if _, err := w.WriteString(" HAVING "); err != nil {
 			return err
 		}
-		if err := this.having.AppendToSQL(w, " AND ", args); err != nil {
+		if err := this.having.WriteToSQL(w, " AND "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.orderBys) > 0 {
-		if _, err := io.WriteString(w, " ORDER BY "); err != nil {
+		if _, err := w.WriteString(" ORDER BY "); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, strings.Join(this.orderBys, ", ")); err != nil {
+		if _, err := w.WriteString(strings.Join(this.orderBys, ", ")); err != nil {
 			return err
 		}
 	}
 
 	if this.limit != nil {
-		if err := this.limit.AppendToSQL(w, args); err != nil {
+		if err := this.limit.WriteToSQL(w); err != nil {
 			return err
 		}
 	}
 
 	if this.offset != nil {
-		if err := this.offset.AppendToSQL(w, args); err != nil {
+		if err := this.offset.WriteToSQL(w); err != nil {
 			return err
 		}
 	}
 
 	if len(this.suffixes) > 0 {
-		if _, err := io.WriteString(w, " "); err != nil {
+		if _, err := w.WriteString(" "); err != nil {
 			return err
 		}
-		if err := this.suffixes.AppendToSQL(w, " ", args); err != nil {
+		if err := this.suffixes.WriteToSQL(w, " "); err != nil {
 			return err
 		}
 	}

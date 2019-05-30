@@ -1,8 +1,6 @@
 package dbs
 
 import (
-	"bytes"
-	"io"
 	"strings"
 )
 
@@ -37,23 +35,24 @@ type onDuplicateKeyUpdateStmt struct {
 	stmts statements
 }
 
-func (this *onDuplicateKeyUpdateStmt) AppendToSQL(w io.Writer, args *Args) error {
+func (this *onDuplicateKeyUpdateStmt) WriteToSQL(w SQLWriter) error {
 	if len(this.stmts) == 0 {
 		return nil
 	}
 
-	if _, err := io.WriteString(w, kOnDuplicateKeyUpdate); err != nil {
+	if _, err := w.WriteString(kOnDuplicateKeyUpdate); err != nil {
 		return err
 	}
 
-	return this.stmts.AppendToSQL(w, ", ", args)
+	return this.stmts.WriteToSQL(w, ", ")
 }
 
 func (this *onDuplicateKeyUpdateStmt) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	err := this.AppendToSQL(sqlBuffer, args)
-	return sqlBuffer.String(), args.values, err
+	var sqlBuf = getBuffer()
+	defer sqlBuf.Release()
+
+	err := this.WriteToSQL(sqlBuf)
+	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
 func (this *onDuplicateKeyUpdateStmt) Append(sql interface{}, args ...interface{}) *onDuplicateKeyUpdateStmt {

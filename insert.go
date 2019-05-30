@@ -1,10 +1,8 @@
 package dbs
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"strings"
 )
 
@@ -107,44 +105,47 @@ func (this *InsertBuilder) Select(sb *SelectBuilder) *InsertBuilder {
 }
 
 func (this *InsertBuilder) ToSQL() (string, []interface{}, error) {
-	var sqlBuffer = &bytes.Buffer{}
-	var args = newArgs()
-	if err := this.AppendToSQL(sqlBuffer, args); err != nil {
+	var sqlBuf = getBuffer()
+	defer sqlBuf.Release()
+
+	if err := this.WriteToSQL(sqlBuf); err != nil {
 		return "", nil, err
 	}
-	sql, err := this.parseVal(sqlBuffer.String())
+
+	sql, err := this.parseVal(sqlBuf.String())
+
 	if err != nil {
 		return "", nil, err
 	}
-	return sql, args.values, nil
+	return sql, sqlBuf.Values(), nil
 }
 
-func (this *InsertBuilder) AppendToSQL(w io.Writer, args *Args) error {
+func (this *InsertBuilder) WriteToSQL(w SQLWriter) error {
 	if len(this.table) == 0 {
 		return errors.New("insert statements must specify a table")
 	}
 	if len(this.values) == 0 && this.sb == nil {
-		return errors.New("insert statements must have at least one set of values")
+		return errors.New("insert statements must have at least one set of vs")
 	}
 
 	if len(this.prefixes) > 0 {
-		if err := this.prefixes.AppendToSQL(w, " ", args); err != nil {
+		if err := this.prefixes.WriteToSQL(w, " "); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, " "); err != nil {
+		if _, err := w.WriteString(" "); err != nil {
 			return err
 		}
 	}
 
-	if _, err := io.WriteString(w, "INSERT "); err != nil {
+	if _, err := w.WriteString("INSERT "); err != nil {
 		return err
 	}
 
 	if len(this.options) > 0 {
-		if err := this.options.AppendToSQL(w, " ", args); err != nil {
+		if err := this.options.WriteToSQL(w, " "); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, " "); err != nil {
+		if _, err := w.WriteString(" "); err != nil {
 			return err
 		}
 	}
@@ -154,23 +155,23 @@ func (this *InsertBuilder) AppendToSQL(w io.Writer, args *Args) error {
 	}
 
 	if len(this.columns) > 0 {
-		if _, err := io.WriteString(w, "("); err != nil {
+		if _, err := w.WriteString("("); err != nil {
 			return err
 		}
 		var ncs = make([]string, 0, len(this.columns))
 		for _, c := range this.columns {
 			ncs = append(ncs, this.quote(c))
 		}
-		if _, err := io.WriteString(w, strings.Join(ncs, ", ")); err != nil {
+		if _, err := w.WriteString(strings.Join(ncs, ", ")); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, ")"); err != nil {
+		if _, err := w.WriteString(")"); err != nil {
 			return err
 		}
 	}
 
 	if len(this.values) > 0 {
-		if _, err := io.WriteString(w, " VALUES "); err != nil {
+		if _, err := w.WriteString(" VALUES "); err != nil {
 			return err
 		}
 
@@ -182,34 +183,34 @@ func (this *InsertBuilder) AppendToSQL(w io.Writer, args *Args) error {
 				case Statement:
 					vSQL, vArgs, _ := vt.ToSQL()
 					valuePlaceholder[i] = vSQL
-					args.Append(vArgs...)
+					w.WriteArgs(vArgs...)
 				default:
 					valuePlaceholder[i] = "?"
-					args.Append(v)
+					w.WriteArgs(v)
 				}
 			}
 			valuesPlaceholder[index] = fmt.Sprintf("(%s)", strings.Join(valuePlaceholder, ", "))
 		}
-		if _, err := io.WriteString(w, strings.Join(valuesPlaceholder, ", ")); err != nil {
+		if _, err := w.WriteString(strings.Join(valuesPlaceholder, ", ")); err != nil {
 			return err
 		}
 	} else if this.sb != nil {
-		if _, err := io.WriteString(w, " ("); err != nil {
+		if _, err := w.WriteString(" ("); err != nil {
 			return err
 		}
-		if err := this.sb.AppendToSQL(w, args); err != nil {
+		if err := this.sb.WriteToSQL(w); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, ")"); err != nil {
+		if _, err := w.WriteString(")"); err != nil {
 			return err
 		}
 	}
 
 	if len(this.suffixes) > 0 {
-		if _, err := io.WriteString(w, " "); err != nil {
+		if _, err := w.WriteString(" "); err != nil {
 			return err
 		}
-		if err := this.suffixes.AppendToSQL(w, " ", args); err != nil {
+		if err := this.suffixes.WriteToSQL(w, " "); err != nil {
 			return err
 		}
 	}
