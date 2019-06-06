@@ -139,7 +139,7 @@ func (this *UpdateBuilder) ToSQL() (string, []interface{}, error) {
 	return sql, sqlBuf.Values(), nil
 }
 
-func (this *UpdateBuilder) WriteToSQL(w SQLWriter) error {
+func (this *UpdateBuilder) WriteToSQL(w Writer) error {
 	if len(this.tables) == 0 {
 		return errors.New("update statements must specify a table")
 	}

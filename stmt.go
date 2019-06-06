@@ -22,7 +22,7 @@ type SQLValue interface {
 
 // --------------------------------------------------------------------------------
 type Statement interface {
-	WriteToSQL(w SQLWriter) error
+	WriteToSQL(w Writer) error
 	ToSQL() (string, []interface{}, error)
 }
 
@@ -43,7 +43,7 @@ func SQL(sql string, args ...interface{}) *statement {
 	return NewStatement(sql, args...)
 }
 
-func (this *statement) WriteToSQL(w SQLWriter) error {
+func (this *statement) WriteToSQL(w Writer) error {
 	switch ts := this.sql.(type) {
 	case Statement:
 		if err := ts.WriteToSQL(w); err != nil {
@@ -96,7 +96,7 @@ func Alias(sql interface{}, alias string) *aliasStmt {
 	return s
 }
 
-func (this *aliasStmt) WriteToSQL(w SQLWriter) error {
+func (this *aliasStmt) WriteToSQL(w Writer) error {
 	switch ts := this.sql.(type) {
 	case Statement:
 		if _, err := w.WriteString("("); err != nil {
@@ -156,7 +156,7 @@ func Case(what ...interface{}) *caseStmt {
 	return c
 }
 
-func (this *caseStmt) WriteToSQL(w SQLWriter) error {
+func (this *caseStmt) WriteToSQL(w Writer) error {
 	if _, err := w.WriteString("CASE "); err != nil {
 		return err
 	}
@@ -230,7 +230,7 @@ func newSet(column string, value interface{}) *setStmt {
 	return &setStmt{column, value}
 }
 
-func (this *setStmt) WriteToSQL(w SQLWriter) error {
+func (this *setStmt) WriteToSQL(w Writer) error {
 	w.WriteString(this.column)
 	w.WriteString("=")
 	switch tv := this.value.(type) {
@@ -256,7 +256,7 @@ func (this *setStmt) ToSQL() (string, []interface{}, error) {
 // --------------------------------------------------------------------------------
 type setStmts []*setStmt
 
-func (this setStmts) WriteToSQL(w SQLWriter, sep string) error {
+func (this setStmts) WriteToSQL(w Writer, sep string) error {
 	for i, c := range this {
 		if i != 0 {
 			if _, err := w.WriteString(sep); err != nil {
@@ -281,7 +281,7 @@ func (this setStmts) ToSQL() (string, []interface{}, error) {
 // --------------------------------------------------------------------------------
 type statements []Statement
 
-func (this statements) WriteToSQL(w SQLWriter, sep string) error {
+func (this statements) WriteToSQL(w Writer, sep string) error {
 	for i, stmt := range this {
 		if i != 0 {
 			if _, err := w.WriteString(sep); err != nil {
@@ -325,7 +325,7 @@ type whereStmt struct {
 	sep   string
 }
 
-func (this *whereStmt) WriteToSQL(w SQLWriter) error {
+func (this *whereStmt) WriteToSQL(w Writer) error {
 	for i, stmt := range this.stmts {
 		if i != 0 {
 			if _, err := w.WriteString(this.sep); err != nil {
@@ -454,7 +454,7 @@ var eqMap = map[bool]string{true: "=", false: "<>"}
 
 type Eq map[string]interface{}
 
-func (this Eq) writeToSQL(eq bool, w SQLWriter) error {
+func (this Eq) writeToSQL(eq bool, w Writer) error {
 	var index = 0
 	for key, value := range this {
 		if key == "" {
@@ -512,7 +512,7 @@ func (this Eq) writeToSQL(eq bool, w SQLWriter) error {
 	return nil
 }
 
-func (this Eq) WriteToSQL(w SQLWriter) error {
+func (this Eq) WriteToSQL(w Writer) error {
 	return this.writeToSQL(true, w)
 }
 
@@ -527,7 +527,7 @@ func (this Eq) ToSQL() (string, []interface{}, error) {
 // --------------------------------------------------------------------------------
 type NotEq Eq
 
-func (this NotEq) WriteToSQL(w SQLWriter) error {
+func (this NotEq) WriteToSQL(w Writer) error {
 	return Eq(this).writeToSQL(false, w)
 }
 

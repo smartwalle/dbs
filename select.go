@@ -171,7 +171,7 @@ func (this *SelectBuilder) ToSQL() (string, []interface{}, error) {
 	return sql, sqlBuf.Values(), nil
 }
 
-func (this *SelectBuilder) WriteToSQL(w SQLWriter) error {
+func (this *SelectBuilder) WriteToSQL(w Writer) error {
 	if len(this.columns) == 0 {
 		return errors.New("SELECT statements must have at least on result column")
 	}

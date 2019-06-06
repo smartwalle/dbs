@@ -21,15 +21,15 @@ func init() {
 	}
 }
 
-func getBuffer() *SQLBuffer {
-	var bf = bPool.Get().(*SQLBuffer)
+func getBuffer() *Buffer {
+	var bf = bPool.Get().(*Buffer)
 	bf.Reset()
 	bf.p = bPool
 	return bf
 }
 
 // --------------------------------------------------------------------------------
-type SQLWriter interface {
+type Writer interface {
 	Write(p []byte) (n int, err error)
 
 	WriteString(s string) (n int, err error)
@@ -38,26 +38,26 @@ type SQLWriter interface {
 }
 
 // --------------------------------------------------------------------------------
-func NewBuffer() *SQLBuffer {
-	return &SQLBuffer{
+func NewBuffer() *Buffer {
+	return &Buffer{
 		bs: make([]byte, 0, kDefaultByteSize),
 		vs: make([]interface{}, 0, kDefaultArgsSize),
 	}
 }
 
 // --------------------------------------------------------------------------------
-type SQLBuffer struct {
+type Buffer struct {
 	p  *sync.Pool
 	bs []byte
 	vs []interface{}
 }
 
-func (this *SQLBuffer) Write(bs []byte) (int, error) {
+func (this *Buffer) Write(bs []byte) (int, error) {
 	this.bs = append(this.bs, bs...)
 	return len(bs), nil
 }
 
-func (this *SQLBuffer) WriteArgs(args ...interface{}) {
+func (this *Buffer) WriteArgs(args ...interface{}) {
 	for _, v := range args {
 		switch vt := v.(type) {
 		case driver.Valuer:
@@ -71,26 +71,26 @@ func (this *SQLBuffer) WriteArgs(args ...interface{}) {
 	}
 }
 
-func (this *SQLBuffer) WriteString(s string) (n int, err error) {
+func (this *Buffer) WriteString(s string) (n int, err error) {
 	return this.Write([]byte(s))
 }
 
-func (this *SQLBuffer) Reset() {
+func (this *Buffer) Reset() {
 	this.bs = this.bs[:0]
 	this.vs = this.vs[:0]
 }
 
-func (this *SQLBuffer) Values() []interface{} {
+func (this *Buffer) Values() []interface{} {
 	var vs = make([]interface{}, 0, len(this.vs))
 	vs = append(vs, this.vs...)
 	return vs
 }
 
-func (this *SQLBuffer) String() string {
+func (this *Buffer) String() string {
 	return string(this.bs)
 }
 
-func (this *SQLBuffer) Release() {
+func (this *Buffer) Release() {
 	this.p.Put(this)
 	this.p = nil
 }

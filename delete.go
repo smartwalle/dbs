@@ -124,7 +124,7 @@ func (this *DeleteBuilder) ToSQL() (string, []interface{}, error) {
 	return sql, sqlBuf.Values(), nil
 }
 
-func (this *DeleteBuilder) WriteToSQL(w SQLWriter) error {
+func (this *DeleteBuilder) WriteToSQL(w Writer) error {
 	if len(this.tables) == 0 {
 		return errors.New("delete statements must specify a table")
 	}

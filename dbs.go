@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"sync"
+	"time"
 )
 
 func NewSQL(driver, url string, maxOpen, maxIdle int) (db *sql.DB, err error) {
@@ -35,6 +36,14 @@ type StmtCache struct {
 	db        DB
 	mu        sync.Mutex
 	stmtCache map[string]*sql.Stmt
+}
+
+func (this *StmtCache) Close() error {
+	return this.db.Close()
+}
+
+func (this *StmtCache) SetConnMaxLifetime(d time.Duration) {
+	this.db.SetConnMaxLifetime(d)
 }
 
 func (this *StmtCache) Ping() error {
@@ -134,6 +143,9 @@ type Preparer interface {
 type DB interface {
 	Executor
 	Preparer
+
+	Close() error
+	SetConnMaxLifetime(d time.Duration)
 
 	Ping() error
 	PingContext(ctx context.Context) error

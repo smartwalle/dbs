@@ -119,7 +119,7 @@ func (this *InsertBuilder) ToSQL() (string, []interface{}, error) {
 	return sql, sqlBuf.Values(), nil
 }
 
-func (this *InsertBuilder) WriteToSQL(w SQLWriter) error {
+func (this *InsertBuilder) WriteToSQL(w Writer) error {
 	if len(this.table) == 0 {
 		return errors.New("insert statements must specify a table")
 	}

@@ -97,7 +97,7 @@ func (this *RawBuilder) ToSQL() (string, []interface{}, error) {
 	return sql, this.args, nil
 }
 
-func (this *RawBuilder) WriteToSQL(w SQLWriter) error {
+func (this *RawBuilder) WriteToSQL(w Writer) error {
 	w.WriteString(this.sql.String())
 	w.WriteArgs(this.args...)
 	return nil

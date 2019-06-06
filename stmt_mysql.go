@@ -35,7 +35,7 @@ type onDuplicateKeyUpdateStmt struct {
 	stmts statements
 }
 
-func (this *onDuplicateKeyUpdateStmt) WriteToSQL(w SQLWriter) error {
+func (this *onDuplicateKeyUpdateStmt) WriteToSQL(w Writer) error {
 	if len(this.stmts) == 0 {
 		return nil
 	}
