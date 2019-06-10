@@ -124,7 +124,7 @@ func (this *InsertBuilder) WriteToSQL(w Writer) error {
 		return errors.New("insert statements must specify a table")
 	}
 	if len(this.values) == 0 && this.sb == nil {
-		return errors.New("insert statements must have at least one set of vs")
+		return errors.New("insert statements must have at least one set of values")
 	}
 
 	if len(this.prefixes) > 0 {
