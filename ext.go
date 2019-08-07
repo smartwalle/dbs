@@ -105,7 +105,7 @@ func getField(destType reflect.Type, destValue reflect.Value) (result []string) 
 }
 
 // --------------------------------------------------------------------------------
-func Find(s Executor, table string, dest interface{}, limit, offset int64, w Statement) (err error) {
+func Find(s Session, table string, dest interface{}, limit, offset int64, w Statement) (err error) {
 	fieldList, err := GetFields(dest)
 	if err != nil {
 		return err
@@ -128,7 +128,7 @@ func Find(s Executor, table string, dest interface{}, limit, offset int64, w Sta
 	return err
 }
 
-func FindAll(s Executor, table string, dest interface{}, w Statement) (err error) {
+func FindAll(s Session, table string, dest interface{}, w Statement) (err error) {
 	fieldList, err := GetFields(dest)
 	if err != nil {
 		return err
@@ -145,7 +145,7 @@ func FindAll(s Executor, table string, dest interface{}, w Statement) (err error
 	return err
 }
 
-func FindOne(s Executor, table string, dest interface{}, w Statement) (err error) {
+func FindOne(s Session, table string, dest interface{}, w Statement) (err error) {
 	fieldList, err := GetFields(dest)
 	if err != nil {
 		return err

@@ -125,24 +125,20 @@ func (this *StmtCache) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.T
 }
 
 // --------------------------------------------------------------------------------
-type Executor interface {
+type Session interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 
 	Query(query string, args ...interface{}) (*sql.Rows, error)
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
-}
 
-// --------------------------------------------------------------------------------
-type Preparer interface {
 	Prepare(query string) (*sql.Stmt, error)
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
 }
 
 // --------------------------------------------------------------------------------
 type DB interface {
-	Executor
-	Preparer
+	Session
 
 	Close() error
 	SetConnMaxLifetime(d time.Duration)

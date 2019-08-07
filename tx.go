@@ -14,8 +14,7 @@ import (
 
 // --------------------------------------------------------------------------------
 type TX interface {
-	Executor
-	Preparer
+	Session
 
 	Stmt(stmt *sql.Stmt) *sql.Stmt
 	StmtContext(ctx context.Context, stmt *sql.Stmt) *sql.Stmt
