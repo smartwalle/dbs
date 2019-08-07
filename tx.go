@@ -14,7 +14,7 @@ import (
 
 // --------------------------------------------------------------------------------
 type TX interface {
-	Session
+	DB
 
 	Stmt(stmt *sql.Stmt) *sql.Stmt
 	StmtContext(ctx context.Context, stmt *sql.Stmt) *sql.Stmt
@@ -25,10 +25,11 @@ type TX interface {
 
 // --------------------------------------------------------------------------------
 type dbsTx struct {
-	id    string
-	db    DB
-	cache bool
-	tx    *sql.Tx
+	id string
+	db DB
+	//cache bool
+	tx   *sql.Tx
+	done uint32
 }
 
 func (this *dbsTx) Tx() *sql.Tx {
@@ -60,46 +61,46 @@ func (this *dbsTx) StmtContext(ctx context.Context, stmt *sql.Stmt) *sql.Stmt {
 }
 
 func (this *dbsTx) Exec(query string, args ...interface{}) (result sql.Result, err error) {
-	if this.cache {
-		stmt, err := this.Prepare(query)
-		if err != nil {
-			return nil, err
-		}
-		return stmt.Exec(args...)
-	}
+	//if this.cache {
+	//	stmt, err := this.Prepare(query)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	return stmt.Exec(args...)
+	//}
 	return this.tx.Exec(query, args...)
 }
 
 func (this *dbsTx) ExecContext(ctx context.Context, query string, args ...interface{}) (result sql.Result, err error) {
-	if this.cache {
-		stmt, err := this.PrepareContext(ctx, query)
-		if err != nil {
-			return nil, err
-		}
-		return stmt.ExecContext(ctx, args...)
-	}
+	//if this.cache {
+	//	stmt, err := this.PrepareContext(ctx, query)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	return stmt.ExecContext(ctx, args...)
+	//}
 	return this.tx.ExecContext(ctx, query, args...)
 }
 
 func (this *dbsTx) Query(query string, args ...interface{}) (rows *sql.Rows, err error) {
-	if this.cache {
-		stmt, err := this.Prepare(query)
-		if err != nil {
-			return nil, err
-		}
-		return stmt.Query(args...)
-	}
+	//if this.cache {
+	//	stmt, err := this.Prepare(query)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	return stmt.Query(args...)
+	//}
 	return this.tx.Query(query, args...)
 }
 
 func (this *dbsTx) QueryContext(ctx context.Context, query string, args ...interface{}) (rows *sql.Rows, err error) {
-	if this.cache {
-		stmt, err := this.PrepareContext(ctx, query)
-		if err != nil {
-			return nil, err
-		}
-		return stmt.QueryContext(ctx, args...)
-	}
+	//if this.cache {
+	//	stmt, err := this.PrepareContext(ctx, query)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	return stmt.QueryContext(ctx, args...)
+	//}
 	return this.tx.QueryContext(ctx, query, args...)
 }
 
@@ -109,6 +110,7 @@ func (this *dbsTx) Commit() (err error) {
 	} else {
 		logger.Output(2, fmt.Sprintf("提交事务 [%s] 成功\n", this.id))
 	}
+	atomic.StoreUint32(&this.done, 1)
 	return err
 }
 
@@ -118,7 +120,40 @@ func (this *dbsTx) Rollback() (err error) {
 	} else {
 		logger.Output(2, fmt.Sprintf("回滚事务 [%s] 成功\n", this.id))
 	}
+	atomic.StoreUint32(&this.done, 1)
 	return err
+}
+
+// 以下几个方法纯粹是为了实现 DB 接口，尽量不要使用
+
+func (this *dbsTx) Close() (err error) {
+	return this.Rollback()
+}
+
+func (this *dbsTx) Ping() error {
+	return this.db.Ping()
+}
+
+func (this *dbsTx) PingContext(ctx context.Context) error {
+	return this.db.PingContext(ctx)
+}
+
+func (this *dbsTx) Begin() (*sql.Tx, error) {
+	if this.isDone() {
+		return nil, sql.ErrTxDone
+	}
+	return this.tx, nil
+}
+
+func (this *dbsTx) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
+	if this.isDone() {
+		return nil, sql.ErrTxDone
+	}
+	return this.tx, nil
+}
+
+func (this *dbsTx) isDone() bool {
+	return atomic.LoadUint32(&this.done) == 1
 }
 
 // --------------------------------------------------------------------------------
@@ -139,6 +174,13 @@ func NewTxContext(ctx context.Context, db DB, opts *sql.TxOptions) (tx TX, err e
 }
 
 func newTxContext(ctx context.Context, db DB, opts *sql.TxOptions) (TX, error) {
+	if nt, ok := db.(*dbsTx); ok {
+		if nt.isDone() {
+			return nil, sql.ErrTxDone
+		}
+		return nt, nil
+	}
+
 	var tx = &dbsTx{}
 	var err error
 
@@ -150,7 +192,7 @@ func newTxContext(ctx context.Context, db DB, opts *sql.TxOptions) (TX, error) {
 	tx.db = db
 	tx.id = genTxId() // 目前只有日志会用到 id
 	logger.Output(3, fmt.Sprintf("开启事务 [%s] 成功\n", tx.id))
-	_, tx.cache = db.(*StmtCache)
+	//_, tx.cache = db.(*StmtCache)
 	return tx, err
 }
 
@@ -186,7 +228,7 @@ func readRandomUint32() uint32 {
 	if err != nil {
 		panic(fmt.Errorf("cannot read random id: %v", err))
 	}
-	return uint32((uint32(b[0]) << 0) | (uint32(b[1]) << 8) | (uint32(b[2]) << 16) | (uint32(b[3]) << 24))
+	return (uint32(b[0]) << 0) | (uint32(b[1]) << 8) | (uint32(b[2]) << 16) | (uint32(b[3]) << 24)
 }
 
 func readProcessId() []byte {
