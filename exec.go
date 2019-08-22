@@ -31,13 +31,13 @@ func (this *scan) scanContext(ctx context.Context, s Session, dest interface{}) 
 
 	sqlStr, args, err := this.b.ToSQL()
 	if err != nil {
-		logger.Output(3, fmt.Sprintln(this.b.Type(), "构建 SQL 语句出错:", err))
+		logger.Output(3, fmt.Sprintln(this.b.Type(), "Build Failed:", err))
 		return err
 	}
-	logger.Output(3, fmt.Sprintln(this.b.Type(), "构建 SQL 语句成功:", sqlStr, args))
+	logger.Output(3, fmt.Sprintln(this.b.Type(), "Build Successfully:", sqlStr, args))
 	rows, err := s.QueryContext(ctx, sqlStr, args...)
 	if err != nil {
-		logger.Output(3, fmt.Sprintln("Query 出错:", err))
+		logger.Output(3, fmt.Sprintln("Query Failed:", err))
 		return err
 	}
 	if rows != nil {
@@ -45,7 +45,7 @@ func (this *scan) scanContext(ctx context.Context, s Session, dest interface{}) 
 	}
 
 	if err = Scan(rows, dest); err != nil {
-		logger.Output(3, fmt.Sprintln("Scan 出错:", err))
+		logger.Output(3, fmt.Sprintln("Scan Failed:", err))
 		return err
 	}
 	return nil
@@ -70,13 +70,13 @@ func (this *scan) scanRowContext(ctx context.Context, s Session, dest ...interfa
 
 	sqlStr, args, err := this.b.ToSQL()
 	if err != nil {
-		logger.Output(3, fmt.Sprintln(this.b.Type(), "构建 SQL 语句出错:", err))
+		logger.Output(3, fmt.Sprintln(this.b.Type(), "Build Failed:", err))
 		return err
 	}
-	logger.Output(3, fmt.Sprintln(this.b.Type(), "构建 SQL 语句成功:", sqlStr, args))
+	logger.Output(3, fmt.Sprintln(this.b.Type(), "Build Successfully:", sqlStr, args))
 	rows, err := s.QueryContext(ctx, sqlStr, args...)
 	if err != nil {
-		logger.Output(3, fmt.Sprintln("Query 出错:", err))
+		logger.Output(3, fmt.Sprintln("Query Failed:", err))
 		return err
 	}
 	if rows != nil {
@@ -86,21 +86,21 @@ func (this *scan) scanRowContext(ctx context.Context, s Session, dest ...interfa
 	for _, dp := range dest {
 		if _, ok := dp.(*sql.RawBytes); ok {
 			err = errors.New("sql: RawBytes isn't allowed on Row.Scan")
-			logger.Output(3, fmt.Sprintln("Scan 出错:", err))
+			logger.Output(3, fmt.Sprintln("Scan Failed:", err))
 			return err
 		}
 	}
 
 	if !rows.Next() {
 		if err := rows.Err(); err != nil {
-			logger.Output(3, fmt.Sprintln("Scan 出错:", err))
+			logger.Output(3, fmt.Sprintln("Scan Failed:", err))
 			return err
 		}
-		logger.Output(3, fmt.Sprintln("Scan 出错:", sql.ErrNoRows))
+		logger.Output(3, fmt.Sprintln("Scan Failed:", sql.ErrNoRows))
 		return sql.ErrNoRows
 	}
 	if err = rows.Scan(dest...); err != nil {
-		logger.Output(3, fmt.Sprintln("Scan 出错:", err))
+		logger.Output(3, fmt.Sprintln("Scan Failed:", err))
 		return err
 	}
 	return rows.Close()
@@ -131,13 +131,13 @@ func (this *query) queryContext(ctx context.Context, s Session) (result *sql.Row
 
 	sqlStr, args, err := this.b.ToSQL()
 	if err != nil {
-		logger.Output(3, fmt.Sprintln(this.b.Type(), "构建 SQL 语句出错:", err))
+		logger.Output(3, fmt.Sprintln(this.b.Type(), "Build Failed:", err))
 		return nil, err
 	}
-	logger.Output(3, fmt.Sprintln(this.b.Type(), "构建 SQL 语句成功:", sqlStr, args))
+	logger.Output(3, fmt.Sprintln(this.b.Type(), "Build Successfully:", sqlStr, args))
 	result, err = s.QueryContext(ctx, sqlStr, args...)
 	if err != nil {
-		logger.Output(3, fmt.Sprintln("Query 出错:", err))
+		logger.Output(3, fmt.Sprintln("Query Failed:", err))
 	}
 	return result, err
 }
@@ -166,14 +166,14 @@ func (this *exec) execContext(ctx context.Context, s Session) (result sql.Result
 
 	sqlStr, args, err := this.b.ToSQL()
 	if err != nil {
-		logger.Output(3, fmt.Sprintln(this.b.Type(), "构建 SQL 语句出错:", err))
+		logger.Output(3, fmt.Sprintln(this.b.Type(), "Build Failed:", err))
 		return nil, err
 	}
 
-	logger.Output(3, fmt.Sprintln(this.b.Type(), "构建 SQL 语句成功:", sqlStr, args))
+	logger.Output(3, fmt.Sprintln(this.b.Type(), "Build Successfully:", sqlStr, args))
 	result, err = s.ExecContext(ctx, sqlStr, args...)
 	if err != nil {
-		logger.Output(3, fmt.Sprintln("Exec 出错:", err))
+		logger.Output(3, fmt.Sprintln("Exec Failed:", err))
 	}
 	return result, err
 }

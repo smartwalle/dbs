@@ -16,13 +16,13 @@ import (
 func main() {
 	var ta = NewAnalyze()
 	ta.Load("./logs")
-	fmt.Println(ta.WriteToFile("./aa.json"))
+	fmt.Println(ta.UnClosedToFile("./result.json"))
 }
 
 // --------------------------------------------------------------------------------
-var beginTxRegexp = regexp.MustCompile(`开启事务 \[(?P<txId>[^]]+)\]`)
-var commitTxRegexp = regexp.MustCompile(`提交事务 \[(?P<txId>[^]]+)\]`)
-var rollbackTxRegexp = regexp.MustCompile(`回滚事务 \[(?P<txId>[^]]+)\]`)
+var beginTxRegexp = regexp.MustCompile(`Transaction \[(?P<txId>[^]]+)\] Begin`)
+var commitTxRegexp = regexp.MustCompile(`Transaction \[(?P<txId>[^]]+)\] Commit`)
+var rollbackTxRegexp = regexp.MustCompile(`Transaction \[(?P<txId>[^]]+)\] Rollback`)
 
 func beginTx(s string) (id string) {
 	var rList = beginTxRegexp.FindStringSubmatch(s)
@@ -208,6 +208,9 @@ func (this *analyze) WriteToFile(file string) error {
 	if _, err = writer.Write(bs); err != nil {
 		return err
 	}
+	if err = writer.Flush(); err != nil {
+		return err
+	}
 	return f.Close()
 }
 
@@ -234,6 +237,9 @@ func (this *analyze) UnClosedToFile(file string) error {
 
 	var writer = bufio.NewWriter(f)
 	if _, err = writer.Write(bs); err != nil {
+		return err
+	}
+	if err = writer.Flush(); err != nil {
 		return err
 	}
 	return f.Close()

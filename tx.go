@@ -106,9 +106,9 @@ func (this *dbsTx) QueryContext(ctx context.Context, query string, args ...inter
 
 func (this *dbsTx) Commit() (err error) {
 	if err = this.tx.Commit(); err != nil {
-		logger.Output(2, fmt.Sprintf("提交事务 [%s] 失败: %s \n", this.id, err))
+		logger.Output(2, fmt.Sprintf("Transaction [%s] Commit Failed: %s \n", this.id, err))
 	} else {
-		logger.Output(2, fmt.Sprintf("提交事务 [%s] 成功\n", this.id))
+		logger.Output(2, fmt.Sprintf("Transaction [%s] Commit Successfully\n", this.id))
 	}
 	atomic.StoreUint32(&this.done, 1)
 	return err
@@ -116,9 +116,9 @@ func (this *dbsTx) Commit() (err error) {
 
 func (this *dbsTx) Rollback() (err error) {
 	if err = this.tx.Rollback(); err != nil {
-		logger.Output(2, fmt.Sprintf("回滚事务 [%s] 失败: %s \n", this.id, err))
+		logger.Output(2, fmt.Sprintf("Transaction [%s] Rollback Failed: %s \n", this.id, err))
 	} else {
-		logger.Output(2, fmt.Sprintf("回滚事务 [%s] 成功\n", this.id))
+		logger.Output(2, fmt.Sprintf("Transaction [%s] Rollback Successfully\n", this.id))
 	}
 	atomic.StoreUint32(&this.done, 1)
 	return err
@@ -186,12 +186,12 @@ func newTxContext(ctx context.Context, db DB, opts *sql.TxOptions) (TX, error) {
 
 	tx.tx, err = db.BeginTx(ctx, opts)
 	if err != nil {
-		logger.Output(3, fmt.Sprintln("开启事务失败:", err))
+		logger.Output(3, fmt.Sprintln("Transaction Begin Failed:", err))
 		return nil, err
 	}
 	tx.db = db
 	tx.id = genTxId() // 目前只有日志会用到 id
-	logger.Output(3, fmt.Sprintf("开启事务 [%s] 成功\n", tx.id))
+	logger.Output(3, fmt.Sprintf("Transaction [%s] Begin Successfully\n", tx.id))
 	//_, tx.cache = db.(*StmtCache)
 	return tx, err
 }
