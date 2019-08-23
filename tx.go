@@ -25,11 +25,11 @@ type TX interface {
 
 // --------------------------------------------------------------------------------
 type dbsTx struct {
-	id string
-	db DB
-	//cache bool
-	tx   *sql.Tx
-	done uint32
+	id    string
+	db    DB
+	cache bool
+	tx    *sql.Tx
+	done  uint32
 }
 
 func (this *dbsTx) Tx() *sql.Tx {
@@ -61,46 +61,46 @@ func (this *dbsTx) StmtContext(ctx context.Context, stmt *sql.Stmt) *sql.Stmt {
 }
 
 func (this *dbsTx) Exec(query string, args ...interface{}) (result sql.Result, err error) {
-	//if this.cache {
-	//	stmt, err := this.Prepare(query)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	return stmt.Exec(args...)
-	//}
+	if this.cache {
+		stmt, err := this.Prepare(query)
+		if err != nil {
+			return nil, err
+		}
+		return stmt.Exec(args...)
+	}
 	return this.tx.Exec(query, args...)
 }
 
 func (this *dbsTx) ExecContext(ctx context.Context, query string, args ...interface{}) (result sql.Result, err error) {
-	//if this.cache {
-	//	stmt, err := this.PrepareContext(ctx, query)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	return stmt.ExecContext(ctx, args...)
-	//}
+	if this.cache {
+		stmt, err := this.PrepareContext(ctx, query)
+		if err != nil {
+			return nil, err
+		}
+		return stmt.ExecContext(ctx, args...)
+	}
 	return this.tx.ExecContext(ctx, query, args...)
 }
 
 func (this *dbsTx) Query(query string, args ...interface{}) (rows *sql.Rows, err error) {
-	//if this.cache {
-	//	stmt, err := this.Prepare(query)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	return stmt.Query(args...)
-	//}
+	if this.cache {
+		stmt, err := this.Prepare(query)
+		if err != nil {
+			return nil, err
+		}
+		return stmt.Query(args...)
+	}
 	return this.tx.Query(query, args...)
 }
 
 func (this *dbsTx) QueryContext(ctx context.Context, query string, args ...interface{}) (rows *sql.Rows, err error) {
-	//if this.cache {
-	//	stmt, err := this.PrepareContext(ctx, query)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	return stmt.QueryContext(ctx, args...)
-	//}
+	if this.cache {
+		stmt, err := this.PrepareContext(ctx, query)
+		if err != nil {
+			return nil, err
+		}
+		return stmt.QueryContext(ctx, args...)
+	}
 	return this.tx.QueryContext(ctx, query, args...)
 }
 
@@ -192,7 +192,7 @@ func newTxContext(ctx context.Context, db DB, opts *sql.TxOptions) (TX, error) {
 	tx.db = db
 	tx.id = genTxId() // 目前只有日志会用到 id
 	logger.Output(3, fmt.Sprintf("Transaction [%s] Begin Successfully\n", tx.id))
-	//_, tx.cache = db.(*StmtCache)
+	_, tx.cache = db.(*DBCache)
 	return tx, err
 }
 
