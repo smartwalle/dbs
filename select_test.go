@@ -129,3 +129,21 @@ func BenchmarkSelectBuilder(b *testing.B) {
 		sb.ToSQL()
 	}
 }
+
+func TestSS(t *testing.T) {
+	var sb = NewSelectBuilder()
+	sb.Selects("id", "hotel_id", "name", "status", "created_on", "updated_on")
+	sb.Where("hotel_id = ?", 1)
+	sb.Where("status = ?", 1000)
+	sb.From("K_DB_ROOM_AREA_TYPE")
+	var s1, _, _ = sb.ToSQL()
+
+	sb = NewSelectBuilder()
+	sb.Selects("s.id", "s.hotel_id", "s.name")
+	sb.Where("s.hotel_id = ?", 1)
+	sb.Where("s.status = ?", 1000)
+	sb.From("K_DB_ROOM_AREA_TYPE")
+	var s2, _, _ = sb.ToSQL()
+	fmt.Println(s1)
+	fmt.Println(s2)
+}

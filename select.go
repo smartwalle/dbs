@@ -1,6 +1,8 @@
 package dbs
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"strings"
 )
@@ -14,9 +16,7 @@ const (
 )
 
 type SelectBuilder struct {
-	*builder
-	*query
-	*scan
+	d        dialect
 	prefixes statements
 	options  statements
 	columns  statements
@@ -37,7 +37,7 @@ func (this *SelectBuilder) Type() string {
 
 func (this *SelectBuilder) Clone() *SelectBuilder {
 	var sb = NewSelectBuilder()
-	sb.builder.d = this.builder.d
+	sb.d = this.d
 	sb.prefixes = this.prefixes
 	sb.options = this.options
 	sb.columns = this.columns
@@ -82,9 +82,12 @@ func (this *SelectBuilder) Select(column interface{}, args ...interface{}) *Sele
 }
 
 func (this *SelectBuilder) From(table string, args ...string) *SelectBuilder {
-	var ts []string
+	var argsLen = len(args)
+	var ts = make([]string, 0, 1+argsLen)
 	ts = append(ts, this.quote(table))
-	ts = append(ts, args...)
+	if argsLen > 0 {
+		ts = append(ts, args...)
+	}
 	this.from = append(this.from, NewStatement(strings.Join(ts, " ")))
 	return this
 }
@@ -306,11 +309,54 @@ func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
 }
 
 // --------------------------------------------------------------------------------
+func (this *SelectBuilder) UseDialect(d dialect) {
+	this.d = d
+}
+
+func (this *SelectBuilder) quote(s string) string {
+	if strings.Index(s, ".") != -1 {
+		var newStrs []string
+		for _, s := range strings.Split(s, ".") {
+			newStrs = append(newStrs, this.d.Quote(s))
+		}
+		return strings.Join(newStrs, ".")
+	}
+	return this.d.Quote(s)
+}
+
+func (this *SelectBuilder) parseVal(sql string) (string, error) {
+	return this.d.ParseVal(sql)
+}
+
+// --------------------------------------------------------------------------------
+func (this *SelectBuilder) Scan(s Session, dest interface{}) (err error) {
+	return scanContext(context.Background(), s, this, dest)
+}
+
+func (this *SelectBuilder) ScanContext(ctx context.Context, s Session, dest interface{}) (err error) {
+	return scanContext(ctx, s, this, dest)
+}
+
+func (this *SelectBuilder) ScanRow(s Session, dest ...interface{}) (err error) {
+	return scanRowContext(context.Background(), s, this, dest...)
+}
+
+func (this *SelectBuilder) ScanRowContext(ctx context.Context, s Session, dest ...interface{}) (err error) {
+	return scanRowContext(ctx, s, this, dest...)
+}
+
+func (this *SelectBuilder) Query(s Session) (*sql.Rows, error) {
+	return queryContext(context.Background(), s, this)
+}
+
+func (this *SelectBuilder) QueryContext(ctx context.Context, s Session) (*sql.Rows, error) {
+	return queryContext(ctx, s, this)
+}
+
+// --------------------------------------------------------------------------------
 func NewSelectBuilder() *SelectBuilder {
 	var sb = &SelectBuilder{}
-	sb.builder = newBuilder()
-	sb.query = &query{b: sb}
-	sb.scan = &scan{b: sb}
+	sb.d = gDialect
 	return sb
 }
 

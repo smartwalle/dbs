@@ -1,6 +1,8 @@
 package dbs
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"strings"
 )
@@ -10,8 +12,7 @@ const (
 )
 
 type UpdateBuilder struct {
-	*builder
-	*exec
+	d        dialect
 	prefixes statements
 	options  statements
 	tables   statements
@@ -237,10 +238,38 @@ func (this *UpdateBuilder) WriteToSQL(w Writer) error {
 }
 
 // --------------------------------------------------------------------------------
+func (this *UpdateBuilder) UseDialect(d dialect) {
+	this.d = d
+}
+
+func (this *UpdateBuilder) quote(s string) string {
+	if strings.Index(s, ".") != -1 {
+		var newStrs []string
+		for _, s := range strings.Split(s, ".") {
+			newStrs = append(newStrs, this.d.Quote(s))
+		}
+		return strings.Join(newStrs, ".")
+	}
+	return this.d.Quote(s)
+}
+
+func (this *UpdateBuilder) parseVal(sql string) (string, error) {
+	return this.d.ParseVal(sql)
+}
+
+// --------------------------------------------------------------------------------
+func (this *UpdateBuilder) Exec(s Session) (sql.Result, error) {
+	return execContext(context.Background(), s, this)
+}
+
+func (this *UpdateBuilder) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
+	return execContext(ctx, s, this)
+}
+
+// --------------------------------------------------------------------------------
 func NewUpdateBuilder() *UpdateBuilder {
 	var ub = &UpdateBuilder{}
-	ub.builder = newBuilder()
-	ub.exec = &exec{b: ub}
+	ub.d = gDialect
 	return ub
 }
 

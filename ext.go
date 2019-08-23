@@ -122,7 +122,7 @@ func Find(s Session, table string, dest interface{}, limit, offset int64, w Stat
 	if offset > 0 {
 		sb.Offset(offset)
 	}
-	if err = sb.scanContext(context.Background(), s, dest); err != nil {
+	if err = scanContext(context.Background(), s, sb, dest); err != nil {
 		return err
 	}
 	return err
@@ -139,7 +139,7 @@ func FindAll(s Session, table string, dest interface{}, w Statement) (err error)
 	if w != nil {
 		sb.Where(w)
 	}
-	if err = sb.scanContext(context.Background(), s, dest); err != nil {
+	if err = scanContext(context.Background(), s, sb, dest); err != nil {
 		return err
 	}
 	return err
@@ -157,7 +157,7 @@ func FindOne(s Session, table string, dest interface{}, w Statement) (err error)
 		sb.Where(w)
 	}
 	sb.Limit(1)
-	if err = sb.scanContext(context.Background(), s, dest); err != nil {
+	if err = scanContext(context.Background(), s, sb, dest); err != nil {
 		return err
 	}
 	return err

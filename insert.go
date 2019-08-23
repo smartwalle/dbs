@@ -1,6 +1,8 @@
 package dbs
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -11,8 +13,7 @@ const (
 )
 
 type InsertBuilder struct {
-	*builder
-	*exec
+	d        dialect
 	prefixes statements
 	options  statements
 	columns  []string
@@ -28,7 +29,7 @@ func (this *InsertBuilder) Type() string {
 
 func (this *InsertBuilder) Clone() *InsertBuilder {
 	var ib = NewInsertBuilder()
-	ib.builder.d = this.builder.d
+	ib.d = this.d
 	ib.prefixes = this.prefixes
 	ib.options = this.options
 	ib.columns = this.columns
@@ -36,13 +37,6 @@ func (this *InsertBuilder) Clone() *InsertBuilder {
 	ib.suffixes = this.suffixes
 	ib.sb = this.sb
 	return ib
-}
-
-func (this *InsertBuilder) UseDialect(d dialect) {
-	this.d = d
-	if this.sb != nil {
-		this.sb.UseDialect(this.d)
-	}
 }
 
 func (this *InsertBuilder) Prefix(sql string, args ...interface{}) *InsertBuilder {
@@ -217,10 +211,41 @@ func (this *InsertBuilder) WriteToSQL(w Writer) error {
 }
 
 // --------------------------------------------------------------------------------
+func (this *InsertBuilder) UseDialect(d dialect) {
+	this.d = d
+	if this.sb != nil {
+		this.sb.UseDialect(this.d)
+	}
+}
+
+func (this *InsertBuilder) quote(s string) string {
+	if strings.Index(s, ".") != -1 {
+		var newStrs []string
+		for _, s := range strings.Split(s, ".") {
+			newStrs = append(newStrs, this.d.Quote(s))
+		}
+		return strings.Join(newStrs, ".")
+	}
+	return this.d.Quote(s)
+}
+
+func (this *InsertBuilder) parseVal(sql string) (string, error) {
+	return this.d.ParseVal(sql)
+}
+
+// --------------------------------------------------------------------------------
+func (this *InsertBuilder) Exec(s Session) (sql.Result, error) {
+	return execContext(context.Background(), s, this)
+}
+
+func (this *InsertBuilder) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
+	return execContext(ctx, s, this)
+}
+
+// --------------------------------------------------------------------------------
 func NewInsertBuilder() *InsertBuilder {
 	var ib = &InsertBuilder{}
-	ib.builder = newBuilder()
-	ib.exec = &exec{b: ib}
+	ib.d = gDialect
 	return ib
 }
 

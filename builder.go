@@ -2,39 +2,11 @@ package dbs
 
 import (
 	"bytes"
+	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 )
-
-// --------------------------------------------------------------------------------
-type builder struct {
-	d dialect
-}
-
-func (this *builder) UseDialect(d dialect) {
-	this.d = d
-}
-
-func (this *builder) quote(s string) string {
-	if strings.Index(s, ".") != -1 {
-		var newStrs []string
-		for _, s := range strings.Split(s, ".") {
-			newStrs = append(newStrs, this.d.Quote(s))
-		}
-		return strings.Join(newStrs, ".")
-	}
-	return this.d.Quote(s)
-}
-
-func (this *builder) parseVal(sql string) (string, error) {
-	return this.d.ParseVal(sql)
-}
-
-func newBuilder() *builder {
-	var b = &builder{}
-	b.d = gDialect
-	return b
-}
 
 // --------------------------------------------------------------------------------
 const (
@@ -49,10 +21,7 @@ type Builder interface {
 
 // --------------------------------------------------------------------------------
 type RawBuilder struct {
-	*builder
-	*query
-	*exec
-	*scan
+	d    dialect
 	sql  *bytes.Buffer
 	args []interface{}
 }
@@ -104,12 +73,62 @@ func (this *RawBuilder) WriteToSQL(w Writer) error {
 }
 
 // --------------------------------------------------------------------------------
+func (this *RawBuilder) UseDialect(d dialect) {
+	this.d = d
+}
+
+func (this *RawBuilder) quote(s string) string {
+	if strings.Index(s, ".") != -1 {
+		var newStrs []string
+		for _, s := range strings.Split(s, ".") {
+			newStrs = append(newStrs, this.d.Quote(s))
+		}
+		return strings.Join(newStrs, ".")
+	}
+	return this.d.Quote(s)
+}
+
+func (this *RawBuilder) parseVal(sql string) (string, error) {
+	return this.d.ParseVal(sql)
+}
+
+// --------------------------------------------------------------------------------
+func (this *RawBuilder) Scan(s Session, dest interface{}) (err error) {
+	return scanContext(context.Background(), s, this, dest)
+}
+
+func (this *RawBuilder) ScanContext(ctx context.Context, s Session, dest interface{}) (err error) {
+	return scanContext(ctx, s, this, dest)
+}
+
+func (this *RawBuilder) ScanRow(s Session, dest ...interface{}) (err error) {
+	return scanRowContext(context.Background(), s, this, dest...)
+}
+
+func (this *RawBuilder) ScanRowContext(ctx context.Context, s Session, dest ...interface{}) (err error) {
+	return scanRowContext(ctx, s, this, dest...)
+}
+
+func (this *RawBuilder) Query(s Session) (*sql.Rows, error) {
+	return queryContext(context.Background(), s, this)
+}
+
+func (this *RawBuilder) QueryContext(ctx context.Context, s Session) (*sql.Rows, error) {
+	return queryContext(ctx, s, this)
+}
+
+func (this *RawBuilder) Exec(s Session) (sql.Result, error) {
+	return execContext(context.Background(), s, this)
+}
+
+func (this *RawBuilder) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
+	return execContext(ctx, s, this)
+}
+
+// --------------------------------------------------------------------------------
 func NewBuilder(sql string, args ...interface{}) *RawBuilder {
 	var b = &RawBuilder{}
-	b.builder = newBuilder()
-	b.query = &query{b: b}
-	b.exec = &exec{b: b}
-	b.scan = &scan{b: b}
+	b.d = gDialect
 	b.sql = &bytes.Buffer{}
 	b.Append(sql, args...)
 	return b

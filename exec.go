@@ -8,19 +8,7 @@ import (
 )
 
 // --------------------------------------------------------------------------------
-type scan struct {
-	b Builder
-}
-
-func (this *scan) Scan(s Session, dest interface{}) (err error) {
-	return this.scanContext(context.Background(), s, dest)
-}
-
-func (this *scan) ScanContext(ctx context.Context, s Session, dest interface{}) (err error) {
-	return this.scanContext(ctx, s, dest)
-}
-
-func (this *scan) scanContext(ctx context.Context, s Session, dest interface{}) (err error) {
+func scanContext(ctx context.Context, s Session, b Builder, dest interface{}) (err error) {
 	defer func() {
 		if err != nil {
 			if tx, ok := s.(TX); ok {
@@ -29,12 +17,12 @@ func (this *scan) scanContext(ctx context.Context, s Session, dest interface{}) 
 		}
 	}()
 
-	sqlStr, args, err := this.b.ToSQL()
+	sqlStr, args, err := b.ToSQL()
 	if err != nil {
-		logger.Output(3, fmt.Sprintln(this.b.Type(), "Build Failed:", err))
+		logger.Output(3, fmt.Sprintln(b.Type(), "Build Failed:", err))
 		return err
 	}
-	logger.Output(3, fmt.Sprintln(this.b.Type(), "Build Successfully:", sqlStr, args))
+	logger.Output(3, fmt.Sprintln(b.Type(), "Build Successfully:", sqlStr, args))
 	rows, err := s.QueryContext(ctx, sqlStr, args...)
 	if err != nil {
 		logger.Output(3, fmt.Sprintln("Query Failed:", err))
@@ -51,15 +39,7 @@ func (this *scan) scanContext(ctx context.Context, s Session, dest interface{}) 
 	return nil
 }
 
-func (this *scan) ScanRow(s Session, dest ...interface{}) (err error) {
-	return this.scanRowContext(context.Background(), s, dest...)
-}
-
-func (this *scan) ScanRowContext(ctx context.Context, s Session, dest ...interface{}) (err error) {
-	return this.scanRowContext(ctx, s, dest...)
-}
-
-func (this *scan) scanRowContext(ctx context.Context, s Session, dest ...interface{}) (err error) {
+func scanRowContext(ctx context.Context, s Session, b Builder, dest ...interface{}) (err error) {
 	defer func() {
 		if err != nil {
 			if tx, ok := s.(TX); ok {
@@ -68,12 +48,12 @@ func (this *scan) scanRowContext(ctx context.Context, s Session, dest ...interfa
 		}
 	}()
 
-	sqlStr, args, err := this.b.ToSQL()
+	sqlStr, args, err := b.ToSQL()
 	if err != nil {
-		logger.Output(3, fmt.Sprintln(this.b.Type(), "Build Failed:", err))
+		logger.Output(3, fmt.Sprintln(b.Type(), "Build Failed:", err))
 		return err
 	}
-	logger.Output(3, fmt.Sprintln(this.b.Type(), "Build Successfully:", sqlStr, args))
+	logger.Output(3, fmt.Sprintln(b.Type(), "Build Successfully:", sqlStr, args))
 	rows, err := s.QueryContext(ctx, sqlStr, args...)
 	if err != nil {
 		logger.Output(3, fmt.Sprintln("Query Failed:", err))
@@ -107,19 +87,7 @@ func (this *scan) scanRowContext(ctx context.Context, s Session, dest ...interfa
 }
 
 // --------------------------------------------------------------------------------
-type query struct {
-	b Builder
-}
-
-func (this *query) Query(s Session) (*sql.Rows, error) {
-	return this.queryContext(context.Background(), s)
-}
-
-func (this *query) QueryContext(ctx context.Context, s Session) (*sql.Rows, error) {
-	return this.queryContext(ctx, s)
-}
-
-func (this *query) queryContext(ctx context.Context, s Session) (result *sql.Rows, err error) {
+func queryContext(ctx context.Context, s Session, b Builder) (result *sql.Rows, err error) {
 	defer func() {
 		if err != nil {
 			if tx, ok := s.(TX); ok {
@@ -129,12 +97,12 @@ func (this *query) queryContext(ctx context.Context, s Session) (result *sql.Row
 		}
 	}()
 
-	sqlStr, args, err := this.b.ToSQL()
+	sqlStr, args, err := b.ToSQL()
 	if err != nil {
-		logger.Output(3, fmt.Sprintln(this.b.Type(), "Build Failed:", err))
+		logger.Output(3, fmt.Sprintln(b.Type(), "Build Failed:", err))
 		return nil, err
 	}
-	logger.Output(3, fmt.Sprintln(this.b.Type(), "Build Successfully:", sqlStr, args))
+	logger.Output(3, fmt.Sprintln(b.Type(), "Build Successfully:", sqlStr, args))
 	result, err = s.QueryContext(ctx, sqlStr, args...)
 	if err != nil {
 		logger.Output(3, fmt.Sprintln("Query Failed:", err))
@@ -143,19 +111,7 @@ func (this *query) queryContext(ctx context.Context, s Session) (result *sql.Row
 }
 
 // --------------------------------------------------------------------------------
-type exec struct {
-	b Builder
-}
-
-func (this *exec) Exec(s Session) (sql.Result, error) {
-	return this.execContext(context.Background(), s)
-}
-
-func (this *exec) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
-	return this.execContext(ctx, s)
-}
-
-func (this *exec) execContext(ctx context.Context, s Session) (result sql.Result, err error) {
+func execContext(ctx context.Context, s Session, b Builder) (result sql.Result, err error) {
 	defer func() {
 		if err != nil {
 			if tx, ok := s.(TX); ok {
@@ -164,13 +120,13 @@ func (this *exec) execContext(ctx context.Context, s Session) (result sql.Result
 		}
 	}()
 
-	sqlStr, args, err := this.b.ToSQL()
+	sqlStr, args, err := b.ToSQL()
 	if err != nil {
-		logger.Output(3, fmt.Sprintln(this.b.Type(), "Build Failed:", err))
+		logger.Output(3, fmt.Sprintln(b.Type(), "Build Failed:", err))
 		return nil, err
 	}
 
-	logger.Output(3, fmt.Sprintln(this.b.Type(), "Build Successfully:", sqlStr, args))
+	logger.Output(3, fmt.Sprintln(b.Type(), "Build Successfully:", sqlStr, args))
 	result, err = s.ExecContext(ctx, sqlStr, args...)
 	if err != nil {
 		logger.Output(3, fmt.Sprintln("Exec Failed:", err))
