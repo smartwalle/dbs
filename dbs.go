@@ -2,38 +2,12 @@ package dbs
 
 import (
 	"context"
+	"crypto/md5"
 	"database/sql"
+	"encoding/hex"
 	"github.com/smartwalle/dbc"
 	"time"
 )
-
-// --------------------------------------------------------------------------------
-var stmtCache *dbc.Cache
-
-func init() {
-	stmtCache = dbc.NewCache()
-	stmtCache.OnRemovedItem(func(key string, value interface{}) {
-		if stmt, ok := value.(*sql.Stmt); ok {
-			stmt.Close()
-		}
-	})
-}
-
-func getStmt(key string) *sql.Stmt {
-	var v = stmtCache.Get(key)
-	if v == nil {
-		return nil
-	}
-	stmt, ok := v.(*sql.Stmt)
-	if ok == false {
-		return nil
-	}
-	return stmt
-}
-
-func putStmt(key string, s *sql.Stmt) {
-	stmtCache.Set(key, s, time.Minute*30)
-}
 
 // --------------------------------------------------------------------------------
 func NewSQL(driver, url string, maxOpen, maxIdle int) (db *sql.DB, err error) {
@@ -57,11 +31,14 @@ func NewSQL(driver, url string, maxOpen, maxIdle int) (db *sql.DB, err error) {
 func NewCache(db DB) DB {
 	var c = &DBCache{}
 	c.db = db
+	c.stmts = dbc.NewCache()
+	c.stmts.OnRemovedItem(c.onCloseStmt)
 	return c
 }
 
 type DBCache struct {
-	db DB
+	db    DB
+	stmts *dbc.Cache
 }
 
 func (this *DBCache) Close() error {
@@ -76,8 +53,30 @@ func (this *DBCache) PingContext(ctx context.Context) error {
 	return this.db.PingContext(ctx)
 }
 
+func (this *DBCache) getStmt(key string) *sql.Stmt {
+	var v = this.stmts.Get(md5Key(key))
+	if v == nil {
+		return nil
+	}
+	stmt, ok := v.(*sql.Stmt)
+	if ok == false {
+		return nil
+	}
+	return stmt
+}
+
+func (this *DBCache) putStmt(key string, s *sql.Stmt) {
+	this.stmts.Set(md5Key(key), s, time.Minute*30)
+}
+
+func (this *DBCache) onCloseStmt(key string, value interface{}) {
+	if stmt, ok := value.(*sql.Stmt); ok {
+		stmt.Close()
+	}
+}
+
 func (this *DBCache) Prepare(query string) (*sql.Stmt, error) {
-	if stmt := getStmt(query); stmt != nil {
+	if stmt := this.getStmt(query); stmt != nil {
 		return stmt, nil
 	}
 
@@ -85,19 +84,19 @@ func (this *DBCache) Prepare(query string) (*sql.Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	putStmt(query, stmt)
+	this.putStmt(query, stmt)
 	return stmt, nil
 }
 
 func (this *DBCache) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
-	if stmt := getStmt(query); stmt != nil {
+	if stmt := this.getStmt(query); stmt != nil {
 		return stmt, nil
 	}
 	stmt, err := this.db.PrepareContext(ctx, query)
 	if err != nil {
 		return nil, err
 	}
-	putStmt(query, stmt)
+	this.putStmt(query, stmt)
 	return stmt, nil
 }
 
@@ -139,6 +138,13 @@ func (this *DBCache) Begin() (*sql.Tx, error) {
 
 func (this *DBCache) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
 	return this.db.BeginTx(ctx, opts)
+}
+
+func md5Key(key string) string {
+	var a = make([]byte, 0, 16)
+	var r = md5.Sum([]byte(key))
+	a = append(a, r[:]...)
+	return hex.EncodeToString(a)
 }
 
 // --------------------------------------------------------------------------------
