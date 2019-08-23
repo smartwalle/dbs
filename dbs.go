@@ -42,6 +42,8 @@ type DBCache struct {
 }
 
 func (this *DBCache) Close() error {
+	this.stmts.Close()
+	this.stmts = nil
 	return this.db.Close()
 }
 
@@ -66,7 +68,7 @@ func (this *DBCache) getStmt(key string) *sql.Stmt {
 }
 
 func (this *DBCache) putStmt(key string, s *sql.Stmt) {
-	this.stmts.Set(md5Key(key), s, time.Minute*30)
+	this.stmts.Set(md5Key(key), s, time.Second*30)
 }
 
 func (this *DBCache) onCloseStmt(key string, value interface{}) {
