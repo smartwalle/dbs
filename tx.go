@@ -16,11 +16,15 @@ import (
 type TX interface {
 	DB
 
+	Id() string
+
 	Stmt(stmt *sql.Stmt) *sql.Stmt
 	StmtContext(ctx context.Context, stmt *sql.Stmt) *sql.Stmt
 
 	Commit() (err error)
 	Rollback() error
+
+	rollback(calldepth int) (err error)
 }
 
 // --------------------------------------------------------------------------------
@@ -30,6 +34,10 @@ type dbsTx struct {
 	cache bool
 	tx    *sql.Tx
 	done  uint32
+}
+
+func (this *dbsTx) Id() string {
+	return this.id
 }
 
 func (this *dbsTx) Tx() *sql.Tx {
@@ -115,10 +123,14 @@ func (this *dbsTx) Commit() (err error) {
 }
 
 func (this *dbsTx) Rollback() (err error) {
+	return this.rollback(3)
+}
+
+func (this *dbsTx) rollback(calldepth int) (err error) {
 	if err = this.tx.Rollback(); err != nil {
-		logger.Output(2, fmt.Sprintf("Transaction [%s] Rollback Failed: %s \n", this.id, err))
+		logger.Output(calldepth, fmt.Sprintf("Transaction [%s] Rollback Failed: %s \n", this.id, err))
 	} else {
-		logger.Output(2, fmt.Sprintf("Transaction [%s] Rollback Successfully\n", this.id))
+		logger.Output(calldepth, fmt.Sprintf("Transaction [%s] Rollback Successfully\n", this.id))
 	}
 	atomic.StoreUint32(&this.done, 1)
 	return err
@@ -126,6 +138,7 @@ func (this *dbsTx) Rollback() (err error) {
 
 // 以下几个方法纯粹是为了实现 DB 接口，尽量不要使用
 
+// Close 执行 Rollback 操作
 func (this *dbsTx) Close() (err error) {
 	return this.Rollback()
 }
@@ -138,6 +151,7 @@ func (this *dbsTx) PingContext(ctx context.Context) error {
 	return this.db.PingContext(ctx)
 }
 
+// Begin 不会创建新的事务，如果当前事务已经关闭，则会返回事务已结束的错误，如果事务没有关闭，则返回当前事务
 func (this *dbsTx) Begin() (*sql.Tx, error) {
 	if this.isDone() {
 		return nil, sql.ErrTxDone
@@ -145,6 +159,7 @@ func (this *dbsTx) Begin() (*sql.Tx, error) {
 	return this.tx, nil
 }
 
+// BeginTx 不会创建新的事务，如果当前事务已经关闭，则会返回事务已结束的错误，如果事务没有关闭，则返回当前事务
 func (this *dbsTx) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
 	if this.isDone() {
 		return nil, sql.ErrTxDone
@@ -190,7 +205,7 @@ func newTxContext(ctx context.Context, db DB, opts *sql.TxOptions) (TX, error) {
 		return nil, err
 	}
 	tx.db = db
-	tx.id = genTxId() // 目前只有日志会用到 id
+	tx.id = genTxId()
 	logger.Output(3, fmt.Sprintf("Transaction [%s] Begin Successfully\n", tx.id))
 	_, tx.cache = db.(*DBCache)
 	return tx, err
