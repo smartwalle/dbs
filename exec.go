@@ -14,7 +14,7 @@ func scanContext(ctx context.Context, s Session, b Builder, dest interface{}) (e
 
 	if nTx, ok := s.(TX); ok {
 		tx = nTx
-		prefix = "Transaction [" + tx.Id() + "] " + b.Type()
+		prefix = tx.String() + " " + b.Type()
 	} else {
 		prefix = b.Type()
 	}
@@ -53,7 +53,7 @@ func scanRowContext(ctx context.Context, s Session, b Builder, dest ...interface
 
 	if nTx, ok := s.(TX); ok {
 		tx = nTx
-		prefix = "Transaction [" + tx.Id() + "] " + b.Type()
+		prefix = tx.String() + " " + b.Type()
 	} else {
 		prefix = b.Type()
 	}
@@ -109,7 +109,7 @@ func queryContext(ctx context.Context, s Session, b Builder) (result *sql.Rows, 
 
 	if nTx, ok := s.(TX); ok {
 		tx = nTx
-		prefix = "Transaction [" + tx.Id() + "] " + b.Type()
+		prefix = tx.String() + " " + b.Type()
 	} else {
 		prefix = b.Type()
 	}
@@ -140,7 +140,7 @@ func execContext(ctx context.Context, s Session, b Builder) (result sql.Result, 
 
 	if nTx, ok := s.(TX); ok {
 		tx = nTx
-		prefix = "Transaction [" + tx.Id() + "] " + b.Type()
+		prefix = tx.String() + " " + b.Type()
 	} else {
 		prefix = b.Type()
 	}

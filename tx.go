@@ -16,13 +16,24 @@ import (
 type TX interface {
 	DB
 
+	// Id 获取事务 id
 	Id() string
 
-	Stmt(stmt *sql.Stmt) *sql.Stmt
-	StmtContext(ctx context.Context, stmt *sql.Stmt) *sql.Stmt
+	// String 返回事务描述
+	String() string
 
+	// Trace 添加日志信息
+	Trace(string)
+
+	// Commit 提交事务
 	Commit() (err error)
+
+	// Rollback 回滚事务
 	Rollback() error
+
+	Stmt(stmt *sql.Stmt) *sql.Stmt
+
+	StmtContext(ctx context.Context, stmt *sql.Stmt) *sql.Stmt
 
 	rollback(calldepth int) (err error)
 }
@@ -40,8 +51,12 @@ func (this *dbsTx) Id() string {
 	return this.id
 }
 
-func (this *dbsTx) Tx() *sql.Tx {
-	return this.tx
+func (this *dbsTx) String() string {
+	return fmt.Sprintf("Transaction [%s]", this.id)
+}
+
+func (this *dbsTx) Trace(s string) {
+	logger.Output(2, fmt.Sprintf("Transaction [%s] %s \n", this.id, s))
 }
 
 func (this *dbsTx) Prepare(query string) (*sql.Stmt, error) {
@@ -136,19 +151,20 @@ func (this *dbsTx) rollback(calldepth int) (err error) {
 	return err
 }
 
-// 以下几个方法纯粹是为了实现 DB 接口，尽量不要使用
-
-// Close 执行 Rollback 操作
-func (this *dbsTx) Close() (err error) {
-	return this.Rollback()
-}
-
 func (this *dbsTx) Ping() error {
 	return this.db.Ping()
 }
 
 func (this *dbsTx) PingContext(ctx context.Context) error {
 	return this.db.PingContext(ctx)
+}
+
+// --------------------------------------------------------------------------------
+// 以下几个方法是为了实现 DB 接口，尽量不要使用
+
+// Close 执行 Rollback 操作
+func (this *dbsTx) Close() (err error) {
+	return this.Rollback()
 }
 
 // Begin 不会创建新的事务，如果当前事务已经关闭，则会返回事务已结束的错误，如果事务没有关闭，则返回当前事务
@@ -166,6 +182,9 @@ func (this *dbsTx) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, e
 	}
 	return this.tx, nil
 }
+
+// 以上几个方法是为了实现 DB 接口，尽量不要使用
+// --------------------------------------------------------------------------------
 
 func (this *dbsTx) isDone() bool {
 	return atomic.LoadUint32(&this.done) == 1
