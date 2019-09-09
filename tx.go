@@ -56,7 +56,7 @@ func (this *dbsTx) String() string {
 }
 
 func (this *dbsTx) Trace(s string) {
-	logger.Output(2, fmt.Sprintf("Transaction [%s] %s \n", this.id, s))
+	logger.Output(2, fmt.Sprintf("Transaction [%s] %s\n", this.id, s))
 }
 
 func (this *dbsTx) Prepare(query string) (*sql.Stmt, error) {
@@ -129,7 +129,7 @@ func (this *dbsTx) QueryContext(ctx context.Context, query string, args ...inter
 
 func (this *dbsTx) Commit() (err error) {
 	if err = this.tx.Commit(); err != nil {
-		logger.Output(2, fmt.Sprintf("Transaction [%s] Commit Failed: %s \n", this.id, err))
+		logger.Output(2, fmt.Sprintf("Transaction [%s] Commit Failed: %s\n", this.id, err))
 	} else {
 		logger.Output(2, fmt.Sprintf("Transaction [%s] Commit Successfully\n", this.id))
 	}
@@ -143,7 +143,7 @@ func (this *dbsTx) Rollback() (err error) {
 
 func (this *dbsTx) rollback(calldepth int) (err error) {
 	if err = this.tx.Rollback(); err != nil {
-		logger.Output(calldepth, fmt.Sprintf("Transaction [%s] Rollback Failed: %s \n", this.id, err))
+		logger.Output(calldepth, fmt.Sprintf("Transaction [%s] Rollback Failed: %s\n", this.id, err))
 	} else {
 		logger.Output(calldepth, fmt.Sprintf("Transaction [%s] Rollback Successfully\n", this.id))
 	}
