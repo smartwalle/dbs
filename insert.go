@@ -210,6 +210,10 @@ func (this *InsertBuilder) WriteToSQL(w Writer) error {
 	return nil
 }
 
+func (this *InsertBuilder) reset() {
+	this.values = this.values[:0]
+}
+
 // --------------------------------------------------------------------------------
 func (this *InsertBuilder) UseDialect(d dialect) {
 	this.d = d

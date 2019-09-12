@@ -72,6 +72,11 @@ func (this *RawBuilder) WriteToSQL(w Writer) error {
 	return nil
 }
 
+func (this *RawBuilder) reset() {
+	this.sql.Reset()
+	this.args = this.args[:0]
+}
+
 // --------------------------------------------------------------------------------
 func (this *RawBuilder) UseDialect(d dialect) {
 	this.d = d
@@ -130,6 +135,7 @@ func NewBuilder(sql string, args ...interface{}) *RawBuilder {
 	var b = &RawBuilder{}
 	b.d = gDialect
 	b.sql = &bytes.Buffer{}
+	b.args = make([]interface{}, 0, 8)
 	b.Append(sql, args...)
 	return b
 }
