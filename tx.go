@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -44,7 +45,8 @@ type dbsTx struct {
 	db    DB
 	cache bool
 	tx    *sql.Tx
-	done  uint32
+	done  bool
+	mu    sync.Mutex
 }
 
 func (this *dbsTx) Id() string {
@@ -128,12 +130,16 @@ func (this *dbsTx) QueryContext(ctx context.Context, query string, args ...inter
 }
 
 func (this *dbsTx) Commit() (err error) {
-	if err = this.tx.Commit(); err != nil {
+	this.mu.Lock()
+	err = this.tx.Commit()
+	this.done = true
+	this.mu.Unlock()
+
+	if err != nil {
 		logger.Output(2, fmt.Sprintf("Transaction [%s] Commit Failed: %s\n", this.id, err))
 	} else {
 		logger.Output(2, fmt.Sprintf("Transaction [%s] Commit Successfully\n", this.id))
 	}
-	atomic.StoreUint32(&this.done, 1)
 	return err
 }
 
@@ -142,13 +148,28 @@ func (this *dbsTx) Rollback() (err error) {
 }
 
 func (this *dbsTx) rollback(calldepth int) (err error) {
-	if err = this.tx.Rollback(); err != nil {
+	this.mu.Lock()
+	err = this.tx.Rollback()
+	this.done = true
+	this.mu.Unlock()
+
+	if err != nil {
 		logger.Output(calldepth, fmt.Sprintf("Transaction [%s] Rollback Failed: %s\n", this.id, err))
 	} else {
 		logger.Output(calldepth, fmt.Sprintf("Transaction [%s] Rollback Successfully\n", this.id))
 	}
-	atomic.StoreUint32(&this.done, 1)
 	return err
+}
+
+// Close 判断事务是否完成，如果未完成，则执行 Rollback 操作
+func (this *dbsTx) Close() (err error) {
+	this.mu.Lock()
+	if this.done {
+		this.mu.Unlock()
+		return
+	}
+	this.mu.Unlock()
+	return this.rollback(3)
 }
 
 func (this *dbsTx) Ping() error {
@@ -162,14 +183,12 @@ func (this *dbsTx) PingContext(ctx context.Context) error {
 // --------------------------------------------------------------------------------
 // 以下几个方法是为了实现 DB 接口，尽量不要使用
 
-// Close 执行 Rollback 操作
-func (this *dbsTx) Close() (err error) {
-	return this.Rollback()
-}
-
 // Begin 不会创建新的事务，如果当前事务已经关闭，则会返回事务已结束的错误，如果事务没有关闭，则返回当前事务
 func (this *dbsTx) Begin() (*sql.Tx, error) {
-	if this.isDone() {
+	this.mu.Lock()
+	defer this.mu.Unlock()
+
+	if this.done {
 		return nil, sql.ErrTxDone
 	}
 	return this.tx, nil
@@ -177,7 +196,10 @@ func (this *dbsTx) Begin() (*sql.Tx, error) {
 
 // BeginTx 不会创建新的事务，如果当前事务已经关闭，则会返回事务已结束的错误，如果事务没有关闭，则返回当前事务
 func (this *dbsTx) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
-	if this.isDone() {
+	this.mu.Lock()
+	defer this.mu.Unlock()
+
+	if this.done {
 		return nil, sql.ErrTxDone
 	}
 	return this.tx, nil
@@ -186,11 +208,6 @@ func (this *dbsTx) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, e
 // 以上几个方法是为了实现 DB 接口，尽量不要使用
 // --------------------------------------------------------------------------------
 
-func (this *dbsTx) isDone() bool {
-	return atomic.LoadUint32(&this.done) == 1
-}
-
-// --------------------------------------------------------------------------------
 func NewTx(db DB) (TX, error) {
 	return newTxContext(context.Background(), db, nil)
 }
@@ -209,9 +226,12 @@ func NewTxContext(ctx context.Context, db DB, opts *sql.TxOptions) (tx TX, err e
 
 func newTxContext(ctx context.Context, db DB, opts *sql.TxOptions) (TX, error) {
 	if nt, ok := db.(*dbsTx); ok {
-		if nt.isDone() {
+		nt.mu.Lock()
+		if nt.done {
+			nt.mu.Unlock()
 			return nil, sql.ErrTxDone
 		}
+		nt.mu.Unlock()
 		return nt, nil
 	}
 
