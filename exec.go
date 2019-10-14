@@ -27,13 +27,13 @@ func scanContext(ctx context.Context, s Session, b Builder, dest interface{}) (e
 
 	sqlStr, args, err := b.ToSQL()
 	if err != nil {
-		logger.Output(3, fmt.Sprintln(prefix, "Build Failure:", err))
+		logger.Output(3, fmt.Sprintln(prefix, "Build Failed:", err))
 		return err
 	}
 	logger.Output(3, fmt.Sprintln(prefix, "Build Success:", sqlStr, args))
 	rows, err := s.QueryContext(ctx, sqlStr, args...)
 	if err != nil {
-		logger.Output(3, fmt.Sprintln(prefix, "Query Failure:", err))
+		logger.Output(3, fmt.Sprintln(prefix, "Query Failed:", err))
 		return err
 	}
 	if rows != nil {
@@ -41,7 +41,7 @@ func scanContext(ctx context.Context, s Session, b Builder, dest interface{}) (e
 	}
 
 	if err = Scan(rows, dest); err != nil {
-		logger.Output(3, fmt.Sprintln(prefix, "Scan Failure:", err))
+		logger.Output(3, fmt.Sprintln(prefix, "Scan Failed:", err))
 		return err
 	}
 	return nil
@@ -66,13 +66,13 @@ func scanRowContext(ctx context.Context, s Session, b Builder, dest ...interface
 
 	sqlStr, args, err := b.ToSQL()
 	if err != nil {
-		logger.Output(3, fmt.Sprintln(prefix, "Build Failure:", err))
+		logger.Output(3, fmt.Sprintln(prefix, "Build Failed:", err))
 		return err
 	}
 	logger.Output(3, fmt.Sprintln(prefix, "Build Success:", sqlStr, args))
 	rows, err := s.QueryContext(ctx, sqlStr, args...)
 	if err != nil {
-		logger.Output(3, fmt.Sprintln(prefix, "Query Failure:", err))
+		logger.Output(3, fmt.Sprintln(prefix, "Query Failed:", err))
 		return err
 	}
 	if rows != nil {
@@ -82,21 +82,21 @@ func scanRowContext(ctx context.Context, s Session, b Builder, dest ...interface
 	for _, dp := range dest {
 		if _, ok := dp.(*sql.RawBytes); ok {
 			err = errors.New("sql: RawBytes isn't allowed on Row.Scan")
-			logger.Output(3, fmt.Sprintln(prefix, "Scan Failure:", err))
+			logger.Output(3, fmt.Sprintln(prefix, "Scan Failed:", err))
 			return err
 		}
 	}
 
 	if !rows.Next() {
 		if err := rows.Err(); err != nil {
-			logger.Output(3, fmt.Sprintln(prefix, "Scan Failure:", err))
+			logger.Output(3, fmt.Sprintln(prefix, "Scan Failed:", err))
 			return err
 		}
-		logger.Output(3, fmt.Sprintln(prefix, "Scan Failure:", sql.ErrNoRows))
+		logger.Output(3, fmt.Sprintln(prefix, "Scan Failed:", sql.ErrNoRows))
 		return sql.ErrNoRows
 	}
 	if err = rows.Scan(dest...); err != nil {
-		logger.Output(3, fmt.Sprintln(prefix, "Scan Failure:", err))
+		logger.Output(3, fmt.Sprintln(prefix, "Scan Failed:", err))
 		return err
 	}
 	return rows.Close()
@@ -122,13 +122,13 @@ func queryContext(ctx context.Context, s Session, b Builder) (result *sql.Rows, 
 
 	sqlStr, args, err := b.ToSQL()
 	if err != nil {
-		logger.Output(3, fmt.Sprintln(prefix, "Build Failure:", err))
+		logger.Output(3, fmt.Sprintln(prefix, "Build Failed:", err))
 		return nil, err
 	}
 	logger.Output(3, fmt.Sprintln(prefix, "Build Success:", sqlStr, args))
 	result, err = s.QueryContext(ctx, sqlStr, args...)
 	if err != nil {
-		logger.Output(3, fmt.Sprintln(prefix, "Query Failure:", err))
+		logger.Output(3, fmt.Sprintln(prefix, "Query Failed:", err))
 	}
 	return result, err
 }
@@ -153,14 +153,14 @@ func execContext(ctx context.Context, s Session, b Builder) (result sql.Result, 
 
 	sqlStr, args, err := b.ToSQL()
 	if err != nil {
-		logger.Output(3, fmt.Sprintln(prefix, "Build Failure:", err))
+		logger.Output(3, fmt.Sprintln(prefix, "Build Failed:", err))
 		return nil, err
 	}
 
 	logger.Output(3, fmt.Sprintln(prefix, "Build Success:", sqlStr, args))
 	result, err = s.ExecContext(ctx, sqlStr, args...)
 	if err != nil {
-		logger.Output(3, fmt.Sprintln(prefix, "Exec Failure:", err))
+		logger.Output(3, fmt.Sprintln(prefix, "Exec Failed:", err))
 	}
 	return result, err
 }

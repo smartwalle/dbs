@@ -136,7 +136,7 @@ func (this *dbsTx) Commit() (err error) {
 	this.mu.Unlock()
 
 	if err != nil {
-		logger.Output(2, fmt.Sprintf("Transaction [%s] Commit Failure: %s\n", this.id, err))
+		logger.Output(2, fmt.Sprintf("Transaction [%s] Commit Failed: %s\n", this.id, err))
 	} else {
 		logger.Output(2, fmt.Sprintf("Transaction [%s] Commit Success\n", this.id))
 	}
@@ -154,7 +154,7 @@ func (this *dbsTx) rollback(calldepth int) (err error) {
 	this.mu.Unlock()
 
 	if err != nil {
-		logger.Output(calldepth, fmt.Sprintf("Transaction [%s] Rollback Failure: %s\n", this.id, err))
+		logger.Output(calldepth, fmt.Sprintf("Transaction [%s] Rollback Failed: %s\n", this.id, err))
 	} else {
 		logger.Output(calldepth, fmt.Sprintf("Transaction [%s] Rollback Success\n", this.id))
 	}
@@ -240,7 +240,7 @@ func newTxContext(ctx context.Context, db DB, opts *sql.TxOptions) (TX, error) {
 
 	tx.tx, err = db.BeginTx(ctx, opts)
 	if err != nil {
-		logger.Output(3, fmt.Sprintln("Transaction Begin Failure:", err))
+		logger.Output(3, fmt.Sprintln("Transaction Begin Failed:", err))
 		return nil, err
 	}
 	tx.db = db
