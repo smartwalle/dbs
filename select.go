@@ -93,7 +93,7 @@ func (this *SelectBuilder) From(table string, args ...string) *SelectBuilder {
 }
 
 func (this *SelectBuilder) FromStmt(stmt Statement) *SelectBuilder {
-	this.from = statements{stmt}
+	this.from = append(this.from, stmt)
 	return this
 }
 
