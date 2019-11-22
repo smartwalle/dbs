@@ -125,102 +125,102 @@ func (this *DeleteBuilder) ToSQL() (string, []interface{}, error) {
 	return sql, sqlBuf.Values(), nil
 }
 
-func (this *DeleteBuilder) WriteToSQL(w Writer) error {
+func (this *DeleteBuilder) WriteToSQL(w Writer) (err error) {
 	if len(this.tables) == 0 {
-		return errors.New("delete statements must specify a table")
+		return errors.New("dbs: DELETE statements must specify a table")
 	}
 
 	if len(this.prefixes) > 0 {
-		if err := this.prefixes.WriteToSQL(w, " "); err != nil {
+		if err = this.prefixes.WriteToSQL(w, " "); err != nil {
 			return err
 		}
-		if _, err := w.WriteString(" "); err != nil {
+		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
 	}
 
-	if _, err := w.WriteString("DELETE "); err != nil {
+	if _, err = w.WriteString("DELETE "); err != nil {
 		return err
 	}
 
 	if len(this.options) > 0 {
-		if err := this.options.WriteToSQL(w, " "); err != nil {
+		if err = this.options.WriteToSQL(w, " "); err != nil {
 			return err
 		}
-		if _, err := w.WriteString(" "); err != nil {
+		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.alias) > 0 {
-		if _, err := w.WriteString(strings.Join(this.alias, ", ")); err != nil {
+		if _, err = w.WriteString(strings.Join(this.alias, ", ")); err != nil {
 			return err
 		}
-		if _, err := w.WriteString(" "); err != nil {
+		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
 	}
 
-	if _, err := w.WriteString("FROM "); err != nil {
+	if _, err = w.WriteString("FROM "); err != nil {
 		return err
 	}
 
 	if len(this.tables) > 0 {
-		if err := this.tables.WriteToSQL(w, ", "); err != nil {
+		if err = this.tables.WriteToSQL(w, ", "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.using) > 0 {
-		if _, err := fmt.Fprintf(w, " USING %s", this.using); err != nil {
+		if _, err = fmt.Fprintf(w, " USING %s", this.using); err != nil {
 			return err
 		}
 	}
 
 	if len(this.joins) > 0 {
-		if _, err := w.WriteString(" "); err != nil {
+		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
-		if err := this.joins.WriteToSQL(w, " "); err != nil {
+		if err = this.joins.WriteToSQL(w, " "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.wheres) > 0 {
-		if _, err := w.WriteString(" WHERE "); err != nil {
+		if _, err = w.WriteString(" WHERE "); err != nil {
 			return err
 		}
-		if err := this.wheres.WriteToSQL(w, " AND "); err != nil {
+		if err = this.wheres.WriteToSQL(w, " AND "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.orderBys) > 0 {
-		if _, err := w.WriteString(" ORDER BY "); err != nil {
+		if _, err = w.WriteString(" ORDER BY "); err != nil {
 			return err
 		}
-		if _, err := w.WriteString(strings.Join(this.orderBys, ", ")); err != nil {
+		if _, err = w.WriteString(strings.Join(this.orderBys, ", ")); err != nil {
 			return err
 		}
 	}
 
 	if this.limit != nil {
-		if err := this.limit.WriteToSQL(w); err != nil {
+		if err = this.limit.WriteToSQL(w); err != nil {
 			return err
 		}
 	}
 
 	if this.offset != nil {
-		if err := this.offset.WriteToSQL(w); err != nil {
+		if err = this.offset.WriteToSQL(w); err != nil {
 			return err
 		}
 	}
 
 	if len(this.suffixes) > 0 {
-		if _, err := w.WriteString(" "); err != nil {
+		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
-		if err := this.suffixes.WriteToSQL(w, " "); err != nil {
+		if err = this.suffixes.WriteToSQL(w, " "); err != nil {
 			return err
 		}
 	}

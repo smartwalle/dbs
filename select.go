@@ -36,21 +36,8 @@ func (this *SelectBuilder) Type() string {
 }
 
 func (this *SelectBuilder) Clone() *SelectBuilder {
-	var sb = NewSelectBuilder()
-	sb.d = this.d
-	sb.prefixes = this.prefixes
-	sb.options = this.options
-	sb.columns = this.columns
-	sb.from = this.from
-	sb.joins = this.joins
-	sb.wheres = this.wheres
-	sb.groupBys = this.groupBys
-	sb.having = this.having
-	sb.orderBys = this.orderBys
-	sb.limit = this.limit
-	sb.offset = this.offset
-	sb.suffixes = this.suffixes
-	return sb
+	var sb = *this
+	return &sb
 }
 
 func (this *SelectBuilder) Prefix(sql string, args ...interface{}) *SelectBuilder {
@@ -174,110 +161,110 @@ func (this *SelectBuilder) ToSQL() (string, []interface{}, error) {
 	return sql, sqlBuf.Values(), nil
 }
 
-func (this *SelectBuilder) WriteToSQL(w Writer) error {
+func (this *SelectBuilder) WriteToSQL(w Writer) (err error) {
 	if len(this.columns) == 0 {
-		return errors.New("SELECT statements must have at least on result column")
+		return errors.New("dbs: SELECT statements must have at least on result column")
 	}
 
 	if len(this.prefixes) > 0 {
-		if err := this.prefixes.WriteToSQL(w, " "); err != nil {
+		if err = this.prefixes.WriteToSQL(w, " "); err != nil {
 			return err
 		}
-		if _, err := w.WriteString(" "); err != nil {
+		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
 	}
 
-	if _, err := w.WriteString("SELECT "); err != nil {
+	if _, err = w.WriteString("SELECT "); err != nil {
 		return err
 	}
 
 	if len(this.options) > 0 {
-		if err := this.options.WriteToSQL(w, " "); err != nil {
+		if err = this.options.WriteToSQL(w, " "); err != nil {
 			return err
 		}
-		if _, err := w.WriteString(" "); err != nil {
+		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.columns) > 0 {
-		if err := this.columns.WriteToSQL(w, ", "); err != nil {
+		if err = this.columns.WriteToSQL(w, ", "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.from) > 0 {
-		if _, err := w.WriteString(" FROM "); err != nil {
+		if _, err = w.WriteString(" FROM "); err != nil {
 			return err
 		}
-		if err := this.from.WriteToSQL(w, ", "); err != nil {
+		if err = this.from.WriteToSQL(w, ", "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.joins) > 0 {
-		if _, err := w.WriteString(" "); err != nil {
+		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
-		if err := this.joins.WriteToSQL(w, " "); err != nil {
+		if err = this.joins.WriteToSQL(w, " "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.wheres) > 0 {
-		if _, err := w.WriteString(" WHERE "); err != nil {
+		if _, err = w.WriteString(" WHERE "); err != nil {
 			return err
 		}
-		if err := this.wheres.WriteToSQL(w, " AND "); err != nil {
+		if err = this.wheres.WriteToSQL(w, " AND "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.groupBys) > 0 {
-		if _, err := w.WriteString(" GROUP BY "); err != nil {
+		if _, err = w.WriteString(" GROUP BY "); err != nil {
 			return err
 		}
-		if _, err := w.WriteString(strings.Join(this.groupBys, ", ")); err != nil {
+		if _, err = w.WriteString(strings.Join(this.groupBys, ", ")); err != nil {
 			return err
 		}
 	}
 
 	if len(this.having) > 0 {
-		if _, err := w.WriteString(" HAVING "); err != nil {
+		if _, err = w.WriteString(" HAVING "); err != nil {
 			return err
 		}
-		if err := this.having.WriteToSQL(w, " AND "); err != nil {
+		if err = this.having.WriteToSQL(w, " AND "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.orderBys) > 0 {
-		if _, err := w.WriteString(" ORDER BY "); err != nil {
+		if _, err = w.WriteString(" ORDER BY "); err != nil {
 			return err
 		}
-		if _, err := w.WriteString(strings.Join(this.orderBys, ", ")); err != nil {
+		if _, err = w.WriteString(strings.Join(this.orderBys, ", ")); err != nil {
 			return err
 		}
 	}
 
 	if this.limit != nil {
-		if err := this.limit.WriteToSQL(w); err != nil {
+		if err = this.limit.WriteToSQL(w); err != nil {
 			return err
 		}
 	}
 
 	if this.offset != nil {
-		if err := this.offset.WriteToSQL(w); err != nil {
+		if err = this.offset.WriteToSQL(w); err != nil {
 			return err
 		}
 	}
 
 	if len(this.suffixes) > 0 {
-		if _, err := w.WriteString(" "); err != nil {
+		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
-		if err := this.suffixes.WriteToSQL(w, " "); err != nil {
+		if err = this.suffixes.WriteToSQL(w, " "); err != nil {
 			return err
 		}
 	}

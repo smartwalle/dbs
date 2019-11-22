@@ -140,96 +140,96 @@ func (this *UpdateBuilder) ToSQL() (string, []interface{}, error) {
 	return sql, sqlBuf.Values(), nil
 }
 
-func (this *UpdateBuilder) WriteToSQL(w Writer) error {
+func (this *UpdateBuilder) WriteToSQL(w Writer) (err error) {
 	if len(this.tables) == 0 {
-		return errors.New("update statements must specify a table")
+		return errors.New("dbs: UPDATE statements must specify a table")
 	}
 	if len(this.columns) == 0 {
-		return errors.New("update statements must have at least one Set")
+		return errors.New("dbs: UPDATE statements must have at least one Set")
 	}
 
 	if len(this.prefixes) > 0 {
-		if err := this.prefixes.WriteToSQL(w, " "); err != nil {
+		if err = this.prefixes.WriteToSQL(w, " "); err != nil {
 			return err
 		}
-		if _, err := w.WriteString(" "); err != nil {
+		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
 	}
 
-	if _, err := w.WriteString("UPDATE "); err != nil {
+	if _, err = w.WriteString("UPDATE "); err != nil {
 		return err
 	}
 
 	if len(this.options) > 0 {
-		if err := this.options.WriteToSQL(w, " "); err != nil {
+		if err = this.options.WriteToSQL(w, " "); err != nil {
 			return err
 		}
-		if _, err := w.WriteString(" "); err != nil {
+		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.tables) > 0 {
-		if err := this.tables.WriteToSQL(w, ", "); err != nil {
+		if err = this.tables.WriteToSQL(w, ", "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.joins) > 0 {
-		if _, err := w.WriteString(" "); err != nil {
+		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
-		if err := this.joins.WriteToSQL(w, " "); err != nil {
+		if err = this.joins.WriteToSQL(w, " "); err != nil {
 			return err
 		}
 	}
 
-	if _, err := w.WriteString(" SET "); err != nil {
+	if _, err = w.WriteString(" SET "); err != nil {
 		return err
 	}
 
 	if len(this.columns) > 0 {
-		if err := this.columns.WriteToSQL(w, ", "); err != nil {
+		if err = this.columns.WriteToSQL(w, ", "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.wheres) > 0 {
-		if _, err := w.WriteString(" WHERE "); err != nil {
+		if _, err = w.WriteString(" WHERE "); err != nil {
 			return err
 		}
-		if err := this.wheres.WriteToSQL(w, " AND "); err != nil {
+		if err = this.wheres.WriteToSQL(w, " AND "); err != nil {
 			return err
 		}
 	}
 
 	if len(this.orderBys) > 0 {
-		if _, err := w.WriteString(" ORDER BY "); err != nil {
+		if _, err = w.WriteString(" ORDER BY "); err != nil {
 			return err
 		}
-		if _, err := w.WriteString(strings.Join(this.orderBys, ", ")); err != nil {
+		if _, err = w.WriteString(strings.Join(this.orderBys, ", ")); err != nil {
 			return err
 		}
 	}
 
 	if this.limit != nil {
-		if err := this.limit.WriteToSQL(w); err != nil {
+		if err = this.limit.WriteToSQL(w); err != nil {
 			return err
 		}
 	}
 
 	if this.offset != nil {
-		if err := this.offset.WriteToSQL(w); err != nil {
+		if err = this.offset.WriteToSQL(w); err != nil {
 			return err
 		}
 	}
 
 	if len(this.suffixes) > 0 {
-		if _, err := w.WriteString(" "); err != nil {
+		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
-		if err := this.suffixes.WriteToSQL(w, " "); err != nil {
+		if err = this.suffixes.WriteToSQL(w, " "); err != nil {
 			return err
 		}
 	}
