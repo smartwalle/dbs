@@ -284,6 +284,7 @@ func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
 	cb.columns = statements{NewStatement(strings.Join(ts, " "))}
 	cb.limit = nil
 	cb.offset = nil
+	cb.orderBys = nil
 
 	if len(cb.groupBys) > 0 {
 		sb.FromStmt(Alias(cb, "c"))
