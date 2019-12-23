@@ -132,7 +132,7 @@ func (this *analyze) WriteToFile(file string) error {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 
-	bs, err := json.Marshal(this.logs)
+	bs, err := json.MarshalIndent(this.logs, "", " ")
 	if err != nil {
 		return err
 	}

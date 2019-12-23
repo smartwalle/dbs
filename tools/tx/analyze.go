@@ -194,7 +194,7 @@ func (this *analyze) WriteToFile(file string) error {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 
-	bs, err := json.Marshal(this.txList)
+	bs, err := json.MarshalIndent(this.txList, "", " ")
 	if err != nil {
 		return err
 	}
@@ -225,7 +225,7 @@ func (this *analyze) UnClosedToFile(file string) error {
 		}
 	}
 
-	bs, err := json.Marshal(ucList)
+	bs, err := json.MarshalIndent(ucList, "", " ")
 	if err != nil {
 		return err
 	}
