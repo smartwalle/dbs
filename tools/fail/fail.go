@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"path"
-	"regexp"
 	"strings"
 	"sync"
 )
@@ -18,8 +17,6 @@ func main() {
 	ta.Load("./logs")
 	fmt.Println(ta.WriteToFile("./result.json"))
 }
-
-var failRegexp = regexp.MustCompile(" Failed: ")
 
 type analyze struct {
 	mu   sync.Mutex
