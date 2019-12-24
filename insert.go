@@ -208,7 +208,6 @@ func (this *InsertBuilder) reset() {
 	this.values = this.values[:0]
 }
 
-// --------------------------------------------------------------------------------
 func (this *InsertBuilder) UseDialect(d dialect) {
 	this.d = d
 	if this.sb != nil {
@@ -231,7 +230,6 @@ func (this *InsertBuilder) parseVal(sql string) (string, error) {
 	return this.d.ParseVal(sql)
 }
 
-// --------------------------------------------------------------------------------
 func (this *InsertBuilder) Exec(s Session) (sql.Result, error) {
 	return execContext(context.Background(), s, this)
 }
@@ -240,14 +238,12 @@ func (this *InsertBuilder) ExecContext(ctx context.Context, s Session) (result s
 	return execContext(ctx, s, this)
 }
 
-// --------------------------------------------------------------------------------
 func NewInsertBuilder() *InsertBuilder {
 	var ib = &InsertBuilder{}
 	ib.d = gDialect
 	return ib
 }
 
-// --------------------------------------------------------------------------------
 func Insert(columns ...string) *InsertBuilder {
 	var ib = NewInsertBuilder()
 	ib.Columns(columns...)

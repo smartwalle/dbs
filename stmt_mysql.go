@@ -13,7 +13,6 @@ const (
 	kOnDuplicateKeyUpdate = "ON DUPLICATE KEY UPDATE "
 )
 
-// --------------------------------------------------------------------------------
 func (this *SelectBuilder) UseSQLCalcFoundRows() *SelectBuilder {
 	return this.Options(kSQLCalcFoundRows)
 }
@@ -30,7 +29,6 @@ func (this *SelectBuilder) FoundRows(args ...string) *SelectBuilder {
 	return sb
 }
 
-// --------------------------------------------------------------------------------
 type onDuplicateKeyUpdateStmt struct {
 	stmts statements
 }

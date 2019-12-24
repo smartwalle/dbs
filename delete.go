@@ -227,7 +227,6 @@ func (this *DeleteBuilder) WriteToSQL(w Writer) (err error) {
 	return nil
 }
 
-// --------------------------------------------------------------------------------
 func (this *DeleteBuilder) UseDialect(d dialect) {
 	this.d = d
 }
@@ -247,7 +246,6 @@ func (this *DeleteBuilder) parseVal(sql string) (string, error) {
 	return this.d.ParseVal(sql)
 }
 
-// --------------------------------------------------------------------------------
 func (this *DeleteBuilder) Exec(s Session) (sql.Result, error) {
 	return execContext(context.Background(), s, this)
 }
@@ -256,7 +254,6 @@ func (this *DeleteBuilder) ExecContext(ctx context.Context, s Session) (result s
 	return execContext(ctx, s, this)
 }
 
-// --------------------------------------------------------------------------------
 func NewDeleteBuilder() *DeleteBuilder {
 	var db = &DeleteBuilder{}
 	db.d = gDialect

@@ -237,7 +237,6 @@ func (this *UpdateBuilder) WriteToSQL(w Writer) (err error) {
 	return nil
 }
 
-// --------------------------------------------------------------------------------
 func (this *UpdateBuilder) UseDialect(d dialect) {
 	this.d = d
 }
@@ -257,7 +256,6 @@ func (this *UpdateBuilder) parseVal(sql string) (string, error) {
 	return this.d.ParseVal(sql)
 }
 
-// --------------------------------------------------------------------------------
 func (this *UpdateBuilder) Exec(s Session) (sql.Result, error) {
 	return execContext(context.Background(), s, this)
 }
@@ -266,14 +264,12 @@ func (this *UpdateBuilder) ExecContext(ctx context.Context, s Session) (result s
 	return execContext(ctx, s, this)
 }
 
-// --------------------------------------------------------------------------------
 func NewUpdateBuilder() *UpdateBuilder {
 	var ub = &UpdateBuilder{}
 	ub.d = gDialect
 	return ub
 }
 
-// --------------------------------------------------------------------------------
 func Update(table string, args ...string) *UpdateBuilder {
 	var ub = NewUpdateBuilder()
 	ub.Table(table, args...)

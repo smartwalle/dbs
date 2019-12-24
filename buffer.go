@@ -10,7 +10,6 @@ const (
 	kDefaultArgsSize = 128
 )
 
-// --------------------------------------------------------------------------------
 var bPool *sync.Pool
 
 func init() {
@@ -28,7 +27,6 @@ func getBuffer() *Buffer {
 	return bf
 }
 
-// --------------------------------------------------------------------------------
 type Writer interface {
 	Write(p []byte) (n int, err error)
 
@@ -37,7 +35,6 @@ type Writer interface {
 	WriteArgs(args ...interface{})
 }
 
-// --------------------------------------------------------------------------------
 func NewBuffer() *Buffer {
 	return &Buffer{
 		bs: make([]byte, 0, kDefaultByteSize),
@@ -45,7 +42,6 @@ func NewBuffer() *Buffer {
 	}
 }
 
-// --------------------------------------------------------------------------------
 type Buffer struct {
 	p  *sync.Pool
 	bs []byte

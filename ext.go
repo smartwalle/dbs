@@ -104,7 +104,6 @@ func getField(destType reflect.Type, destValue reflect.Value) (result []string) 
 	return result
 }
 
-// --------------------------------------------------------------------------------
 func Find(s Session, table string, dest interface{}, limit, offset int64, w Statement) (err error) {
 	fieldList, err := GetFields(dest)
 	if err != nil {

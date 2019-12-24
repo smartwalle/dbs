@@ -12,7 +12,6 @@ func UseDialect(d dialect) {
 	gDialect = d
 }
 
-// --------------------------------------------------------------------------------
 type dialect interface {
 	ParseVal(sql string) (string, error)
 	Quote(s string) string
@@ -24,7 +23,6 @@ var (
 	PostgreSQL = &postgresql{}
 )
 
-// --------------------------------------------------------------------------------
 type mysql struct {
 }
 
@@ -36,7 +34,6 @@ func (this *mysql) Quote(s string) string {
 	return fmt.Sprintf("`%s`", s)
 }
 
-// --------------------------------------------------------------------------------
 type postgresql struct {
 }
 

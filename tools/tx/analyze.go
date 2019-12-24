@@ -19,7 +19,6 @@ func main() {
 	fmt.Println(ta.WriteToFile("./result.json"))
 }
 
-// --------------------------------------------------------------------------------
 var beginTxRegexp = regexp.MustCompile(`Transaction \[(?P<txId>[^]]+)\] Begin`)
 var commitTxRegexp = regexp.MustCompile(`Transaction \[(?P<txId>[^]]+)\] Commit`)
 var rollbackTxRegexp = regexp.MustCompile(`Transaction \[(?P<txId>[^]]+)\] Rollback`)
@@ -48,7 +47,6 @@ func rollbackTx(s string) (id string) {
 	return id
 }
 
-// --------------------------------------------------------------------------------
 type analyze struct {
 	mu     sync.Mutex
 	txList map[string]*txInfo

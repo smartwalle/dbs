@@ -13,7 +13,6 @@ import (
 	"time"
 )
 
-// --------------------------------------------------------------------------------
 type TX interface {
 	DB
 
@@ -39,7 +38,6 @@ type TX interface {
 	rollback(calldepth int) (err error)
 }
 
-// --------------------------------------------------------------------------------
 type dbsTx struct {
 	id    string
 	db    DB
@@ -180,7 +178,6 @@ func (this *dbsTx) PingContext(ctx context.Context) error {
 	return this.db.PingContext(ctx)
 }
 
-// --------------------------------------------------------------------------------
 // 以下几个方法是为了实现 DB 接口，尽量不要使用
 
 // Begin 不会创建新的事务，如果当前事务已经关闭，则会返回事务已结束的错误，如果事务没有关闭，则返回当前事务
@@ -206,7 +203,6 @@ func (this *dbsTx) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, e
 }
 
 // 以上几个方法是为了实现 DB 接口，尽量不要使用
-// --------------------------------------------------------------------------------
 
 func NewTx(db DB) (TX, error) {
 	return newTxContext(context.Background(), db, nil)
@@ -258,7 +254,6 @@ func MustTxContext(ctx context.Context, db DB, opts *sql.TxOptions) TX {
 	return tx
 }
 
-// --------------------------------------------------------------------------------
 func genTxId() string {
 	var b = make([]byte, 9)
 	binary.BigEndian.PutUint32(b[:], uint32(time.Now().Unix()))

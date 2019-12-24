@@ -296,7 +296,6 @@ func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
 	return sb
 }
 
-// --------------------------------------------------------------------------------
 func (this *SelectBuilder) UseDialect(d dialect) {
 	this.d = d
 }
@@ -316,7 +315,6 @@ func (this *SelectBuilder) parseVal(sql string) (string, error) {
 	return this.d.ParseVal(sql)
 }
 
-// --------------------------------------------------------------------------------
 func (this *SelectBuilder) Scan(s Session, dest interface{}) (err error) {
 	return scanContext(context.Background(), s, this, dest)
 }
@@ -341,14 +339,12 @@ func (this *SelectBuilder) QueryContext(ctx context.Context, s Session) (*sql.Ro
 	return queryContext(ctx, s, this)
 }
 
-// --------------------------------------------------------------------------------
 func NewSelectBuilder() *SelectBuilder {
 	var sb = &SelectBuilder{}
 	sb.d = gDialect
 	return sb
 }
 
-// --------------------------------------------------------------------------------
 func Select(columns ...string) *SelectBuilder {
 	var sb = NewSelectBuilder()
 	sb.Selects(columns...)

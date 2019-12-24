@@ -7,7 +7,6 @@ import (
 	"fmt"
 )
 
-// --------------------------------------------------------------------------------
 func scanContext(ctx context.Context, s Session, b Builder, dest interface{}) (err error) {
 	var tx TX
 	var prefix string
@@ -102,7 +101,6 @@ func scanRowContext(ctx context.Context, s Session, b Builder, dest ...interface
 	return rows.Close()
 }
 
-// --------------------------------------------------------------------------------
 func queryContext(ctx context.Context, s Session, b Builder) (result *sql.Rows, err error) {
 	var tx TX
 	var prefix string
@@ -133,7 +131,6 @@ func queryContext(ctx context.Context, s Session, b Builder) (result *sql.Rows, 
 	return result, err
 }
 
-// --------------------------------------------------------------------------------
 func execContext(ctx context.Context, s Session, b Builder) (result sql.Result, err error) {
 	var tx TX
 	var prefix string

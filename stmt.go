@@ -7,7 +7,6 @@ import (
 	"strings"
 )
 
-// --------------------------------------------------------------------------------
 func placeholders(count int) string {
 	if count <= 0 {
 		return ""
@@ -15,18 +14,15 @@ func placeholders(count int) string {
 	return strings.Repeat(", ?", count)[2:]
 }
 
-// --------------------------------------------------------------------------------
 type SQLValue interface {
 	SQLValue() string
 }
 
-// --------------------------------------------------------------------------------
 type Statement interface {
 	WriteToSQL(w Writer) error
 	ToSQL() (string, []interface{}, error)
 }
 
-// --------------------------------------------------------------------------------
 type statement struct {
 	sql  interface{}
 	args []interface{}
@@ -83,7 +79,6 @@ func (this *statement) ToSQL() (string, []interface{}, error) {
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
-// --------------------------------------------------------------------------------
 type aliasStmt struct {
 	sql   interface{}
 	alias string
@@ -132,7 +127,6 @@ func (this *aliasStmt) ToSQL() (string, []interface{}, error) {
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
-// --------------------------------------------------------------------------------
 type whenStmt struct {
 	when Statement
 	then Statement
@@ -220,7 +214,6 @@ func (this *caseStmt) Else(sql interface{}, args ...interface{}) *caseStmt {
 	return this
 }
 
-// --------------------------------------------------------------------------------
 type setStmt struct {
 	column string
 	value  interface{}
@@ -253,7 +246,6 @@ func (this *setStmt) ToSQL() (string, []interface{}, error) {
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
-// --------------------------------------------------------------------------------
 type setStmts []*setStmt
 
 func (this setStmts) WriteToSQL(w Writer, sep string) error {
@@ -278,7 +270,6 @@ func (this setStmts) ToSQL() (string, []interface{}, error) {
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
-// --------------------------------------------------------------------------------
 type statements []Statement
 
 func (this statements) WriteToSQL(w Writer, sep string) error {
@@ -319,7 +310,6 @@ func (this statements) ToSQL() (string, []interface{}, error) {
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
-// --------------------------------------------------------------------------------
 type whereStmt struct {
 	stmts statements
 	sep   string
@@ -389,7 +379,6 @@ func OR(stmts ...Statement) *whereStmt {
 	return s
 }
 
-// --------------------------------------------------------------------------------
 func in(sql, exp string, args interface{}) Statement {
 	if len(sql) == 0 {
 		return nil
@@ -424,17 +413,14 @@ func in(sql, exp string, args interface{}) Statement {
 	return s
 }
 
-// --------------------------------------------------------------------------------
 func IN(sql string, args interface{}) Statement {
 	return in(sql, "IN", args)
 }
 
-// --------------------------------------------------------------------------------
 func NotIn(sql string, args interface{}) Statement {
 	return in(sql, "NOT IN", args)
 }
 
-// --------------------------------------------------------------------------------
 func parseStmt(sql interface{}, args ...interface{}) Statement {
 	switch s := sql.(type) {
 	case string:
@@ -447,7 +433,6 @@ func parseStmt(sql interface{}, args ...interface{}) Statement {
 	return nil
 }
 
-// --------------------------------------------------------------------------------
 var isMap = map[bool]string{true: "IS", false: "IS NOT"}
 var inMap = map[bool]string{true: "IN", false: "NOT IN"}
 var eqMap = map[bool]string{true: "=", false: "<>"}
@@ -524,7 +509,6 @@ func (this Eq) ToSQL() (string, []interface{}, error) {
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
-// --------------------------------------------------------------------------------
 type NotEq Eq
 
 func (this NotEq) WriteToSQL(w Writer) error {
@@ -539,7 +523,6 @@ func (this NotEq) ToSQL() (string, []interface{}, error) {
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
-// --------------------------------------------------------------------------------
 func like(sql, exp string, a ...interface{}) Statement {
 	var buf = &bytes.Buffer{}
 	fmt.Fprintf(buf, "%s %s ?", sql, exp)

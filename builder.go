@@ -8,18 +8,16 @@ import (
 	"strings"
 )
 
-// --------------------------------------------------------------------------------
 const (
 	kRawBuilder = "RawBuilder"
 )
 
-// --------------------------------------------------------------------------------
 type Builder interface {
 	Type() string
 	ToSQL() (string, []interface{}, error)
 }
 
-// --------------------------------------------------------------------------------
+// RawBuilder 原始 SQL 语句构造器，不会自动添加任何的关键字，主要是为了便于 SQL 语句及参数的管理。
 type RawBuilder struct {
 	d    dialect
 	sql  *bytes.Buffer
@@ -77,7 +75,6 @@ func (this *RawBuilder) reset() {
 	this.args = this.args[:0]
 }
 
-// --------------------------------------------------------------------------------
 func (this *RawBuilder) UseDialect(d dialect) {
 	this.d = d
 }
@@ -97,7 +94,6 @@ func (this *RawBuilder) parseVal(sql string) (string, error) {
 	return this.d.ParseVal(sql)
 }
 
-// --------------------------------------------------------------------------------
 func (this *RawBuilder) Scan(s Session, dest interface{}) (err error) {
 	return scanContext(context.Background(), s, this, dest)
 }
@@ -130,7 +126,6 @@ func (this *RawBuilder) ExecContext(ctx context.Context, s Session) (result sql.
 	return execContext(ctx, s, this)
 }
 
-// --------------------------------------------------------------------------------
 func NewBuilder(sql string, args ...interface{}) *RawBuilder {
 	var b = &RawBuilder{}
 	b.d = gDialect

@@ -9,7 +9,6 @@ import (
 	"time"
 )
 
-// --------------------------------------------------------------------------------
 func NewSQL(driver, url string, maxOpen, maxIdle int) (db *sql.DB, err error) {
 	db, err = sql.Open(driver, url)
 	if err != nil {
@@ -27,7 +26,6 @@ func NewSQL(driver, url string, maxOpen, maxIdle int) (db *sql.DB, err error) {
 	return db, err
 }
 
-// --------------------------------------------------------------------------------
 func NewCache(db DB) *DBCache {
 	var c = &DBCache{}
 	c.db = db
@@ -149,7 +147,6 @@ func md5Key(key string) string {
 	return hex.EncodeToString(a)
 }
 
-// --------------------------------------------------------------------------------
 type Session interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
@@ -161,7 +158,6 @@ type Session interface {
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
 }
 
-// --------------------------------------------------------------------------------
 type DB interface {
 	Session
 
