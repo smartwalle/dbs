@@ -315,18 +315,42 @@ func (this *SelectBuilder) parseVal(sql string) (string, error) {
 	return this.d.ParseVal(sql)
 }
 
+// Scan 读取数据到一个结构体中。
+// 需要注意：声明变量的时候，变量应该为某一结构体的指针类型，不需要初始化，调用 Scan() 方法的时候，需要传递变量的地址。
+// var user *User
+//
+// var sb = dbs.NewSelectBuilder()
+// sb.Scan(db, &user)
 func (this *SelectBuilder) Scan(s Session, dest interface{}) (err error) {
 	return scanContext(context.Background(), s, this, dest)
 }
 
+// ScanContext 读取数据到一个结构体中。
+// 需要注意：声明变量的时候，变量应该为某一结构体的指针类型，不需要初始化，调用 ScanContext() 方法的时候，需要传递变量的地址。
+// var user *User
+//
+// var sb = dbs.NewSelectBuilder()
+// sb.ScanContext(ctx, db, &user)
 func (this *SelectBuilder) ScanContext(ctx context.Context, s Session, dest interface{}) (err error) {
 	return scanContext(ctx, s, this, dest)
 }
 
+// ScanRow 读取数据到基本数据类型的变量中，类似于 database/sql 包中结构体 Rows 的 Scan() 方法。
+// var name string
+// var age int
+//
+// var sb = dbs.NewSelectBuilder()
+// sb.ScanRow(db, &name, &age)
 func (this *SelectBuilder) ScanRow(s Session, dest ...interface{}) (err error) {
 	return scanRowContext(context.Background(), s, this, dest...)
 }
 
+// ScanRowContext 读取数据到基本数据类型的变量中，类似于 database/sql 包中结构体 Rows 的 Scan() 方法。
+// var name string
+// var age int
+//
+// var sb = dbs.NewSelectBuilder()
+// sb.ScanRowContext(ctx, db, &name, &age)
 func (this *SelectBuilder) ScanRowContext(ctx context.Context, s Session, dest ...interface{}) (err error) {
 	return scanRowContext(ctx, s, this, dest...)
 }
