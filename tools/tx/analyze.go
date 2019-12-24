@@ -15,8 +15,8 @@ import (
 
 func main() {
 	var ta = NewAnalyze()
-	ta.Load("./logs")
-	fmt.Println(ta.UnClosedToFile("./result.json"))
+	ta.Load("./logs_dbs")
+	fmt.Println(ta.WriteToFile("./result.json"))
 }
 
 // --------------------------------------------------------------------------------
@@ -191,30 +191,6 @@ func (this *analyze) JSON() string {
 }
 
 func (this *analyze) WriteToFile(file string) error {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	bs, err := json.MarshalIndent(this.txList, "", " ")
-	if err != nil {
-		return err
-	}
-
-	f, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_SYNC|os.O_TRUNC, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	var writer = bufio.NewWriter(f)
-	if _, err = writer.Write(bs); err != nil {
-		return err
-	}
-	if err = writer.Flush(); err != nil {
-		return err
-	}
-	return f.Close()
-}
-
-func (this *analyze) UnClosedToFile(file string) error {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 

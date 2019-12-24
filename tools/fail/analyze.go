@@ -14,7 +14,7 @@ import (
 
 func main() {
 	var ta = NewAnalyze()
-	ta.Load("./logs")
+	ta.Load("./logs_dbs")
 	fmt.Println(ta.WriteToFile("./result.json"))
 }
 
