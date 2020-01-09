@@ -163,7 +163,7 @@ func (this *SelectBuilder) ToSQL() (string, []interface{}, error) {
 
 func (this *SelectBuilder) WriteToSQL(w Writer) (err error) {
 	if len(this.columns) == 0 {
-		return errors.New("dbs: SELECT statements must have at least on result column")
+		return errors.New("dbs: SELECT statement must have at least one result column")
 	}
 
 	if len(this.prefixes) > 0 {

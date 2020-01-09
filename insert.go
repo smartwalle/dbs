@@ -109,10 +109,10 @@ func (this *InsertBuilder) ToSQL() (string, []interface{}, error) {
 
 func (this *InsertBuilder) WriteToSQL(w Writer) (err error) {
 	if len(this.table) == 0 {
-		return errors.New("dbs: INSERT statements must specify a table")
+		return errors.New("dbs: INSERT statement must specify a table")
 	}
 	if len(this.values) == 0 && this.sb == nil {
-		return errors.New("dbs: INSERT statements must have at least one set of values")
+		return errors.New("dbs: INSERT statement must have at least one set of values")
 	}
 
 	if len(this.prefixes) > 0 {

@@ -127,7 +127,10 @@ func (this *DeleteBuilder) ToSQL() (string, []interface{}, error) {
 
 func (this *DeleteBuilder) WriteToSQL(w Writer) (err error) {
 	if len(this.tables) == 0 {
-		return errors.New("dbs: DELETE statements must specify a table")
+		return errors.New("dbs: DELETE statement must specify a table")
+	}
+	if len(this.wheres) == 0 {
+		return errors.New("dbs: DELETE statement must have at least one where")
 	}
 
 	if len(this.prefixes) > 0 {

@@ -142,10 +142,13 @@ func (this *UpdateBuilder) ToSQL() (string, []interface{}, error) {
 
 func (this *UpdateBuilder) WriteToSQL(w Writer) (err error) {
 	if len(this.tables) == 0 {
-		return errors.New("dbs: UPDATE statements must specify a table")
+		return errors.New("dbs: UPDATE statement must specify a table")
 	}
 	if len(this.columns) == 0 {
-		return errors.New("dbs: UPDATE statements must have at least one Set")
+		return errors.New("dbs: UPDATE statement must have at least one Set")
+	}
+	if len(this.wheres) == 0 {
+		return errors.New("dbs: UPDATE statement must have at least one where")
 	}
 
 	if len(this.prefixes) > 0 {
