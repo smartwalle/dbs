@@ -6,8 +6,8 @@ import (
 )
 
 func TestPostgreSQL(t *testing.T) {
-	fmt.Println("===== PostgreSQL =====")
-	gDialect = PostgreSQL
+	fmt.Println("===== DialectPostgreSQL =====")
+	gDialect = DialectPostgreSQL
 
 	var sb = NewSelectBuilder()
 	sb.Selects("u.id")
@@ -17,5 +17,5 @@ func TestPostgreSQL(t *testing.T) {
 	var s, _, _ = sb.ToSQL()
 	fmt.Println(s)
 
-	gDialect = MySQL
+	gDialect = DialectMySQL
 }

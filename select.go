@@ -16,7 +16,7 @@ const (
 )
 
 type SelectBuilder struct {
-	d        dialect
+	builder
 	prefixes statements
 	options  statements
 	columns  statements
@@ -294,25 +294,6 @@ func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
 	}
 
 	return sb
-}
-
-func (this *SelectBuilder) UseDialect(d dialect) {
-	this.d = d
-}
-
-func (this *SelectBuilder) quote(s string) string {
-	if strings.Index(s, ".") != -1 {
-		var newStrs []string
-		for _, s := range strings.Split(s, ".") {
-			newStrs = append(newStrs, this.d.Quote(s))
-		}
-		return strings.Join(newStrs, ".")
-	}
-	return this.d.Quote(s)
-}
-
-func (this *SelectBuilder) parseVal(sql string) (string, error) {
-	return this.d.ParseVal(sql)
 }
 
 // Scan 读取数据到一个结构体中。

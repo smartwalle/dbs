@@ -13,7 +13,7 @@ const (
 )
 
 type DeleteBuilder struct {
-	d        dialect
+	builder
 	prefixes statements
 	options  statements
 	alias    []string
@@ -228,25 +228,6 @@ func (this *DeleteBuilder) WriteToSQL(w Writer) (err error) {
 		}
 	}
 	return nil
-}
-
-func (this *DeleteBuilder) UseDialect(d dialect) {
-	this.d = d
-}
-
-func (this *DeleteBuilder) quote(s string) string {
-	if strings.Index(s, ".") != -1 {
-		var newStrs []string
-		for _, s := range strings.Split(s, ".") {
-			newStrs = append(newStrs, this.d.Quote(s))
-		}
-		return strings.Join(newStrs, ".")
-	}
-	return this.d.Quote(s)
-}
-
-func (this *DeleteBuilder) parseVal(sql string) (string, error) {
-	return this.d.ParseVal(sql)
 }
 
 func (this *DeleteBuilder) Exec(s Session) (sql.Result, error) {

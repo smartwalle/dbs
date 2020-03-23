@@ -12,7 +12,7 @@ const (
 )
 
 type UpdateBuilder struct {
-	d        dialect
+	builder
 	prefixes statements
 	options  statements
 	tables   statements
@@ -238,25 +238,6 @@ func (this *UpdateBuilder) WriteToSQL(w Writer) (err error) {
 	}
 
 	return nil
-}
-
-func (this *UpdateBuilder) UseDialect(d dialect) {
-	this.d = d
-}
-
-func (this *UpdateBuilder) quote(s string) string {
-	if strings.Index(s, ".") != -1 {
-		var newStrs []string
-		for _, s := range strings.Split(s, ".") {
-			newStrs = append(newStrs, this.d.Quote(s))
-		}
-		return strings.Join(newStrs, ".")
-	}
-	return this.d.Quote(s)
-}
-
-func (this *UpdateBuilder) parseVal(sql string) (string, error) {
-	return this.d.ParseVal(sql)
 }
 
 func (this *UpdateBuilder) Exec(s Session) (sql.Result, error) {

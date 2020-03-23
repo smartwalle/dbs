@@ -17,9 +17,36 @@ type Builder interface {
 	ToSQL() (string, []interface{}, error)
 }
 
+type builder struct {
+	d Dialect
+}
+
+func (this *builder) UseDialect(d Dialect) {
+	this.d = d
+}
+
+func (this *builder) GetDialect() Dialect {
+	return this.d
+}
+
+func (this *builder) quote(s string) string {
+	if strings.Index(s, ".") != -1 {
+		var newStrs []string
+		for _, s := range strings.Split(s, ".") {
+			newStrs = append(newStrs, this.d.Quote(s))
+		}
+		return strings.Join(newStrs, ".")
+	}
+	return this.d.Quote(s)
+}
+
+func (this *builder) parseVal(sql string) (string, error) {
+	return this.d.ParseVal(sql)
+}
+
 // RawBuilder 原始 SQL 语句构造器，不会自动添加任何的关键字，主要是为了便于 SQL 语句及参数的管理。
 type RawBuilder struct {
-	d    dialect
+	builder
 	sql  *bytes.Buffer
 	args []interface{}
 }
@@ -73,10 +100,6 @@ func (this *RawBuilder) WriteToSQL(w Writer) error {
 func (this *RawBuilder) reset() {
 	this.sql.Reset()
 	this.args = this.args[:0]
-}
-
-func (this *RawBuilder) UseDialect(d dialect) {
-	this.d = d
 }
 
 func (this *RawBuilder) quote(s string) string {

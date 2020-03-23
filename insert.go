@@ -13,7 +13,7 @@ const (
 )
 
 type InsertBuilder struct {
-	d        dialect
+	builder
 	prefixes statements
 	options  statements
 	columns  []string
@@ -208,26 +208,11 @@ func (this *InsertBuilder) reset() {
 	this.values = this.values[:0]
 }
 
-func (this *InsertBuilder) UseDialect(d dialect) {
+func (this *InsertBuilder) UseDialect(d Dialect) {
 	this.d = d
 	if this.sb != nil {
 		this.sb.UseDialect(this.d)
 	}
-}
-
-func (this *InsertBuilder) quote(s string) string {
-	if strings.Index(s, ".") != -1 {
-		var newStrs []string
-		for _, s := range strings.Split(s, ".") {
-			newStrs = append(newStrs, this.d.Quote(s))
-		}
-		return strings.Join(newStrs, ".")
-	}
-	return this.d.Quote(s)
-}
-
-func (this *InsertBuilder) parseVal(sql string) (string, error) {
-	return this.d.ParseVal(sql)
 }
 
 func (this *InsertBuilder) Exec(s Session) (sql.Result, error) {

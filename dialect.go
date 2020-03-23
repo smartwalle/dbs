@@ -6,21 +6,25 @@ import (
 	"strings"
 )
 
-var gDialect dialect = Default
+var gDialect Dialect = DialectDefault
 
-func UseDialect(d dialect) {
+func UseDialect(d Dialect) {
 	gDialect = d
 }
 
-type dialect interface {
+func GetDialect() Dialect {
+	return gDialect
+}
+
+type Dialect interface {
 	ParseVal(sql string) (string, error)
 	Quote(s string) string
 }
 
 var (
-	MySQL      = &mysql{}
-	Default    = MySQL
-	PostgreSQL = &postgresql{}
+	DialectMySQL      = &mysql{}
+	DialectDefault    = DialectMySQL
+	DialectPostgreSQL = &postgresql{}
 )
 
 type mysql struct {
