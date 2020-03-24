@@ -31,6 +31,11 @@ func (this *DeleteBuilder) Type() string {
 	return kDeleteBuilder
 }
 
+func (this *DeleteBuilder) UseDialect(d Dialect) *DeleteBuilder {
+	this.builder.UseDialect(d)
+	return this
+}
+
 func (this *DeleteBuilder) Prefix(sql string, args ...interface{}) *DeleteBuilder {
 	this.prefixes = append(this.prefixes, NewStatement(sql, args...))
 	return this

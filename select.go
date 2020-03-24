@@ -35,6 +35,11 @@ func (this *SelectBuilder) Type() string {
 	return kSelectBuilder
 }
 
+func (this *SelectBuilder) UseDialect(d Dialect) *SelectBuilder {
+	this.builder.UseDialect(d)
+	return this
+}
+
 func (this *SelectBuilder) Clone() *SelectBuilder {
 	var sb = *this
 	return &sb

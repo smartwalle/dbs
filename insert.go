@@ -27,6 +27,14 @@ func (this *InsertBuilder) Type() string {
 	return kInsertBuilder
 }
 
+func (this *InsertBuilder) UseDialect(d Dialect) *InsertBuilder {
+	this.builder.UseDialect(d)
+	if this.sb != nil {
+		this.sb.UseDialect(this.d)
+	}
+	return this
+}
+
 func (this *InsertBuilder) Clone() *InsertBuilder {
 	var ib = &(*this)
 	ib.values = nil
@@ -206,13 +214,6 @@ func (this *InsertBuilder) WriteToSQL(w Writer) (err error) {
 
 func (this *InsertBuilder) reset() {
 	this.values = this.values[:0]
-}
-
-func (this *InsertBuilder) UseDialect(d Dialect) {
-	this.d = d
-	if this.sb != nil {
-		this.sb.UseDialect(this.d)
-	}
 }
 
 func (this *InsertBuilder) Exec(s Session) (sql.Result, error) {

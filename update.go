@@ -29,6 +29,11 @@ func (this *UpdateBuilder) Type() string {
 	return kUpdateBuilder
 }
 
+func (this *UpdateBuilder) UseDialect(d Dialect) *UpdateBuilder {
+	this.builder.UseDialect(d)
+	return this
+}
+
 func (this *UpdateBuilder) Prefix(sql string, args ...interface{}) *UpdateBuilder {
 	this.prefixes = append(this.prefixes, NewStatement(sql, args...))
 	return this

@@ -55,6 +55,11 @@ func (this *RawBuilder) Type() string {
 	return kRawBuilder
 }
 
+func (this *RawBuilder) UseDialect(d Dialect) *RawBuilder {
+	this.builder.UseDialect(d)
+	return this
+}
+
 func (this *RawBuilder) Append(sql string, args ...interface{}) *RawBuilder {
 	if sql != "" {
 		this.sql.WriteString(sql)
