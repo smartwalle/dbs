@@ -151,10 +151,13 @@ func Case(what ...interface{}) *caseStmt {
 }
 
 func (this *caseStmt) WriteToSQL(w Writer) error {
-	if _, err := w.WriteString("CASE "); err != nil {
+	if _, err := w.WriteString("CASE"); err != nil {
 		return err
 	}
 	if this.whatPart != nil {
+		if _, err := w.WriteString(" "); err != nil {
+			return err
+		}
 		if err := this.whatPart.WriteToSQL(w); err != nil {
 			return err
 		}

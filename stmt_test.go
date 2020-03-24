@@ -26,7 +26,7 @@ func TestAlias(t *testing.T) {
 
 func TestCase(t *testing.T) {
 	fmt.Println("===== Case =====")
-	var c = Case("a").When("1", "'男'").When("2", "'女'")
+	var c = Case().When("1", "'男'").When("2", "'女'").Else("33")
 	fmt.Println(c.ToSQL())
 
 	var c2 = Alias(c, "cc")
