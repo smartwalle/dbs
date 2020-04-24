@@ -29,8 +29,7 @@ func NewSQL(driver, url string, maxOpen, maxIdle int) (db *sql.DB, err error) {
 func NewCache(db DB) *DBCache {
 	var c = &DBCache{}
 	c.db = db
-	c.stmts = dbc.NewCache()
-	c.stmts.OnRemovedItem(c.onCloseStmt)
+	c.stmts = dbc.NewCache(dbc.WithRemoveHandler(c.onCloseStmt))
 	return c
 }
 
