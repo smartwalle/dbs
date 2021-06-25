@@ -242,7 +242,7 @@ func newTxContext(ctx context.Context, db DB, opts *sql.TxOptions) (TX, error) {
 	tx.db = db
 	tx.id = genTxId()
 	logger.Output(3, fmt.Sprintf("Transaction [%s] Begin Success\n", tx.id))
-	_, tx.cache = db.(*DBCache)
+	//_, tx.cache = db.(*DBCache)
 	return tx, err
 }
 
