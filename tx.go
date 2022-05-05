@@ -39,12 +39,12 @@ type TX interface {
 }
 
 type dbsTx struct {
-	id    string
-	db    DB
-	cache bool
-	tx    *sql.Tx
-	done  bool
-	mu    sync.Mutex
+	id     string
+	db     DB
+	cached bool
+	tx     *sql.Tx
+	done   bool
+	mu     sync.Mutex
 }
 
 func (this *dbsTx) Id() string {
@@ -84,7 +84,7 @@ func (this *dbsTx) StmtContext(ctx context.Context, stmt *sql.Stmt) *sql.Stmt {
 }
 
 func (this *dbsTx) Exec(query string, args ...interface{}) (result sql.Result, err error) {
-	if this.cache {
+	if this.cached {
 		stmt, err := this.Prepare(query)
 		if err != nil {
 			return nil, err
@@ -95,7 +95,7 @@ func (this *dbsTx) Exec(query string, args ...interface{}) (result sql.Result, e
 }
 
 func (this *dbsTx) ExecContext(ctx context.Context, query string, args ...interface{}) (result sql.Result, err error) {
-	if this.cache {
+	if this.cached {
 		stmt, err := this.PrepareContext(ctx, query)
 		if err != nil {
 			return nil, err
@@ -106,7 +106,7 @@ func (this *dbsTx) ExecContext(ctx context.Context, query string, args ...interf
 }
 
 func (this *dbsTx) Query(query string, args ...interface{}) (rows *sql.Rows, err error) {
-	if this.cache {
+	if this.cached {
 		stmt, err := this.Prepare(query)
 		if err != nil {
 			return nil, err
@@ -117,7 +117,7 @@ func (this *dbsTx) Query(query string, args ...interface{}) (rows *sql.Rows, err
 }
 
 func (this *dbsTx) QueryContext(ctx context.Context, query string, args ...interface{}) (rows *sql.Rows, err error) {
-	if this.cache {
+	if this.cached {
 		stmt, err := this.PrepareContext(ctx, query)
 		if err != nil {
 			return nil, err
@@ -242,7 +242,7 @@ func newTxContext(ctx context.Context, db DB, opts *sql.TxOptions) (TX, error) {
 	tx.db = db
 	tx.id = genTxId()
 	logger.Output(3, fmt.Sprintf("Transaction [%s] Begin Success\n", tx.id))
-	//_, tx.cache = db.(*DBCache)
+	_, tx.cached = db.(*DBCache)
 	return tx, err
 }
 
