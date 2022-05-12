@@ -29,14 +29,14 @@ func NewSQL(driver, url string, maxOpen, maxIdle int) (db *sql.DB, err error) {
 func NewCache(db DB) *DBCache {
 	var c = &DBCache{}
 	c.db = db
-	c.stmts = dbc.New()
+	c.stmts = dbc.New[*sql.Stmt]()
 	c.stmts.OnEvicted(c.onCloseStmt)
 	return c
 }
 
 type DBCache struct {
 	db    DB
-	stmts dbc.Cache
+	stmts dbc.Cache[*sql.Stmt]
 }
 
 func (this *DBCache) Close() error {
@@ -54,12 +54,8 @@ func (this *DBCache) PingContext(ctx context.Context) error {
 }
 
 func (this *DBCache) getStmt(key string) *sql.Stmt {
-	var v, _ = this.stmts.Get(MD5Key(key))
-	if v == nil {
-		return nil
-	}
-	stmt, ok := v.(*sql.Stmt)
-	if ok == false {
+	var stmt, found = this.stmts.Get(MD5Key(key))
+	if found == false {
 		return nil
 	}
 	return stmt
@@ -69,9 +65,9 @@ func (this *DBCache) putStmt(key string, s *sql.Stmt) {
 	this.stmts.SetEx(MD5Key(key), s, time.Now().Add(time.Minute*30).Unix())
 }
 
-func (this *DBCache) onCloseStmt(key string, value interface{}) {
-	if stmt, ok := value.(*sql.Stmt); ok {
-		stmt.Close()
+func (this *DBCache) onCloseStmt(key string, value *sql.Stmt) {
+	if value != nil {
+		value.Close()
 	}
 }
 
