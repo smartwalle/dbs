@@ -29,4 +29,3 @@ _testmain.go
 *.iml
 logs
 .DS_Store
-go.sum
