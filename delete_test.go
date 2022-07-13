@@ -13,5 +13,5 @@ func TestDeleteBuilder(t *testing.T) {
 	//db.Where("u.id=?", 10)
 	db.Limit(1)
 	db.Offset(2)
-	fmt.Println(db.ToSQL())
+	fmt.Println(db.SQL())
 }

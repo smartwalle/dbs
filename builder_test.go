@@ -12,5 +12,5 @@ func TestBuilder(t *testing.T) {
 	b.Format("FROM %s AS a", "add")
 	b.Append("WHERE id>?", 10)
 	b.Append("LIMIT ?").Params(20)
-	fmt.Println(b.ToSQL())
+	fmt.Println(b.SQL())
 }

@@ -100,11 +100,11 @@ func (this *InsertBuilder) Select(sb *SelectBuilder) *InsertBuilder {
 	return this
 }
 
-func (this *InsertBuilder) ToSQL() (string, []interface{}, error) {
+func (this *InsertBuilder) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	if err := this.WriteToSQL(sqlBuf); err != nil {
+	if err := this.Write(sqlBuf); err != nil {
 		return "", nil, err
 	}
 
@@ -115,7 +115,7 @@ func (this *InsertBuilder) ToSQL() (string, []interface{}, error) {
 	return sql, sqlBuf.Values(), nil
 }
 
-func (this *InsertBuilder) WriteToSQL(w Writer) (err error) {
+func (this *InsertBuilder) Write(w Writer) (err error) {
 	if len(this.table) == 0 {
 		return errors.New("dbs: INSERT statement must specify a table")
 	}
@@ -124,7 +124,7 @@ func (this *InsertBuilder) WriteToSQL(w Writer) (err error) {
 	}
 
 	if len(this.prefixes) > 0 {
-		if err = this.prefixes.WriteToSQL(w, " "); err != nil {
+		if err = this.prefixes.Write(w, " "); err != nil {
 			return err
 		}
 		if _, err = w.WriteString(" "); err != nil {
@@ -137,7 +137,7 @@ func (this *InsertBuilder) WriteToSQL(w Writer) (err error) {
 	}
 
 	if len(this.options) > 0 {
-		if err = this.options.WriteToSQL(w, " "); err != nil {
+		if err = this.options.Write(w, " "); err != nil {
 			return err
 		}
 		if _, err = w.WriteString(" "); err != nil {
@@ -176,7 +176,7 @@ func (this *InsertBuilder) WriteToSQL(w Writer) (err error) {
 			for i, v := range value {
 				switch vt := v.(type) {
 				case Statement:
-					vSQL, vArgs, _ := vt.ToSQL()
+					vSQL, vArgs, _ := vt.SQL()
 					valuePlaceholder[i] = vSQL
 					w.WriteArgs(vArgs...)
 				default:
@@ -193,7 +193,7 @@ func (this *InsertBuilder) WriteToSQL(w Writer) (err error) {
 		if _, err = w.WriteString(" ("); err != nil {
 			return err
 		}
-		if err = this.sb.WriteToSQL(w); err != nil {
+		if err = this.sb.Write(w); err != nil {
 			return err
 		}
 		if _, err = w.WriteString(")"); err != nil {
@@ -205,7 +205,7 @@ func (this *InsertBuilder) WriteToSQL(w Writer) (err error) {
 		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
-		if err = this.suffixes.WriteToSQL(w, " "); err != nil {
+		if err = this.suffixes.Write(w, " "); err != nil {
 			return err
 		}
 	}

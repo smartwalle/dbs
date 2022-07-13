@@ -9,5 +9,5 @@ func TestOnDuplicateKeyUpdate(t *testing.T) {
 	s.Append("a = VALUES(a + ?)", 10)
 	s.Append("b = VALUES(b)")
 
-	t.Log(s.ToSQL())
+	t.Log(s.SQL())
 }

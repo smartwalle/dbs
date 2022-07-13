@@ -14,7 +14,7 @@ func TestPostgreSQL(t *testing.T) {
 	sb.From("user", "AS u")
 	sb.Where("u.id = ? OR u.id = ? OR u.id = ?")
 
-	var s, _, _ = sb.ToSQL()
+	var s, _, _ = sb.SQL()
 	fmt.Println(s)
 
 	gDialect = DialectMySQL

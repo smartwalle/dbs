@@ -14,11 +14,11 @@ func TestUpdateBuilder(t *testing.T) {
 	ub.SET("amount", SQL("amount+?", 1))
 	ub.Where("id=?", 10)
 	ub.Limit(1)
-	fmt.Println(ub.ToSQL())
+	fmt.Println(ub.SQL())
 }
 
 func TestUpdate(t *testing.T) {
 	fmt.Println("===== Update =====")
 	var v2 = 1000
-	fmt.Println(Update("table_name").SETS("c1", "v1", "c2", v2).Where("c2 = ?", 10).ToSQL())
+	fmt.Println(Update("table_name").SETS("c1", "v1", "c2", v2).Where("c2 = ?", 10).SQL())
 }

@@ -27,7 +27,7 @@ func main() {
 	sb.Where("u.id = ?", 1)
 	sb.Limit(1)
 
-	sqlStr, args, _ := sb.ToSQL()
+	sqlStr, args, _ := sb.SQL()
 	fmt.Println("sqlStr:", sqlStr)
 	fmt.Println("args:", args)
 }
@@ -109,7 +109,7 @@ sb.Select(dbs.Alias("b.amount", "user_amount"))
 sb.From("user", "AS u")
 sb.LeftJoin("bank", "AS b ON b.user_id = u.id")
 sb.Where("u.id = ?", 1)
-fmt.Println(sb.ToSQL())
+fmt.Println(sb.SQL())
 ```
 
 执行 Select 语句：
@@ -128,7 +128,7 @@ ib.Table("user")
 ib.Columns("name", "age")
 ib.Values("用户1", 18)
 ib.Values("用户2", 20)
-fmt.Println(ib.ToSQL())
+fmt.Println(ib.SQL())
 ```
 
 执行 Insert 语句：
@@ -145,7 +145,7 @@ ub.Table("user")
 ub.SET("name", "新的名字")
 ub.Where("id = ? ", 1)
 ub.Limit(1)
-fmt.Println(ub.ToSQL())
+fmt.Println(ub.SQL())
 ```
 
 执行 Update 语句：
@@ -162,7 +162,7 @@ var rb = dbs.NewDeleteBuilder()
 rb.Table("user")
 rb.Where("id = ?", 1)
 rb.Limit(1)
-fmt.Println(rb.ToSQL())
+fmt.Println(rb.SQL())
 ```
 
 执行 Delete 语句：

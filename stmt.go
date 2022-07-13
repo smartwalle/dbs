@@ -19,8 +19,8 @@ type SQLValue interface {
 }
 
 type Statement interface {
-	WriteToSQL(w Writer) error
-	ToSQL() (string, []interface{}, error)
+	Write(w Writer) error
+	SQL() (string, []interface{}, error)
 }
 
 type statement struct {
@@ -39,10 +39,10 @@ func SQL(sql string, args ...interface{}) *statement {
 	return NewStatement(sql, args...)
 }
 
-func (this *statement) WriteToSQL(w Writer) error {
+func (this *statement) Write(w Writer) error {
 	switch ts := this.sql.(type) {
 	case Statement:
-		if err := ts.WriteToSQL(w); err != nil {
+		if err := ts.Write(w); err != nil {
 			return err
 		}
 	case string:
@@ -58,7 +58,7 @@ func (this *statement) WriteToSQL(w Writer) error {
 			if _, err := w.WriteString("("); err != nil {
 				return err
 			}
-			if err := ta.WriteToSQL(w); err != nil {
+			if err := ta.Write(w); err != nil {
 				return err
 			}
 			if _, err := w.WriteString(")"); err != nil {
@@ -71,11 +71,11 @@ func (this *statement) WriteToSQL(w Writer) error {
 	return nil
 }
 
-func (this *statement) ToSQL() (string, []interface{}, error) {
+func (this *statement) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.WriteToSQL(sqlBuf)
+	err := this.Write(sqlBuf)
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
@@ -91,13 +91,13 @@ func Alias(sql interface{}, alias string) *aliasStmt {
 	return s
 }
 
-func (this *aliasStmt) WriteToSQL(w Writer) error {
+func (this *aliasStmt) Write(w Writer) error {
 	switch ts := this.sql.(type) {
 	case Statement:
 		if _, err := w.WriteString("("); err != nil {
 			return err
 		}
-		if err := ts.WriteToSQL(w); err != nil {
+		if err := ts.Write(w); err != nil {
 			return err
 		}
 		if _, err := w.WriteString(")"); err != nil {
@@ -119,11 +119,11 @@ func (this *aliasStmt) WriteToSQL(w Writer) error {
 	return nil
 }
 
-func (this *aliasStmt) ToSQL() (string, []interface{}, error) {
+func (this *aliasStmt) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.WriteToSQL(sqlBuf)
+	err := this.Write(sqlBuf)
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
@@ -150,7 +150,7 @@ func Case(what ...interface{}) *caseStmt {
 	return c
 }
 
-func (this *caseStmt) WriteToSQL(w Writer) error {
+func (this *caseStmt) Write(w Writer) error {
 	if _, err := w.WriteString("CASE"); err != nil {
 		return err
 	}
@@ -158,7 +158,7 @@ func (this *caseStmt) WriteToSQL(w Writer) error {
 		if _, err := w.WriteString(" "); err != nil {
 			return err
 		}
-		if err := this.whatPart.WriteToSQL(w); err != nil {
+		if err := this.whatPart.Write(w); err != nil {
 			return err
 		}
 	}
@@ -167,13 +167,13 @@ func (this *caseStmt) WriteToSQL(w Writer) error {
 		if _, err := w.WriteString(" WHEN "); err != nil {
 			return err
 		}
-		if err := wp.when.WriteToSQL(w); err != nil {
+		if err := wp.when.Write(w); err != nil {
 			return err
 		}
 		if _, err := w.WriteString(" THEN "); err != nil {
 			return err
 		}
-		if err := wp.then.WriteToSQL(w); err != nil {
+		if err := wp.then.Write(w); err != nil {
 			return err
 		}
 		w.WriteArgs(wp.args...)
@@ -183,7 +183,7 @@ func (this *caseStmt) WriteToSQL(w Writer) error {
 		if _, err := w.WriteString(" ELSE "); err != nil {
 			return err
 		}
-		if err := this.elsePart.WriteToSQL(w); err != nil {
+		if err := this.elsePart.Write(w); err != nil {
 			return err
 		}
 	}
@@ -194,11 +194,11 @@ func (this *caseStmt) WriteToSQL(w Writer) error {
 	return nil
 }
 
-func (this *caseStmt) ToSQL() (string, []interface{}, error) {
+func (this *caseStmt) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.WriteToSQL(sqlBuf)
+	err := this.Write(sqlBuf)
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
@@ -226,12 +226,12 @@ func newSet(column string, value interface{}) *setStmt {
 	return &setStmt{column, value}
 }
 
-func (this *setStmt) WriteToSQL(w Writer) error {
+func (this *setStmt) Write(w Writer) error {
 	w.WriteString(this.column)
 	w.WriteString("=")
 	switch tv := this.value.(type) {
 	case Statement:
-		if err := tv.WriteToSQL(w); err != nil {
+		if err := tv.Write(w); err != nil {
 			return err
 		}
 	default:
@@ -241,41 +241,41 @@ func (this *setStmt) WriteToSQL(w Writer) error {
 	return nil
 }
 
-func (this *setStmt) ToSQL() (string, []interface{}, error) {
+func (this *setStmt) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.WriteToSQL(sqlBuf)
+	err := this.Write(sqlBuf)
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
 type setStmts []*setStmt
 
-func (this setStmts) WriteToSQL(w Writer, sep string) error {
+func (this setStmts) Write(w Writer, sep string) error {
 	for i, c := range this {
 		if i != 0 {
 			if _, err := w.WriteString(sep); err != nil {
 				return err
 			}
 		}
-		if err := c.WriteToSQL(w); err != nil {
+		if err := c.Write(w); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (this setStmts) ToSQL() (string, []interface{}, error) {
+func (this setStmts) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.WriteToSQL(sqlBuf, ", ")
+	err := this.Write(sqlBuf, ", ")
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
 type statements []Statement
 
-func (this statements) WriteToSQL(w Writer, sep string) error {
+func (this statements) Write(w Writer, sep string) error {
 	for i, stmt := range this {
 		if i != 0 {
 			if _, err := w.WriteString(sep); err != nil {
@@ -287,29 +287,29 @@ func (this statements) WriteToSQL(w Writer, sep string) error {
 			if _, err := w.WriteString("("); err != nil {
 				return err
 			}
-			if err := st.WriteToSQL(w); err != nil {
+			if err := st.Write(w); err != nil {
 				return err
 			}
 			if _, err := w.WriteString(")"); err != nil {
 				return err
 			}
 		default:
-			if err := st.WriteToSQL(w); err != nil {
+			if err := st.Write(w); err != nil {
 				return err
 			}
 		}
-		//if err := stmt.WriteToSQL(w, args); err != nil {
+		//if err := stmt.Write(w, args); err != nil {
 		//	return err
 		//}
 	}
 	return nil
 }
 
-func (this statements) ToSQL() (string, []interface{}, error) {
+func (this statements) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.WriteToSQL(sqlBuf, ", ")
+	err := this.Write(sqlBuf, ", ")
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
@@ -318,7 +318,7 @@ type whereStmt struct {
 	sep   string
 }
 
-func (this *whereStmt) WriteToSQL(w Writer) error {
+func (this *whereStmt) Write(w Writer) error {
 	for i, stmt := range this.stmts {
 		if i != 0 {
 			if _, err := w.WriteString(this.sep); err != nil {
@@ -331,14 +331,14 @@ func (this *whereStmt) WriteToSQL(w Writer) error {
 			if _, err := w.WriteString("("); err != nil {
 				return err
 			}
-			if err := st.WriteToSQL(w); err != nil {
+			if err := st.Write(w); err != nil {
 				return err
 			}
 			if _, err := w.WriteString(")"); err != nil {
 				return err
 			}
 		default:
-			if err := st.WriteToSQL(w); err != nil {
+			if err := st.Write(w); err != nil {
 				return err
 			}
 		}
@@ -347,11 +347,11 @@ func (this *whereStmt) WriteToSQL(w Writer) error {
 	return nil
 }
 
-func (this *whereStmt) ToSQL() (string, []interface{}, error) {
+func (this *whereStmt) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.WriteToSQL(sqlBuf)
+	err := this.Write(sqlBuf)
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
@@ -442,7 +442,7 @@ var eqMap = map[bool]string{true: "=", false: "<>"}
 
 type Eq map[string]interface{}
 
-func (this Eq) writeToSQL(eq bool, w Writer) error {
+func (this Eq) write(eq bool, w Writer) error {
 	var index = 0
 	for key, value := range this {
 		if key == "" {
@@ -465,7 +465,7 @@ func (this Eq) writeToSQL(eq bool, w Writer) error {
 			} else {
 				switch v := value.(type) {
 				case Statement:
-					sql, arg, err := v.ToSQL()
+					sql, arg, err := v.SQL()
 					if err != nil {
 						return err
 					}
@@ -500,29 +500,29 @@ func (this Eq) writeToSQL(eq bool, w Writer) error {
 	return nil
 }
 
-func (this Eq) WriteToSQL(w Writer) error {
-	return this.writeToSQL(true, w)
+func (this Eq) Write(w Writer) error {
+	return this.write(true, w)
 }
 
-func (this Eq) ToSQL() (string, []interface{}, error) {
+func (this Eq) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.WriteToSQL(sqlBuf)
+	err := this.Write(sqlBuf)
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
 type NotEq Eq
 
-func (this NotEq) WriteToSQL(w Writer) error {
-	return Eq(this).writeToSQL(false, w)
+func (this NotEq) Write(w Writer) error {
+	return Eq(this).write(false, w)
 }
 
-func (this NotEq) ToSQL() (string, []interface{}, error) {
+func (this NotEq) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.WriteToSQL(sqlBuf)
+	err := this.Write(sqlBuf)
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 

@@ -7,7 +7,7 @@ type onConflictDoUpdateStmt struct {
 	stmts   statements
 }
 
-func (this *onConflictDoUpdateStmt) WriteToSQL(w Writer) error {
+func (this *onConflictDoUpdateStmt) Write(w Writer) error {
 	if len(this.stmts) == 0 || len(this.columns) == 0 {
 		return nil
 	}
@@ -24,14 +24,14 @@ func (this *onConflictDoUpdateStmt) WriteToSQL(w Writer) error {
 		return err
 	}
 
-	return this.stmts.WriteToSQL(w, ", ")
+	return this.stmts.Write(w, ", ")
 }
 
-func (this *onConflictDoUpdateStmt) ToSQL() (string, []interface{}, error) {
+func (this *onConflictDoUpdateStmt) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.WriteToSQL(sqlBuf)
+	err := this.Write(sqlBuf)
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 

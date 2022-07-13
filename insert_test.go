@@ -10,11 +10,11 @@ var ibUser = Insert("name", "first_name", "last_name").Table("user")
 func TestInsertBuilder_Clone(t *testing.T) {
 	var ib = ibUser.Clone()
 	ib.Values("n1", "f1", "l1")
-	fmt.Println(ib.ToSQL())
+	fmt.Println(ib.SQL())
 
 	ib = ibUser.Clone()
 	ib.Values("n2", "f2", "l2")
-	fmt.Println(ib.ToSQL())
+	fmt.Println(ib.SQL())
 }
 
 func TestInsertBuilder(t *testing.T) {
@@ -26,7 +26,7 @@ func TestInsertBuilder(t *testing.T) {
 	ib.SET("amount", SQL("((SELECT amount FROM user_amount WHERE id=? LIMIT 1 AS amount)+?)", 10))
 	//ib.Suffix("ON DUPLICATE KEY UPDATE name=VALUES(name), email=VALUES(email)")
 	ib.Suffix(OnDuplicateKeyUpdate().Append("name=VALUES(name)").Append(SQL("email=VALUES(email)")))
-	fmt.Println(ib.ToSQL())
+	fmt.Println(ib.SQL())
 }
 
 func TestInsertBuilder2(t *testing.T) {
@@ -40,5 +40,5 @@ func TestInsertBuilder2(t *testing.T) {
 	sb.Select("?", 10)
 	sb.From("a")
 	ib.Select(sb)
-	fmt.Println(ib.ToSQL())
+	fmt.Println(ib.SQL())
 }

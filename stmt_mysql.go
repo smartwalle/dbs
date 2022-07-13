@@ -33,7 +33,7 @@ type onDuplicateKeyUpdateStmt struct {
 	stmts statements
 }
 
-func (this *onDuplicateKeyUpdateStmt) WriteToSQL(w Writer) error {
+func (this *onDuplicateKeyUpdateStmt) Write(w Writer) error {
 	if len(this.stmts) == 0 {
 		return nil
 	}
@@ -42,14 +42,14 @@ func (this *onDuplicateKeyUpdateStmt) WriteToSQL(w Writer) error {
 		return err
 	}
 
-	return this.stmts.WriteToSQL(w, ", ")
+	return this.stmts.Write(w, ", ")
 }
 
-func (this *onDuplicateKeyUpdateStmt) ToSQL() (string, []interface{}, error) {
+func (this *onDuplicateKeyUpdateStmt) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.WriteToSQL(sqlBuf)
+	err := this.Write(sqlBuf)
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 

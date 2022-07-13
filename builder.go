@@ -14,7 +14,7 @@ const (
 
 type Builder interface {
 	Type() string
-	ToSQL() (string, []interface{}, error)
+	SQL() (string, []interface{}, error)
 }
 
 type builder struct {
@@ -87,7 +87,7 @@ func (this *RawBuilder) Params(args ...interface{}) *RawBuilder {
 	return this
 }
 
-func (this *RawBuilder) ToSQL() (string, []interface{}, error) {
+func (this *RawBuilder) SQL() (string, []interface{}, error) {
 	var sql = this.sql.String()
 	sql, err := this.parseVal(sql)
 	if err != nil {
@@ -96,7 +96,7 @@ func (this *RawBuilder) ToSQL() (string, []interface{}, error) {
 	return sql, this.args, nil
 }
 
-func (this *RawBuilder) WriteToSQL(w Writer) error {
+func (this *RawBuilder) Write(w Writer) error {
 	w.WriteString(this.sql.String())
 	w.WriteArgs(this.args...)
 	return nil

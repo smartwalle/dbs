@@ -69,7 +69,7 @@ func selectBuilder() {
 	sb.From("user", "AS u")
 	sb.LeftJoin("bank", "AS b ON b.user_id = u.id")
 	sb.Where("u.id = ?", 1)
-	fmt.Println(sb.ToSQL())
+	fmt.Println(sb.SQL())
 }
 
 func insertBuilder() {
@@ -78,7 +78,7 @@ func insertBuilder() {
 	ib.Columns("name", "age")
 	ib.Values("用户1", 18)
 	ib.Values("用户2", 20)
-	fmt.Println(ib.ToSQL())
+	fmt.Println(ib.SQL())
 }
 
 func updateBuilder() {
@@ -87,7 +87,7 @@ func updateBuilder() {
 	ub.SET("name", "新的名字")
 	ub.Where("id = ? ", 1)
 	ub.Limit(1)
-	fmt.Println(ub.ToSQL())
+	fmt.Println(ub.SQL())
 }
 
 func deleteBuilder() {
@@ -95,5 +95,5 @@ func deleteBuilder() {
 	rb.Table("user")
 	rb.Where("id = ?", 1)
 	rb.Limit(1)
-	fmt.Println(rb.ToSQL())
+	fmt.Println(rb.SQL())
 }

@@ -10,15 +10,15 @@ func TestSelectBuilder_Clone(t *testing.T) {
 
 	var sb = sbUser.Clone()
 	sb.Where("u.id = ?", 10)
-	fmt.Println(sb.ToSQL())
+	fmt.Println(sb.SQL())
 
 	sb = sbUser.Clone()
 	sb.Where("u.id = ?", 20)
-	fmt.Println(sb.ToSQL())
+	fmt.Println(sb.SQL())
 
 	sb = sbUser.Clone()
 	sb.Where("u.email = ?", "qqq@qq.com")
-	fmt.Println(sb.ToSQL())
+	fmt.Println(sb.SQL())
 }
 
 func TestSelectBuilder(t *testing.T) {
@@ -31,7 +31,7 @@ func TestSelectBuilder(t *testing.T) {
 	sb.From("user", "AS u")
 	sb.LeftJoin("user_email", "AS ue ON ue.user_id=u.id")
 
-	fmt.Println(sb.ToSQL())
+	fmt.Println(sb.SQL())
 }
 
 func TestSelectBuilder2(t *testing.T) {
@@ -44,7 +44,7 @@ func TestSelectBuilder2(t *testing.T) {
 	sb.From("user", "AS u")
 	sb.LeftJoin("user_email", "AS ue ON ue.user_id=u.id")
 
-	fmt.Println(sb.ToSQL())
+	fmt.Println(sb.SQL())
 }
 
 func TestSelectBuilder3(t *testing.T) {
@@ -57,7 +57,7 @@ func TestSelectBuilder3(t *testing.T) {
 	sb.Where("u.name=?", "yang")
 	sb.Where(OR().Append("u.id=?", 10).Append("u.id=?", 20))
 
-	fmt.Println(sb.ToSQL())
+	fmt.Println(sb.SQL())
 }
 
 func TestSelectBuilderAnd(t *testing.T) {
@@ -70,7 +70,7 @@ func TestSelectBuilderAnd(t *testing.T) {
 	sb.Where("u.status=?", 200)
 	sb.Where(SQL("u.name=?", "test_name"))
 
-	fmt.Println(sb.ToSQL())
+	fmt.Println(sb.SQL())
 }
 
 func TestSelectBuilderAnd2(t *testing.T) {
@@ -85,7 +85,7 @@ func TestSelectBuilderAnd2(t *testing.T) {
 	a1.Appends(SQL("u.status=?", 200), SQL("u.name=?", "test_name"))
 	sb.Where(a1)
 
-	fmt.Println(sb.ToSQL())
+	fmt.Println(sb.SQL())
 }
 
 func TestSelectBuilderOR(t *testing.T) {
@@ -100,7 +100,7 @@ func TestSelectBuilderOR(t *testing.T) {
 	a1.Appends(SQL("u.status=?", 200), SQL("u.name=?", "test_name"))
 	sb.Where(a1)
 
-	fmt.Println(sb.ToSQL())
+	fmt.Println(sb.SQL())
 }
 
 func TestSelectBuilderIN(t *testing.T) {
@@ -113,7 +113,7 @@ func TestSelectBuilderIN(t *testing.T) {
 	sb.Where("u.id=?", 100)
 	sb.Where(IN("u.status", []int{200, 300, 400}))
 
-	fmt.Println(sb.ToSQL())
+	fmt.Println(sb.SQL())
 }
 
 func BenchmarkSelectBuilder(b *testing.B) {
@@ -126,6 +126,6 @@ func BenchmarkSelectBuilder(b *testing.B) {
 
 		sb.Where("u.name=?", "yang")
 		sb.Where(OR().Append("u.id=?", i).Append("u.id=?", 20))
-		sb.ToSQL()
+		sb.SQL()
 	}
 }

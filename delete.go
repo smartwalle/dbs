@@ -115,11 +115,11 @@ func (this *DeleteBuilder) Suffix(sql interface{}, args ...interface{}) *DeleteB
 	return this
 }
 
-func (this *DeleteBuilder) ToSQL() (string, []interface{}, error) {
+func (this *DeleteBuilder) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	if err := this.WriteToSQL(sqlBuf); err != nil {
+	if err := this.Write(sqlBuf); err != nil {
 		return "", nil, err
 	}
 
@@ -130,7 +130,7 @@ func (this *DeleteBuilder) ToSQL() (string, []interface{}, error) {
 	return sql, sqlBuf.Values(), nil
 }
 
-func (this *DeleteBuilder) WriteToSQL(w Writer) (err error) {
+func (this *DeleteBuilder) Write(w Writer) (err error) {
 	if len(this.tables) == 0 {
 		return errors.New("dbs: DELETE statement must specify a table")
 	}
@@ -139,7 +139,7 @@ func (this *DeleteBuilder) WriteToSQL(w Writer) (err error) {
 	}
 
 	if len(this.prefixes) > 0 {
-		if err = this.prefixes.WriteToSQL(w, " "); err != nil {
+		if err = this.prefixes.Write(w, " "); err != nil {
 			return err
 		}
 		if _, err = w.WriteString(" "); err != nil {
@@ -152,7 +152,7 @@ func (this *DeleteBuilder) WriteToSQL(w Writer) (err error) {
 	}
 
 	if len(this.options) > 0 {
-		if err = this.options.WriteToSQL(w, " "); err != nil {
+		if err = this.options.Write(w, " "); err != nil {
 			return err
 		}
 		if _, err = w.WriteString(" "); err != nil {
@@ -174,7 +174,7 @@ func (this *DeleteBuilder) WriteToSQL(w Writer) (err error) {
 	}
 
 	if len(this.tables) > 0 {
-		if err = this.tables.WriteToSQL(w, ", "); err != nil {
+		if err = this.tables.Write(w, ", "); err != nil {
 			return err
 		}
 	}
@@ -189,7 +189,7 @@ func (this *DeleteBuilder) WriteToSQL(w Writer) (err error) {
 		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
-		if err = this.joins.WriteToSQL(w, " "); err != nil {
+		if err = this.joins.Write(w, " "); err != nil {
 			return err
 		}
 	}
@@ -198,7 +198,7 @@ func (this *DeleteBuilder) WriteToSQL(w Writer) (err error) {
 		if _, err = w.WriteString(" WHERE "); err != nil {
 			return err
 		}
-		if err = this.wheres.WriteToSQL(w, " AND "); err != nil {
+		if err = this.wheres.Write(w, " AND "); err != nil {
 			return err
 		}
 	}
@@ -213,13 +213,13 @@ func (this *DeleteBuilder) WriteToSQL(w Writer) (err error) {
 	}
 
 	if this.limit != nil {
-		if err = this.limit.WriteToSQL(w); err != nil {
+		if err = this.limit.Write(w); err != nil {
 			return err
 		}
 	}
 
 	if this.offset != nil {
-		if err = this.offset.WriteToSQL(w); err != nil {
+		if err = this.offset.Write(w); err != nil {
 			return err
 		}
 	}
@@ -228,7 +228,7 @@ func (this *DeleteBuilder) WriteToSQL(w Writer) (err error) {
 		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
-		if err = this.suffixes.WriteToSQL(w, " "); err != nil {
+		if err = this.suffixes.Write(w, " "); err != nil {
 			return err
 		}
 	}

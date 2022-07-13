@@ -24,7 +24,7 @@ func scanContext(ctx context.Context, s Session, b Builder, dest interface{}) (e
 		}
 	}()
 
-	sqlStr, args, err := b.ToSQL()
+	sqlStr, args, err := b.SQL()
 	if err != nil {
 		logger.Output(3, fmt.Sprintln(prefix, "Build Failed:", err))
 		return err
@@ -63,7 +63,7 @@ func scanRowContext(ctx context.Context, s Session, b Builder, dest ...interface
 		}
 	}()
 
-	sqlStr, args, err := b.ToSQL()
+	sqlStr, args, err := b.SQL()
 	if err != nil {
 		logger.Output(3, fmt.Sprintln(prefix, "Build Failed:", err))
 		return err
@@ -118,7 +118,7 @@ func queryContext(ctx context.Context, s Session, b Builder) (result *sql.Rows, 
 		}
 	}()
 
-	sqlStr, args, err := b.ToSQL()
+	sqlStr, args, err := b.SQL()
 	if err != nil {
 		logger.Output(3, fmt.Sprintln(prefix, "Build Failed:", err))
 		return nil, err
@@ -148,7 +148,7 @@ func execContext(ctx context.Context, s Session, b Builder) (result sql.Result, 
 		}
 	}()
 
-	sqlStr, args, err := b.ToSQL()
+	sqlStr, args, err := b.SQL()
 	if err != nil {
 		logger.Output(3, fmt.Sprintln(prefix, "Build Failed:", err))
 		return nil, err
