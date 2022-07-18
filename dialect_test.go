@@ -1,21 +1,19 @@
-package dbs
+package dbs_test
 
 import (
-	"fmt"
+	"github.com/smartwalle/dbs"
 	"testing"
 )
 
 func TestPostgreSQL(t *testing.T) {
-	fmt.Println("===== DialectPostgreSQL =====")
-	gDialect = DialectPostgreSQL
+	dbs.UseDialect(dbs.DialectPostgreSQL)
 
-	var sb = NewSelectBuilder()
+	var sb = dbs.NewSelectBuilder()
 	sb.Selects("u.id")
 	sb.From("user", "AS u")
-	sb.Where("u.id = ? OR u.id = ? OR u.id = ?")
+	sb.Where("u.id = ? OR u.id = ? OR u.id = ?", 10, 20, 30)
 
-	var s, _, _ = sb.SQL()
-	fmt.Println(s)
+	check(t, sb, "SELECT u.id FROM \"user\" AS u WHERE u.id = $1 OR u.id = $2 OR u.id = $3", []interface{}{10, 20, 30})
 
-	gDialect = DialectMySQL
+	dbs.UseDialect(dbs.DialectMySQL)
 }

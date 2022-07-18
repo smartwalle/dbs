@@ -1,44 +1,44 @@
-package dbs
+package dbs_test
 
 import (
-	"fmt"
+	"github.com/smartwalle/dbs"
 	"testing"
 )
 
-var ibUser = Insert("name", "first_name", "last_name").Table("user")
-
 func TestInsertBuilder_Clone(t *testing.T) {
-	var ib = ibUser.Clone()
-	ib.Values("n1", "f1", "l1")
-	fmt.Println(ib.SQL())
+	var ibUser = dbs.Insert("name", "first_name", "last_name").Table("user")
 
-	ib = ibUser.Clone()
-	ib.Values("n2", "f2", "l2")
-	fmt.Println(ib.SQL())
+	check(t, ibUser.Clone().Values("n1", "f1", "l1"), "INSERT INTO `user` (`name`, `first_name`, `last_name`) VALUES (?, ?, ?)", []interface{}{"n1", "f1", "l1"})
+
+	check(t, ibUser.Clone().Values("n2", "f2", "l2"), "INSERT INTO `user` (`name`, `first_name`, `last_name`) VALUES (?, ?, ?)", []interface{}{"n2", "f2", "l2"})
 }
 
 func TestInsertBuilder(t *testing.T) {
-	fmt.Println("===== InsertBuilder =====")
-	var ib = NewInsertBuilder()
+	var ib = dbs.NewInsertBuilder()
 	ib.Table("user")
 	ib.SET("name", "yang")
 	ib.SET("email", "yang@qq.com")
-	ib.SET("amount", SQL("((SELECT amount FROM user_amount WHERE id=? LIMIT 1 AS amount)+?)", 10))
-	//ib.Suffix("ON DUPLICATE KEY UPDATE name=VALUES(name), email=VALUES(email)")
-	ib.Suffix(OnDuplicateKeyUpdate().Append("name=VALUES(name)").Append(SQL("email=VALUES(email)")))
-	fmt.Println(ib.SQL())
+	ib.SET("amount", dbs.SQL("((SELECT amount FROM user_amount WHERE id=? LIMIT 1 AS amount)+?)", 10))
+	ib.Suffix(dbs.OnDuplicateKeyUpdate().Append("name=VALUES(name)").Append(dbs.SQL("email=VALUES(email)")))
+
+	check(
+		t,
+		ib,
+		"INSERT INTO `user` (`name`, `email`, `amount`) VALUES (?, ?, ((SELECT amount FROM user_amount WHERE id=? LIMIT 1 AS amount)+?)) ON DUPLICATE KEY UPDATE name=VALUES(name), email=VALUES(email)",
+		[]interface{}{"yang", "yang@qq.com", 10},
+	)
 }
 
 func TestInsertBuilder2(t *testing.T) {
-	fmt.Println("===== TestInsertBuilder2 =====")
-	var ib = NewInsertBuilder()
+	var ib = dbs.NewInsertBuilder()
 	ib.Table("b")
 	ib.Columns("f3", "f4")
 
-	var sb = NewSelectBuilder()
+	var sb = dbs.NewSelectBuilder()
 	sb.Selects("f1")
 	sb.Select("?", 10)
 	sb.From("a")
 	ib.Select(sb)
-	fmt.Println(ib.SQL())
+
+	check(t, ib, "INSERT INTO `b` (`f3`, `f4`) (SELECT f1, ? FROM `a`)", []interface{}{10})
 }

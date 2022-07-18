@@ -1,24 +1,27 @@
-package dbs
+package dbs_test
 
 import (
-	"fmt"
+	"github.com/smartwalle/dbs"
 	"testing"
 )
 
 func TestUpdateBuilder(t *testing.T) {
-	fmt.Println("===== UpdateBuilder =====")
-	var ub = NewUpdateBuilder()
+	var ub = dbs.NewUpdateBuilder()
 	ub.Table("user")
 	ub.SET("username", "un")
 	ub.SET("email", "test@qq.com")
-	ub.SET("amount", SQL("amount+?", 1))
+	ub.SET("amount", dbs.SQL("amount+?", 1))
 	ub.Where("id=?", 10)
 	ub.Limit(1)
-	fmt.Println(ub.SQL())
+
+	check(t, ub, "UPDATE `user` SET `username`=?, `email`=?, `amount`=amount+? WHERE id=? LIMIT ?", []interface{}{"un", "test@qq.com", 1, 10, int64(1)})
 }
 
 func TestUpdate(t *testing.T) {
-	fmt.Println("===== Update =====")
-	var v2 = 1000
-	fmt.Println(Update("table_name").SETS("c1", "v1", "c2", v2).Where("c2 = ?", 10).SQL())
+	check(
+		t,
+		dbs.Update("table_name").SETS("c1", "v1", "c2", 1000).Where("c2 = ?", 10),
+		"UPDATE `table_name` SET `c1`=?, `c2`=? WHERE c2 = ?",
+		[]interface{}{"v1", 1000, 10},
+	)
 }

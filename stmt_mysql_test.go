@@ -1,13 +1,14 @@
-package dbs
+package dbs_test
 
 import (
+	"github.com/smartwalle/dbs"
 	"testing"
 )
 
 func TestOnDuplicateKeyUpdate(t *testing.T) {
-	var s = OnDuplicateKeyUpdate()
+	var s = dbs.OnDuplicateKeyUpdate()
 	s.Append("a = VALUES(a + ?)", 10)
 	s.Append("b = VALUES(b)")
 
-	t.Log(s.SQL())
+	check(t, s, "ON DUPLICATE KEY UPDATE a = VALUES(a + ?), b = VALUES(b)", []interface{}{10})
 }

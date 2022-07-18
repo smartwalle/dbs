@@ -62,8 +62,10 @@ func (this *RawBuilder) UseDialect(d Dialect) *RawBuilder {
 
 func (this *RawBuilder) Append(sql string, args ...interface{}) *RawBuilder {
 	if sql != "" {
+		if this.sql.Len() > 0 {
+			this.sql.WriteString(" ")
+		}
 		this.sql.WriteString(sql)
-		this.sql.WriteString(" ")
 	}
 	if len(args) > 0 {
 		this.args = append(this.args, args...)
@@ -74,8 +76,10 @@ func (this *RawBuilder) Append(sql string, args ...interface{}) *RawBuilder {
 func (this *RawBuilder) Format(format string, args ...interface{}) *RawBuilder {
 	var v = fmt.Sprintf(format, args...)
 	if v != "" {
+		if this.sql.Len() > 0 {
+			this.sql.WriteString(" ")
+		}
 		this.sql.WriteString(v)
-		this.sql.WriteString(" ")
 	}
 	return this
 }
