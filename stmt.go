@@ -79,6 +79,21 @@ func (this *statement) SQL() (string, []interface{}, error) {
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
+type pureStmt string
+
+func (this pureStmt) Write(w Writer) error {
+	_, err := w.WriteString(string(this))
+	return err
+}
+
+func (this pureStmt) SQL() (string, []interface{}, error) {
+	var sqlBuf = getBuffer()
+	defer sqlBuf.Release()
+
+	err := this.Write(sqlBuf)
+	return sqlBuf.String(), sqlBuf.Values(), err
+}
+
 type aliasStmt struct {
 	sql   interface{}
 	alias string
