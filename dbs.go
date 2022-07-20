@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func NewSQL(driver, url string, maxOpen, maxIdle int) (db *sql.DB, err error) {
+func New(driver, url string, maxOpen, maxIdle int) (db *sql.DB, err error) {
 	db, err = sql.Open(driver, url)
 	if err != nil {
 		logger.Println("连接数据库失败:", err)
