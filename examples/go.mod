@@ -1,4 +1,4 @@
-module github.com/smartwalle/dbs/sample
+module github.com/smartwalle/dbs/examples
 
 require github.com/smartwalle/dbs v0.0.0
 
