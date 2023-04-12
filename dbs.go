@@ -36,7 +36,7 @@ func NewCache(db DB) *DBCache {
 
 type DBCache struct {
 	db    DB
-	stmts dbc.Cache[*sql.Stmt]
+	stmts dbc.Cache[string, *sql.Stmt]
 }
 
 func (this *DBCache) Close() error {

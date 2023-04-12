@@ -1,5 +1,5 @@
-github.com/smartwalle/dbc v0.0.17 h1:fWW3yP57opbNRxN9kYfypQndE/0DcsYBcgw/rd37SFA=
-github.com/smartwalle/dbc v0.0.17/go.mod h1:JsFDfdJxgPbT/6X4kUw/mDumKIH/f3vKpV5EPIuDfqg=
+github.com/smartwalle/dbc v0.0.18 h1:HeAebZJDCuATkPLfIZnFFyK+vMqblL0vacoCWvSyCgk=
+github.com/smartwalle/dbc v0.0.18/go.mod h1:JsFDfdJxgPbT/6X4kUw/mDumKIH/f3vKpV5EPIuDfqg=
 github.com/smartwalle/queue v0.0.3 h1:6QpTliu/gS2vdk/vXXDU8WEcC0/d/M/Ft+xXxkv9kRw=
 github.com/smartwalle/queue v0.0.3/go.mod h1:zMEHt/7zLtVwATDUQi3OdBUlbQ2XUzWd7OXP8p/684c=
 github.com/smartwalle/xid v1.0.6 h1:aZ52pzrFSpzg+AIbSsiBxadjAZRctvDSkp5AokOHuFw=
