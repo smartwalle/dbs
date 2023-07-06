@@ -15,7 +15,6 @@ const (
 
 type fieldDescriptor struct {
 	Index []int
-	Tag   string
 }
 
 type structDescriptor struct {
@@ -232,7 +231,6 @@ func (this *Mapper) parseStructDescriptor(dstType reflect.Type) structDescriptor
 
 			var dField = fieldDescriptor{}
 			dField.Index = append(current.Index, i)
-			dField.Tag = tag
 			dFields[tag] = dField
 		}
 	}
