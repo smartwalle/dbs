@@ -118,24 +118,28 @@ func (this *Mapper) bindSlice(rows *sql.Rows, dstType reflect.Type, dstValue ref
 		return err
 	}
 
-	var values = make([]interface{}, len(columns))
+	var nColumns = make([]interface{}, len(columns))
+	var nValues = make([]reflect.Value, 0, 20)
 	for rows.Next() {
 		var nPointer = reflect.New(dstType)
 		var nValue = reflect.Indirect(nPointer)
 
 		for idx, column := range columns {
-			values[idx] = fieldByIndex(nValue, dStruct.Fields[column].Index).Addr().Interface()
+			nColumns[idx] = fieldByIndex(nValue, dStruct.Fields[column].Index).Addr().Interface()
 		}
 
-		if err = rows.Scan(values...); err != nil {
+		if err = rows.Scan(nColumns...); err != nil {
 			return err
 		}
 
 		if isPointer {
-			dstValue.Set(reflect.Append(dstValue, nPointer))
+			nValues = append(nValues, nPointer)
 		} else {
-			dstValue.Set(reflect.Append(dstValue, nValue))
+			nValues = append(nValues, nValue)
 		}
+	}
+	if len(nValues) > 0 {
+		dstValue.Set(reflect.Append(dstValue, nValues...))
 	}
 	return nil
 }
