@@ -1,6 +1,12 @@
+github.com/go-sql-driver/mysql v1.7.1 h1:lUIinVbN1DY0xBg0eMOzmmtGoHwWBbvnWubQUrtU8EI=
+github.com/go-sql-driver/mysql v1.7.1/go.mod h1:OXbVy3sEdcQ2Doequ6Z5BW6fXNQTmx+9S1MCJN5yJMI=
 github.com/smartwalle/dbc v0.0.18 h1:HeAebZJDCuATkPLfIZnFFyK+vMqblL0vacoCWvSyCgk=
 github.com/smartwalle/dbc v0.0.18/go.mod h1:JsFDfdJxgPbT/6X4kUw/mDumKIH/f3vKpV5EPIuDfqg=
+github.com/smartwalle/dbc v0.0.19 h1:ywyxJVFVgycp2bWTFyOf/OiyA8UB4Pn+p/RfNuN7rmk=
+github.com/smartwalle/dbc v0.0.19/go.mod h1:mO9WdNrdrwUW2Ty2H6hF17aEFXySxQwKmmoJa9wO+AQ=
 github.com/smartwalle/queue v0.0.3 h1:6QpTliu/gS2vdk/vXXDU8WEcC0/d/M/Ft+xXxkv9kRw=
 github.com/smartwalle/queue v0.0.3/go.mod h1:zMEHt/7zLtVwATDUQi3OdBUlbQ2XUzWd7OXP8p/684c=
+github.com/smartwalle/queue v0.0.4 h1:h2YfM/I1yjPOQjMkhPOVuN5cSk62fRPqzqhlyZ/5zDA=
+github.com/smartwalle/queue v0.0.4/go.mod h1:zMEHt/7zLtVwATDUQi3OdBUlbQ2XUzWd7OXP8p/684c=
 github.com/smartwalle/xid v1.0.6 h1:aZ52pzrFSpzg+AIbSsiBxadjAZRctvDSkp5AokOHuFw=
 github.com/smartwalle/xid v1.0.6/go.mod h1:zUe+B9M8IClU9Jj0HoZATmaX14TkP2L7L3ogF+UlhWk=
