@@ -53,10 +53,10 @@ func TestEq(t *testing.T) {
 func TestLike(t *testing.T) {
 	check(t, dbs.Like("a", "%", "haha", "%"), "a LIKE ?", []interface{}{"%haha%"})
 	check(t, dbs.Like("a", "%", "haha"), "a LIKE ?", []interface{}{"%haha"})
-	check(t, dbs.Like("a", "haha", "haha"), "a LIKE ?", []interface{}{"haha%"})
+	check(t, dbs.Like("a", "haha", "%"), "a LIKE ?", []interface{}{"haha%"})
 	check(t, dbs.NotLike("a", "%", "hehe", "%"), "a NOT LIKE ?", []interface{}{"%hehe%"})
 	check(t, dbs.NotLike("a", "%", "hehe", ""), "a NOT LIKE ?", []interface{}{"%hehe"})
-	check(t, dbs.NotLike("a", "hehe", ""), "a NOT LIKE ?", []interface{}{"hehe%"})
+	check(t, dbs.NotLike("a", "hehe", ""), "a NOT LIKE ?", []interface{}{"hehe"})
 }
 
 func check(t *testing.T, stmt testStatement, expectSQL string, expectArgs []interface{}) {
