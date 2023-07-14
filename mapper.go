@@ -54,20 +54,12 @@ func (this *Mapper) Bind(rows *sql.Rows, dst interface{}) error {
 		return errors.New("nil pointer passed to Bind")
 	}
 
-	for {
-		if dstValue.Kind() == reflect.Ptr && dstValue.IsNil() {
-			dstValue.Set(reflect.New(dstType.Elem()))
-		}
-
-		if dstValue.Kind() == reflect.Ptr {
-			dstValue = dstValue.Elem()
-			dstType = dstType.Elem()
-			continue
-		}
-		break
+	var isSlice bool
+	if dstType.Kind() == reflect.Ptr {
+		isSlice = dstType.Elem().Kind() == reflect.Slice
+	} else {
+		isSlice = dstType.Kind() == reflect.Slice
 	}
-
-	var isSlice = dstType.Kind() == reflect.Slice
 
 	if isSlice {
 		return this.bindSlice(rows, dstType, dstValue)
@@ -80,14 +72,16 @@ func (this *Mapper) bindOne(rows *sql.Rows, dstType reflect.Type, dstValue refle
 		return sql.ErrNoRows
 	}
 
-	var dStruct, ok = this.getStructDescriptor(dstType)
-	if !ok {
-		dStruct = this.parseStructDescriptor(dstType)
-	}
-
 	columns, err := rows.Columns()
 	if err != nil {
 		return err
+	}
+
+	dstType, dstValue = base(dstType, dstValue)
+
+	var dStruct, ok = this.getStructDescriptor(dstType)
+	if !ok {
+		dStruct = this.parseStructDescriptor(dstType)
 	}
 
 	var values = make([]interface{}, len(columns))
@@ -98,6 +92,13 @@ func (this *Mapper) bindOne(rows *sql.Rows, dstType reflect.Type, dstValue refle
 }
 
 func (this *Mapper) bindSlice(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
+	columns, err := rows.Columns()
+	if err != nil {
+		return err
+	}
+
+	dstType, dstValue = base(dstType, dstValue)
+
 	// 获取 slice 元素类型
 	dstType = dstType.Elem()
 
@@ -111,11 +112,6 @@ func (this *Mapper) bindSlice(rows *sql.Rows, dstType reflect.Type, dstValue ref
 	var dStruct, ok = this.getStructDescriptor(dstType)
 	if !ok {
 		dStruct = this.parseStructDescriptor(dstType)
-	}
-
-	columns, err := rows.Columns()
-	if err != nil {
-		return err
 	}
 
 	var nColumns = make([]interface{}, len(columns))
@@ -142,6 +138,22 @@ func (this *Mapper) bindSlice(rows *sql.Rows, dstType reflect.Type, dstValue ref
 		dstValue.Set(reflect.Append(dstValue, nValues...))
 	}
 	return nil
+}
+
+func base(dstType reflect.Type, dstValue reflect.Value) (reflect.Type, reflect.Value) {
+	for {
+		if dstValue.Kind() == reflect.Ptr && dstValue.IsNil() {
+			dstValue.Set(reflect.New(dstType.Elem()))
+		}
+
+		if dstValue.Kind() == reflect.Ptr {
+			dstValue = dstValue.Elem()
+			dstType = dstType.Elem()
+			continue
+		}
+		break
+	}
+	return dstType, dstValue
 }
 
 func fieldByIndex(parent reflect.Value, index []int) reflect.Value {

@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+var ErrNoRows = sql.ErrNoRows
+
 func New(driver, url string, maxOpen, maxIdle int) (db *sql.DB, err error) {
 	db, err = sql.Open(driver, url)
 	if err != nil {
