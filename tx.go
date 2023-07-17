@@ -43,30 +43,74 @@ func (this *dbsTx) PrepareContext(ctx context.Context, query string) (*sql.Stmt,
 	return this.StmtContext(ctx, stmt), nil
 }
 
-func (this *dbsTx) Commit() (err error) {
+func (this *dbsTx) Exec(query string, args ...interface{}) (sql.Result, error) {
+	//if this.cached {
+	//	stmt, err := this.Prepare(query)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	return stmt.Exec(args...)
+	//}
+	return this.Tx.Exec(query, args...)
+}
+
+func (this *dbsTx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	//if this.cached {
+	//	stmt, err := this.PrepareContext(ctx, query)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	return stmt.ExecContext(ctx, args...)
+	//}
+	return this.Tx.ExecContext(ctx, query, args...)
+}
+
+func (this *dbsTx) Query(query string, args ...interface{}) (*sql.Rows, error) {
+	//if this.cached {
+	//	stmt, err := this.Prepare(query)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	return stmt.Query(args...)
+	//}
+	return this.Tx.Query(query, args...)
+}
+
+func (this *dbsTx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	//if this.cached {
+	//	stmt, err := this.PrepareContext(ctx, query)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	return stmt.QueryContext(ctx, args...)
+	//}
+	return this.Tx.QueryContext(ctx, query, args...)
+}
+
+func (this *dbsTx) Commit() error {
 	this.mu.Lock()
-	err = this.Tx.Commit()
+	var err = this.Tx.Commit()
 	this.done = true
 	this.mu.Unlock()
 	return err
 }
 
-func (this *dbsTx) Rollback() (err error) {
+func (this *dbsTx) Rollback() error {
 	this.mu.Lock()
-	err = this.Tx.Rollback()
+	var err = this.Tx.Rollback()
 	this.done = true
 	this.mu.Unlock()
 	return err
 }
 
 // Close 判断事务是否完成，如果未完成，则执行 Rollback 操作
-func (this *dbsTx) Close() (err error) {
+func (this *dbsTx) Close() error {
 	this.mu.Lock()
 	if this.done {
 		this.mu.Unlock()
-		return
+		return nil
 	}
-	err = this.Tx.Rollback()
+	var err = this.Tx.Rollback()
 	this.done = true
 	this.mu.Unlock()
 	return err
@@ -118,7 +162,7 @@ func MustTx(db DB) TX {
 	return tx
 }
 
-func NewTxContext(ctx context.Context, db DB, opts *sql.TxOptions) (tx TX, err error) {
+func NewTxContext(ctx context.Context, db DB, opts *sql.TxOptions) (TX, error) {
 	return newTxContext(ctx, db, opts)
 }
 
