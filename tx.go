@@ -22,17 +22,14 @@ type TX interface {
 
 type dbsTx struct {
 	*sql.Tx
-	db   DB
-	done bool
-	mu   sync.Mutex
+	db     DB
+	done   bool
+	mu     sync.Mutex
+	cached bool
 }
 
 func (this *dbsTx) Prepare(query string) (*sql.Stmt, error) {
-	var stmt, err = this.db.Prepare(query)
-	if err != nil {
-		return nil, err
-	}
-	return this.Stmt(stmt), nil
+	return this.PrepareContext(context.Background(), query)
 }
 
 func (this *dbsTx) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
@@ -44,46 +41,32 @@ func (this *dbsTx) PrepareContext(ctx context.Context, query string) (*sql.Stmt,
 }
 
 func (this *dbsTx) Exec(query string, args ...interface{}) (sql.Result, error) {
-	//if this.cached {
-	//	stmt, err := this.Prepare(query)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	return stmt.Exec(args...)
-	//}
-	return this.Tx.Exec(query, args...)
+	return this.ExecContext(context.Background(), query, args...)
 }
 
 func (this *dbsTx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	//if this.cached {
-	//	stmt, err := this.PrepareContext(ctx, query)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	return stmt.ExecContext(ctx, args...)
-	//}
+	if this.cached {
+		stmt, err := this.PrepareContext(ctx, query)
+		if err != nil {
+			return nil, err
+		}
+		return stmt.ExecContext(ctx, args...)
+	}
 	return this.Tx.ExecContext(ctx, query, args...)
 }
 
 func (this *dbsTx) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	//if this.cached {
-	//	stmt, err := this.Prepare(query)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	return stmt.Query(args...)
-	//}
-	return this.Tx.Query(query, args...)
+	return this.QueryContext(context.Background(), query, args...)
 }
 
 func (this *dbsTx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	//if this.cached {
-	//	stmt, err := this.PrepareContext(ctx, query)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	return stmt.QueryContext(ctx, args...)
-	//}
+	if this.cached {
+		stmt, err := this.PrepareContext(ctx, query)
+		if err != nil {
+			return nil, err
+		}
+		return stmt.QueryContext(ctx, args...)
+	}
 	return this.Tx.QueryContext(ctx, query, args...)
 }
 
@@ -124,7 +107,7 @@ func (this *dbsTx) PingContext(ctx context.Context) error {
 	return this.db.PingContext(ctx)
 }
 
-// 以下几个方法是为了实现 DB 接口，尽量不要使用
+// 以下几个方法是为了实现 DB 接口，不要使用
 
 // Begin 不会创建新的事务，如果当前事务已经关闭，则会返回事务已结束的错误，如果事务没有关闭，则返回当前事务
 func (this *dbsTx) Begin() (*sql.Tx, error) {
@@ -148,7 +131,7 @@ func (this *dbsTx) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, e
 	return this.Tx, nil
 }
 
-// 以上几个方法是为了实现 DB 接口，尽量不要使用
+// 以上几个方法是为了实现 DB 接口，不要使用
 
 func NewTx(db DB) (TX, error) {
 	return newTxContext(context.Background(), db, nil)
@@ -193,5 +176,6 @@ func newTxContext(ctx context.Context, db DB, opts *sql.TxOptions) (TX, error) {
 		return nil, err
 	}
 	tx.db = db
+	_, tx.cached = db.(*dbsDB)
 	return tx, err
 }

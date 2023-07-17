@@ -126,20 +126,20 @@ func (this *RawBuilder) parseVal(sql string) (string, error) {
 	return this.d.ParseVal(sql)
 }
 
-func (this *RawBuilder) Scan(s Session, dest interface{}) (err error) {
-	return scanContext(context.Background(), s, this, dest)
+func (this *RawBuilder) Scan(s Session, dst interface{}) (err error) {
+	return scanContext(context.Background(), s, this, dst)
 }
 
-func (this *RawBuilder) ScanContext(ctx context.Context, s Session, dest interface{}) (err error) {
-	return scanContext(ctx, s, this, dest)
+func (this *RawBuilder) ScanContext(ctx context.Context, s Session, dst interface{}) (err error) {
+	return scanContext(ctx, s, this, dst)
 }
 
-func (this *RawBuilder) ScanRow(s Session, dest ...interface{}) (err error) {
-	return scanRowContext(context.Background(), s, this, dest...)
+func (this *RawBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
+	return scanRowContext(context.Background(), s, this, dst...)
 }
 
-func (this *RawBuilder) ScanRowContext(ctx context.Context, s Session, dest ...interface{}) (err error) {
-	return scanRowContext(ctx, s, this, dest...)
+func (this *RawBuilder) ScanRowContext(ctx context.Context, s Session, dst ...interface{}) (err error) {
+	return scanRowContext(ctx, s, this, dst...)
 }
 
 func (this *RawBuilder) Query(s Session) (*sql.Rows, error) {

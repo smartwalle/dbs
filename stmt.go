@@ -313,7 +313,7 @@ func (this statements) Write(w Writer, sep string) error {
 				return err
 			}
 		}
-		//if err := stmt.Write(w, args); err != nil {
+		//if err := cache.Write(w, args); err != nil {
 		//	return err
 		//}
 	}

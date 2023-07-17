@@ -307,8 +307,8 @@ func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
 //
 // var sb = dbs.NewSelectBuilder()
 // sb.Scan(db, &user)
-func (this *SelectBuilder) Scan(s Session, dest interface{}) (err error) {
-	return scanContext(context.Background(), s, this, dest)
+func (this *SelectBuilder) Scan(s Session, dst interface{}) (err error) {
+	return scanContext(context.Background(), s, this, dst)
 }
 
 // ScanContext 读取数据到一个结构体中。
@@ -317,8 +317,8 @@ func (this *SelectBuilder) Scan(s Session, dest interface{}) (err error) {
 //
 // var sb = dbs.NewSelectBuilder()
 // sb.ScanContext(ctx, db, &user)
-func (this *SelectBuilder) ScanContext(ctx context.Context, s Session, dest interface{}) (err error) {
-	return scanContext(ctx, s, this, dest)
+func (this *SelectBuilder) ScanContext(ctx context.Context, s Session, dst interface{}) (err error) {
+	return scanContext(ctx, s, this, dst)
 }
 
 // ScanRow 读取数据到基本数据类型的变量中，类似于 database/sql 包中结构体 Rows 的 Scan() 方法。
@@ -327,8 +327,8 @@ func (this *SelectBuilder) ScanContext(ctx context.Context, s Session, dest inte
 //
 // var sb = dbs.NewSelectBuilder()
 // sb.ScanRow(db, &name, &age)
-func (this *SelectBuilder) ScanRow(s Session, dest ...interface{}) (err error) {
-	return scanRowContext(context.Background(), s, this, dest...)
+func (this *SelectBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
+	return scanRowContext(context.Background(), s, this, dst...)
 }
 
 // ScanRowContext 读取数据到基本数据类型的变量中，类似于 database/sql 包中结构体 Rows 的 Scan() 方法。
@@ -337,8 +337,8 @@ func (this *SelectBuilder) ScanRow(s Session, dest ...interface{}) (err error) {
 //
 // var sb = dbs.NewSelectBuilder()
 // sb.ScanRowContext(ctx, db, &name, &age)
-func (this *SelectBuilder) ScanRowContext(ctx context.Context, s Session, dest ...interface{}) (err error) {
-	return scanRowContext(ctx, s, this, dest...)
+func (this *SelectBuilder) ScanRowContext(ctx context.Context, s Session, dst ...interface{}) (err error) {
+	return scanRowContext(ctx, s, this, dst...)
 }
 
 func (this *SelectBuilder) Query(s Session) (*sql.Rows, error) {
