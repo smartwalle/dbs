@@ -27,9 +27,6 @@ type DB interface {
 
 	Close() error
 
-	Ping() error
-	PingContext(ctx context.Context) error
-
 	Begin() (*sql.Tx, error)
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
 }
@@ -101,6 +98,10 @@ func (this *dbsDB) Prepare(query string) (*sql.Stmt, error) {
 }
 
 func (this *dbsDB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	return this.db.PrepareContext(ctx, query)
+}
+
+func (this *dbsDB) prepare(ctx context.Context, query string) (*sql.Stmt, error) {
 	if stmt, found := this.cache.Get(query); found {
 		return stmt, nil
 	}
@@ -120,7 +121,7 @@ func (this *dbsDB) Exec(query string, args ...interface{}) (sql.Result, error) {
 }
 
 func (this *dbsDB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	stmt, err := this.PrepareContext(ctx, query)
+	stmt, err := this.prepare(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -132,35 +133,40 @@ func (this *dbsDB) Query(query string, args ...interface{}) (*sql.Rows, error) {
 }
 
 func (this *dbsDB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	stmt, err := this.PrepareContext(ctx, query)
+	stmt, err := this.prepare(ctx, query)
 	if err != nil {
 		return nil, err
 	}
 	return stmt.QueryContext(ctx, args...)
 }
 
+// Begin 创建新的事务。
+//
+// 本方法是为了实现 DB 接口，不建议直接使用。推荐使用 dbs.NewTx() 或者 dbs.MustTx()。
 func (this *dbsDB) Begin() (*sql.Tx, error) {
 	return this.db.Begin()
 }
 
+// BeginTx 创建新的事务。
+//
+// 本方法是为了实现 DB 接口，不建议直接使用。推荐使用 dbs.NewTxContext() 或者 dbs.MustTxContext()。
 func (this *dbsDB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
 	return this.db.BeginTx(ctx, opts)
 }
 
+type preparer interface {
+	prepare(ctx context.Context, query string) (*sql.Stmt, error)
+}
+
 type dbsTx struct {
 	*sql.Tx
-	db     DB
-	done   bool
-	mu     sync.Mutex
-	cached bool
+	p    preparer
+	done bool
+	mu   sync.Mutex
 }
 
-func (this *dbsTx) Prepare(query string) (*sql.Stmt, error) {
-	return this.PrepareContext(context.Background(), query)
-}
-
-func (this *dbsTx) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
-	var stmt, err = this.db.PrepareContext(ctx, query)
+func (this *dbsTx) stmt(ctx context.Context, query string) (*sql.Stmt, error) {
+	var stmt, err = this.p.prepare(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -172,8 +178,8 @@ func (this *dbsTx) Exec(query string, args ...interface{}) (sql.Result, error) {
 }
 
 func (this *dbsTx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	if this.cached {
-		stmt, err := this.PrepareContext(ctx, query)
+	if this.p != nil {
+		stmt, err := this.stmt(ctx, query)
 		if err != nil {
 			return nil, err
 		}
@@ -187,8 +193,8 @@ func (this *dbsTx) Query(query string, args ...interface{}) (*sql.Rows, error) {
 }
 
 func (this *dbsTx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	if this.cached {
-		stmt, err := this.PrepareContext(ctx, query)
+	if this.p != nil {
+		stmt, err := this.stmt(ctx, query)
 		if err != nil {
 			return nil, err
 		}
@@ -226,17 +232,9 @@ func (this *dbsTx) Close() error {
 	return err
 }
 
-func (this *dbsTx) Ping() error {
-	return this.db.Ping()
-}
-
-func (this *dbsTx) PingContext(ctx context.Context) error {
-	return this.db.PingContext(ctx)
-}
-
-// 以下几个方法是为了实现 DB 接口，不要使用
-
-// Begin 不会创建新的事务，如果当前事务已经关闭，则会返回事务已结束的错误，如果事务没有关闭，则返回当前事务
+// Begin 不会创建新的事务，如果当前事务已经关闭，则会返回事务已结束的错误，如果事务没有关闭，则返回当前事务。
+//
+// 本方法是为了实现 DB 接口，不建议直接使用。推荐使用 dbs.NewTx() 或者 dbs.MustTx()。
 func (this *dbsTx) Begin() (*sql.Tx, error) {
 	this.mu.Lock()
 	defer this.mu.Unlock()
@@ -247,7 +245,9 @@ func (this *dbsTx) Begin() (*sql.Tx, error) {
 	return this.Tx, nil
 }
 
-// BeginTx 不会创建新的事务，如果当前事务已经关闭，则会返回事务已结束的错误，如果事务没有关闭，则返回当前事务
+// BeginTx 不会创建新的事务，如果当前事务已经关闭，则会返回事务已结束的错误，如果事务没有关闭，则返回当前事务。
+//
+// 本方法是为了实现 DB 接口，不建议直接使用。推荐使用 dbs.NewTxContext() 或者 dbs.MustTxContext()。
 func (this *dbsTx) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
 	this.mu.Lock()
 	defer this.mu.Unlock()
@@ -257,8 +257,6 @@ func (this *dbsTx) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, e
 	}
 	return this.Tx, nil
 }
-
-// 以上几个方法是为了实现 DB 接口，不要使用
 
 func NewTx(db DB) (TX, error) {
 	return newTxContext(context.Background(), db, nil)
@@ -302,7 +300,6 @@ func newTxContext(ctx context.Context, db DB, opts *sql.TxOptions) (TX, error) {
 	if err != nil {
 		return nil, err
 	}
-	tx.db = db
-	_, tx.cached = db.(*dbsDB)
+	tx.p, _ = db.(preparer)
 	return tx, err
 }
