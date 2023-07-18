@@ -78,11 +78,7 @@ func (this *dbsDB) PrepareContext(ctx context.Context, query string) (*sql.Stmt,
 }
 
 func (this *dbsDB) Exec(query string, args ...interface{}) (sql.Result, error) {
-	stmt, err := this.Prepare(query)
-	if err != nil {
-		return nil, err
-	}
-	return stmt.Exec(args...)
+	return this.ExecContext(context.Background(), query, args...)
 }
 
 func (this *dbsDB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
@@ -94,11 +90,7 @@ func (this *dbsDB) ExecContext(ctx context.Context, query string, args ...interf
 }
 
 func (this *dbsDB) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	stmt, err := this.Prepare(query)
-	if err != nil {
-		return nil, err
-	}
-	return stmt.Query(args...)
+	return this.QueryContext(context.Background(), query, args...)
 }
 
 func (this *dbsDB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
