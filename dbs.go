@@ -45,7 +45,7 @@ type TX interface {
 	StmtContext(ctx context.Context, stmt *sql.Stmt) *sql.Stmt
 }
 
-func New(driver, url string, maxOpen, maxIdle int) (db *sql.DB, err error) {
+func Open(driver, url string, maxOpen, maxIdle int) (db *sql.DB, err error) {
 	db, err = sql.Open(driver, url)
 	if err != nil {
 		return nil, err
