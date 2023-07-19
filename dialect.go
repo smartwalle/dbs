@@ -41,6 +41,10 @@ func (this *mysql) Quote(s string) string {
 type postgresql struct {
 }
 
+func (this *postgresql) Quote(s string) string {
+	return fmt.Sprintf(`"%s"`, s)
+}
+
 func (this *postgresql) ParseVal(sql string) (string, error) {
 	var buf = &bytes.Buffer{}
 	var i = 0
@@ -58,8 +62,4 @@ func (this *postgresql) ParseVal(sql string) (string, error) {
 	}
 	buf.WriteString(sql)
 	return buf.String(), nil
-}
-
-func (this *postgresql) Quote(s string) string {
-	return fmt.Sprintf(`"%s"`, s)
 }
