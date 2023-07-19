@@ -36,9 +36,9 @@ func (this *InsertBuilder) UseDialect(d Dialect) *InsertBuilder {
 }
 
 func (this *InsertBuilder) Clone() *InsertBuilder {
-	var ib = &(*this)
+	var ib = *this
 	ib.values = nil
-	return ib
+	return &ib
 }
 
 func (this *InsertBuilder) Prefix(sql string, args ...interface{}) *InsertBuilder {

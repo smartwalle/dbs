@@ -114,12 +114,11 @@ func TestSelectBuilderIN(t *testing.T) {
 func BenchmarkSelectBuilder(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		var sb = dbs.NewSelectBuilder()
-		sb.Selects("u.id")
-		sb.Select(dbs.Alias("u.name", "name"))
-		sb.From("user", "AS u")
+		sb.Selects("id", "user_id", "pay_no", "trade_no", "goods_id", "goods_name", "goods_price", "goods_cnt", "sku_id", "original_spec", "real_spec", "status", "created_at")
+		sb.From("user")
 
-		sb.Where("u.name=?", "yang")
-		sb.Where(dbs.OR().Append("u.id=?", i).Append("u.id=?", 20))
+		sb.Where("id = ?", "123")
+		sb.Where("status = ?", 1)
 		_, _, _ = sb.SQL()
 	}
 }
