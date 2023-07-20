@@ -36,8 +36,8 @@ func (this *SelectBuilder) Type() string {
 	return kSelectBuilder
 }
 
-func (this *SelectBuilder) UseFormatter(f Formatter) *SelectBuilder {
-	this.builder.UseFormatter(f)
+func (this *SelectBuilder) UsePlaceholder(p Placeholder) *SelectBuilder {
+	this.builder.UsePlaceholder(p)
 	return this
 }
 
@@ -158,7 +158,7 @@ func (this *SelectBuilder) SQL() (string, []interface{}, error) {
 		return "", nil, err
 	}
 
-	sql, err := this.format(sqlBuf.String())
+	sql, err := this.replace(sqlBuf.String())
 	if err != nil {
 		return "", nil, err
 	}
@@ -366,7 +366,7 @@ func (this *SelectBuilder) QueryContext(ctx context.Context, s Session) (*sql.Ro
 
 func NewSelectBuilder() *SelectBuilder {
 	var sb = &SelectBuilder{}
-	sb.f = gFormatter
+	sb.p = gPlaceholder
 	return sb
 }
 

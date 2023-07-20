@@ -27,10 +27,10 @@ func (this *InsertBuilder) Type() string {
 	return kInsertBuilder
 }
 
-func (this *InsertBuilder) UseFormatter(f Formatter) *InsertBuilder {
-	this.builder.UseFormatter(f)
+func (this *InsertBuilder) UsePlaceholder(p Placeholder) *InsertBuilder {
+	this.builder.UsePlaceholder(p)
 	if this.sb != nil {
-		this.sb.UseFormatter(this.f)
+		this.sb.UsePlaceholder(this.p)
 	}
 	return this
 }
@@ -95,7 +95,7 @@ func (this *InsertBuilder) SET(column string, value interface{}) *InsertBuilder 
 func (this *InsertBuilder) Select(sb *SelectBuilder) *InsertBuilder {
 	this.sb = sb
 	if this.sb != nil {
-		this.sb.UseFormatter(this.f)
+		this.sb.UsePlaceholder(this.p)
 	}
 	return this
 }
@@ -108,7 +108,7 @@ func (this *InsertBuilder) SQL() (string, []interface{}, error) {
 		return "", nil, err
 	}
 
-	sql, err := this.format(sqlBuf.String())
+	sql, err := this.replace(sqlBuf.String())
 	if err != nil {
 		return "", nil, err
 	}
@@ -226,7 +226,7 @@ func (this *InsertBuilder) ExecContext(ctx context.Context, s Session) (result s
 
 func NewInsertBuilder() *InsertBuilder {
 	var ib = &InsertBuilder{}
-	ib.f = gFormatter
+	ib.p = gPlaceholder
 	return ib
 }
 

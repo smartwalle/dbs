@@ -29,8 +29,8 @@ func (this *UpdateBuilder) Type() string {
 	return kUpdateBuilder
 }
 
-func (this *UpdateBuilder) UseFormatter(f Formatter) *UpdateBuilder {
-	this.builder.UseFormatter(f)
+func (this *UpdateBuilder) UsePlaceholder(p Placeholder) *UpdateBuilder {
+	this.builder.UsePlaceholder(p)
 	return this
 }
 
@@ -140,7 +140,7 @@ func (this *UpdateBuilder) SQL() (string, []interface{}, error) {
 		return "", nil, err
 	}
 
-	sql, err := this.format(sqlBuf.String())
+	sql, err := this.replace(sqlBuf.String())
 	if err != nil {
 		return "", nil, err
 	}
@@ -257,7 +257,7 @@ func (this *UpdateBuilder) ExecContext(ctx context.Context, s Session) (result s
 
 func NewUpdateBuilder() *UpdateBuilder {
 	var ub = &UpdateBuilder{}
-	ub.f = gFormatter
+	ub.p = gPlaceholder
 	return ub
 }
 

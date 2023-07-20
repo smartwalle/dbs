@@ -31,8 +31,8 @@ func (this *DeleteBuilder) Type() string {
 	return kDeleteBuilder
 }
 
-func (this *DeleteBuilder) UseFormatter(f Formatter) *DeleteBuilder {
-	this.builder.UseFormatter(f)
+func (this *DeleteBuilder) UsePlaceholder(p Placeholder) *DeleteBuilder {
+	this.builder.UsePlaceholder(p)
 	return this
 }
 
@@ -123,7 +123,7 @@ func (this *DeleteBuilder) SQL() (string, []interface{}, error) {
 		return "", nil, err
 	}
 
-	sql, err := this.format(sqlBuf.String())
+	sql, err := this.replace(sqlBuf.String())
 	if err != nil {
 		return "", nil, err
 	}
@@ -245,6 +245,6 @@ func (this *DeleteBuilder) ExecContext(ctx context.Context, s Session) (result s
 
 func NewDeleteBuilder() *DeleteBuilder {
 	var db = &DeleteBuilder{}
-	db.f = gFormatter
+	db.p = gPlaceholder
 	return db
 }

@@ -72,7 +72,7 @@ func check(t *testing.T, stmt testStatement, expectSQL string, expectArgs []inte
 
 	for index, value := range args {
 		if value != expectArgs[index] {
-			t.Fatalf("参数 [%f] 不匹配, 期望: %v, 实际: %v", index, expectArgs[index], value)
+			t.Fatalf("参数 [%d] 不匹配, 期望: %v, 实际: %v", index, expectArgs[index], value)
 		}
 	}
 }
