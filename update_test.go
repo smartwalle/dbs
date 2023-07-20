@@ -25,3 +25,17 @@ func TestUpdate(t *testing.T) {
 		[]interface{}{"v1", 1000, 10},
 	)
 }
+
+func BenchmarkUpdateBuilder(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		var ub = dbs.NewUpdateBuilder()
+		ub.Table("user")
+		ub.SET("id", 4)
+		ub.SET("name", "Sample")
+		ub.SET("status", 2)
+		ub.SET("age", 20)
+
+		ub.Where("id = ?", 10)
+		_, _, _ = ub.SQL()
+	}
+}
