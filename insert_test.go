@@ -42,3 +42,13 @@ func TestInsertBuilder2(t *testing.T) {
 
 	check(t, ib, "INSERT INTO `b` (`f3`, `f4`) (SELECT f1, ? FROM `a`)", []interface{}{10})
 }
+
+func BenchmarkInsertBuilder(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		var ib = dbs.NewInsertBuilder()
+		ib.Table("user")
+		ib.Columns("id", "name", "status", "age")
+		ib.Values(4, "Sample", 2, 10)
+		ib.SQL()
+	}
+}

@@ -19,7 +19,8 @@ type SelectBuilder struct {
 	builder
 	prefixes statements
 	options  statements
-	columns  statements
+	columns  []string
+	selects  statements
 	from     statements
 	joins    statements
 	wheres   statements
@@ -58,9 +59,7 @@ func (this *SelectBuilder) Options(options ...string) *SelectBuilder {
 }
 
 func (this *SelectBuilder) Selects(columns ...string) *SelectBuilder {
-	for _, c := range columns {
-		this.columns = append(this.columns, NewStatement(c))
-	}
+	this.columns = append(this.columns, columns...)
 	return this
 }
 
@@ -68,7 +67,7 @@ func (this *SelectBuilder) Select(column interface{}, args ...interface{}) *Sele
 	var stmt = parseStmt(column, args...)
 
 	if stmt != nil {
-		this.columns = append(this.columns, stmt)
+		this.selects = append(this.selects, stmt)
 	}
 	return this
 }
@@ -167,7 +166,7 @@ func (this *SelectBuilder) SQL() (string, []interface{}, error) {
 }
 
 func (this *SelectBuilder) Write(w Writer) (err error) {
-	if len(this.columns) == 0 {
+	if len(this.columns) == 0 && len(this.selects) == 0 {
 		return errors.New("dbs: SELECT statement must have at least one result column")
 	}
 
@@ -194,7 +193,18 @@ func (this *SelectBuilder) Write(w Writer) (err error) {
 	}
 
 	if len(this.columns) > 0 {
-		if err = this.columns.Write(w, ", "); err != nil {
+		if _, err = w.WriteString(strings.Join(this.columns, ", ")); err != nil {
+			return err
+		}
+	}
+
+	if len(this.selects) > 0 {
+		if len(this.columns) > 0 {
+			if _, err = w.WriteString(", "); err != nil {
+				return err
+			}
+		}
+		if err = this.selects.Write(w, ", "); err != nil {
 			return err
 		}
 	}
@@ -277,23 +287,20 @@ func (this *SelectBuilder) Write(w Writer) (err error) {
 	return nil
 }
 
-func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
-	var ts = []string{kCount}
-
-	if len(args) > 0 {
-		ts = append(ts, args...)
-	}
+func (this *SelectBuilder) Count(alias string) *SelectBuilder {
+	var columns = []string{strings.Join([]string{kCount, "AS", alias}, " ")}
 
 	var sb = NewSelectBuilder()
 	var cb = this.Clone()
-	cb.columns = statements{NewStatement(strings.Join(ts, " "))}
+	cb.columns = columns
+	cb.selects = nil
 	cb.limit = nil
 	cb.offset = nil
 	cb.orderBys = nil
 
 	if len(cb.groupBys) > 0 {
 		sb.FromStmt(Alias(cb, "c"))
-		sb.columns = statements{NewStatement(strings.Join(ts, " "))}
+		sb.columns = columns
 	} else {
 		sb = cb
 	}
@@ -302,40 +309,48 @@ func (this *SelectBuilder) Count(args ...string) *SelectBuilder {
 }
 
 // Scan 读取数据到一个结构体中。
-// 需要注意：声明变量的时候，变量应该为某一结构体的指针类型，不需要初始化，调用 Scan() 方法的时候，需要传递变量的地址。
+//
 // var user *User
 //
 // var sb = dbs.NewSelectBuilder()
+//
 // sb.Scan(db, &user)
 func (this *SelectBuilder) Scan(s Session, dst interface{}) (err error) {
 	return scanContext(context.Background(), s, this, dst)
 }
 
 // ScanContext 读取数据到一个结构体中。
-// 需要注意：声明变量的时候，变量应该为某一结构体的指针类型，不需要初始化，调用 ScanContext() 方法的时候，需要传递变量的地址。
+//
 // var user *User
 //
 // var sb = dbs.NewSelectBuilder()
+//
 // sb.ScanContext(ctx, db, &user)
 func (this *SelectBuilder) ScanContext(ctx context.Context, s Session, dst interface{}) (err error) {
 	return scanContext(ctx, s, this, dst)
 }
 
 // ScanRow 读取数据到基本数据类型的变量中，类似于 database/sql 包中结构体 Rows 的 Scan() 方法。
+//
 // var name string
+//
 // var age int
 //
 // var sb = dbs.NewSelectBuilder()
+//
 // sb.ScanRow(db, &name, &age)
 func (this *SelectBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
 	return scanRowContext(context.Background(), s, this, dst...)
 }
 
 // ScanRowContext 读取数据到基本数据类型的变量中，类似于 database/sql 包中结构体 Rows 的 Scan() 方法。
+//
 // var name string
+//
 // var age int
 //
 // var sb = dbs.NewSelectBuilder()
+//
 // sb.ScanRowContext(ctx, db, &name, &age)
 func (this *SelectBuilder) ScanRowContext(ctx context.Context, s Session, dst ...interface{}) (err error) {
 	return scanRowContext(ctx, s, this, dst...)

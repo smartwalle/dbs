@@ -1,33 +1,8 @@
 package dbs
 
-import (
-	"strings"
-)
-
-const (
-	kSQLCalcFoundRows = "SQL_CALC_FOUND_ROWS"
-	kFoundRows        = "FOUND_ROWS()"
-)
-
 const (
 	kOnDuplicateKeyUpdate = "ON DUPLICATE KEY UPDATE "
 )
-
-func (this *SelectBuilder) UseSQLCalcFoundRows() *SelectBuilder {
-	return this.Options(kSQLCalcFoundRows)
-}
-
-func (this *SelectBuilder) FoundRows(args ...string) *SelectBuilder {
-	var ts = []string{kFoundRows}
-
-	if len(args) > 0 {
-		ts = append(ts, args...)
-	}
-
-	var sb = NewSelectBuilder()
-	sb.columns = statements{NewStatement(strings.Join(ts, " "))}
-	return sb
-}
 
 type onDuplicateKeyUpdateStmt struct {
 	stmts statements
