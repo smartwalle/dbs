@@ -81,7 +81,7 @@ func scanRowContext(ctx context.Context, s Session, b Builder, dst ...interface{
 	//}
 
 	if !rows.Next() {
-		if err := rows.Err(); err != nil {
+		if err = rows.Err(); err != nil {
 			//logger.Output(3, fmt.Sprintln(prefix, "Scan Failed:", err))
 			return err
 		}

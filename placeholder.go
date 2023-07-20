@@ -45,6 +45,13 @@ func (this dollar) Replace(sql string) (string, error) {
 			break
 		}
 
+		if len(sql[pos:]) > 1 && sql[pos:pos+2] == "??" {
+			buf.WriteString(sql[:pos])
+			buf.WriteString("?")
+			sql = sql[pos+2:]
+			continue
+		}
+
 		i++
 		buf.WriteString(sql[:pos])
 		fmt.Fprintf(buf, "$%d", i)
