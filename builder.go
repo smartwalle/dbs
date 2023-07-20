@@ -17,31 +17,31 @@ type Builder interface {
 }
 
 type builder struct {
-	d Dialect
+	f Formatter
 }
 
-func (this *builder) UseDialect(d Dialect) {
-	this.d = d
+func (this *builder) UseFormatter(f Formatter) {
+	this.f = f
 }
 
-func (this *builder) GetDialect() Dialect {
-	return this.d
+func (this *builder) GetFormatter() Formatter {
+	return this.f
 }
 
 func (this *builder) quote(s string) string {
 	//if strings.Index(s, ".") != -1 {
 	//	var newStrs []string
 	//	for _, s := range strings.Split(s, ".") {
-	//		newStrs = append(newStrs, this.d.Quote(s))
+	//		newStrs = append(newStrs, this.f.Quote(s))
 	//	}
 	//	return strings.Join(newStrs, ".")
 	//}
-	//return this.d.Quote(s)
+	//return this.f.Quote(s)
 	return s
 }
 
 func (this *builder) format(sql string) (string, error) {
-	return this.d.Format(sql)
+	return this.f.Format(sql)
 }
 
 // RawBuilder 原始 SQL 语句构造器，不会自动添加任何的关键字，主要是为了便于 SQL 语句及参数的管理。
@@ -55,8 +55,8 @@ func (this *RawBuilder) Type() string {
 	return kRawBuilder
 }
 
-func (this *RawBuilder) UseDialect(d Dialect) *RawBuilder {
-	this.builder.UseDialect(d)
+func (this *RawBuilder) UseFormatter(f Formatter) *RawBuilder {
+	this.builder.UseFormatter(f)
 	return this
 }
 
@@ -145,7 +145,7 @@ func (this *RawBuilder) ExecContext(ctx context.Context, s Session) (result sql.
 
 func NewBuilder(sql string, args ...interface{}) *RawBuilder {
 	var b = &RawBuilder{}
-	b.d = gDialect
+	b.f = gFormatter
 	b.sql = &bytes.Buffer{}
 	b.args = make([]interface{}, 0, 8)
 	b.Append(sql, args...)

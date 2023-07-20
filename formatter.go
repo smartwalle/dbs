@@ -6,23 +6,23 @@ import (
 	"strings"
 )
 
-var gDialect Dialect = Question
+var gFormatter Formatter = QuestionFormatter
 
-func UseDialect(d Dialect) {
-	gDialect = d
+func UseFormatter(d Formatter) {
+	gFormatter = d
 }
 
-func GetDialect() Dialect {
-	return gDialect
+func GetFormatter() Formatter {
+	return gFormatter
 }
 
-type Dialect interface {
+type Formatter interface {
 	Format(sql string) (string, error)
 }
 
 var (
-	Question = question{}
-	Dollar   = dollar{}
+	QuestionFormatter = question{}
+	DollarFormatter   = dollar{}
 )
 
 type question struct {
@@ -47,7 +47,7 @@ func (this dollar) Format(sql string) (string, error) {
 
 		i++
 		buf.WriteString(sql[:pos])
-		fmt.Fprintf(buf, "$%d", i)
+		fmt.Fprintf(buf, "$%f", i)
 		sql = sql[pos+1:]
 	}
 	buf.WriteString(sql)

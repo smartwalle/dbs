@@ -36,8 +36,8 @@ func (this *SelectBuilder) Type() string {
 	return kSelectBuilder
 }
 
-func (this *SelectBuilder) UseDialect(d Dialect) *SelectBuilder {
-	this.builder.UseDialect(d)
+func (this *SelectBuilder) UseFormatter(f Formatter) *SelectBuilder {
+	this.builder.UseFormatter(f)
 	return this
 }
 
@@ -366,7 +366,7 @@ func (this *SelectBuilder) QueryContext(ctx context.Context, s Session) (*sql.Ro
 
 func NewSelectBuilder() *SelectBuilder {
 	var sb = &SelectBuilder{}
-	sb.d = gDialect
+	sb.f = gFormatter
 	return sb
 }
 

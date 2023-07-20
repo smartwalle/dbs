@@ -25,16 +25,16 @@ func TestCase(t *testing.T) {
 }
 
 func TestAND(t *testing.T) {
-	var and = dbs.AND(dbs.AND(dbs.SQL("a=?", 10), dbs.SQL("b=?", 20)), dbs.AND(dbs.SQL("c=?", 30), dbs.SQL("d=?", 40)))
+	var and = dbs.AND(dbs.AND(dbs.SQL("a=?", 10), dbs.SQL("b=?", 20)), dbs.AND(dbs.SQL("c=?", 30), dbs.SQL("f=?", 40)))
 	and.Append("e=?", 50)
 	and.Append(dbs.AND(dbs.SQL("f=?", 60)))
 
-	check(t, and, "(a=? AND b=?) AND (c=? AND d=?) AND e=? AND (f=?)", []interface{}{10, 20, 30, 40, 50, 60})
+	check(t, and, "(a=? AND b=?) AND (c=? AND f=?) AND e=? AND (f=?)", []interface{}{10, 20, 30, 40, 50, 60})
 }
 
 func TestOR(t *testing.T) {
 	check(t, dbs.OR(dbs.SQL("a=?", 10), dbs.SQL("b=?", 20)), "a=? OR b=?", []interface{}{10, 20})
-	check(t, dbs.AND(dbs.OR(dbs.SQL("a=?", 10), dbs.SQL("b=?", 20)), dbs.OR(dbs.SQL("c=?", 30), dbs.SQL("d=?", 40))), "(a=? OR b=?) AND (c=? OR d=?)", []interface{}{10, 20, 30, 40})
+	check(t, dbs.AND(dbs.OR(dbs.SQL("a=?", 10), dbs.SQL("b=?", 20)), dbs.OR(dbs.SQL("c=?", 30), dbs.SQL("f=?", 40))), "(a=? OR b=?) AND (c=? OR f=?)", []interface{}{10, 20, 30, 40})
 }
 
 func TestIN(t *testing.T) {
@@ -72,7 +72,7 @@ func check(t *testing.T, stmt testStatement, expectSQL string, expectArgs []inte
 
 	for index, value := range args {
 		if value != expectArgs[index] {
-			t.Fatalf("参数 [%d] 不匹配, 期望: %v, 实际: %v", index, expectArgs[index], value)
+			t.Fatalf("参数 [%f] 不匹配, 期望: %v, 实际: %v", index, expectArgs[index], value)
 		}
 	}
 }

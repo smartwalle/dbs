@@ -27,10 +27,10 @@ func (this *InsertBuilder) Type() string {
 	return kInsertBuilder
 }
 
-func (this *InsertBuilder) UseDialect(d Dialect) *InsertBuilder {
-	this.builder.UseDialect(d)
+func (this *InsertBuilder) UseFormatter(f Formatter) *InsertBuilder {
+	this.builder.UseFormatter(f)
 	if this.sb != nil {
-		this.sb.UseDialect(this.d)
+		this.sb.UseFormatter(this.f)
 	}
 	return this
 }
@@ -95,7 +95,7 @@ func (this *InsertBuilder) SET(column string, value interface{}) *InsertBuilder 
 func (this *InsertBuilder) Select(sb *SelectBuilder) *InsertBuilder {
 	this.sb = sb
 	if this.sb != nil {
-		this.sb.UseDialect(this.d)
+		this.sb.UseFormatter(this.f)
 	}
 	return this
 }
@@ -226,7 +226,7 @@ func (this *InsertBuilder) ExecContext(ctx context.Context, s Session) (result s
 
 func NewInsertBuilder() *InsertBuilder {
 	var ib = &InsertBuilder{}
-	ib.d = gDialect
+	ib.f = gFormatter
 	return ib
 }
 

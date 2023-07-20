@@ -31,8 +31,8 @@ func (this *DeleteBuilder) Type() string {
 	return kDeleteBuilder
 }
 
-func (this *DeleteBuilder) UseDialect(d Dialect) *DeleteBuilder {
-	this.builder.UseDialect(d)
+func (this *DeleteBuilder) UseFormatter(f Formatter) *DeleteBuilder {
+	this.builder.UseFormatter(f)
 	return this
 }
 
@@ -245,6 +245,6 @@ func (this *DeleteBuilder) ExecContext(ctx context.Context, s Session) (result s
 
 func NewDeleteBuilder() *DeleteBuilder {
 	var db = &DeleteBuilder{}
-	db.d = gDialect
+	db.f = gFormatter
 	return db
 }

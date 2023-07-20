@@ -6,7 +6,7 @@ import (
 )
 
 func TestPostgresQL(t *testing.T) {
-	dbs.UseDialect(dbs.Dollar)
+	dbs.UseFormatter(dbs.DollarFormatter)
 
 	var sb = dbs.NewSelectBuilder()
 	sb.Selects("u.id")
@@ -15,5 +15,5 @@ func TestPostgresQL(t *testing.T) {
 
 	check(t, sb, "SELECT u.id FROM user AS u WHERE u.id = $1 OR u.id = $2 OR u.id = $3", []interface{}{10, 20, 30})
 
-	dbs.UseDialect(dbs.Question)
+	dbs.UseFormatter(dbs.QuestionFormatter)
 }

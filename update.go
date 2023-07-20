@@ -29,8 +29,8 @@ func (this *UpdateBuilder) Type() string {
 	return kUpdateBuilder
 }
 
-func (this *UpdateBuilder) UseDialect(d Dialect) *UpdateBuilder {
-	this.builder.UseDialect(d)
+func (this *UpdateBuilder) UseFormatter(f Formatter) *UpdateBuilder {
+	this.builder.UseFormatter(f)
 	return this
 }
 
@@ -257,7 +257,7 @@ func (this *UpdateBuilder) ExecContext(ctx context.Context, s Session) (result s
 
 func NewUpdateBuilder() *UpdateBuilder {
 	var ub = &UpdateBuilder{}
-	ub.d = gDialect
+	ub.f = gFormatter
 	return ub
 }
 
