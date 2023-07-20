@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 )
 
 const (
@@ -30,18 +29,19 @@ func (this *builder) GetDialect() Dialect {
 }
 
 func (this *builder) quote(s string) string {
-	if strings.Index(s, ".") != -1 {
-		var newStrs []string
-		for _, s := range strings.Split(s, ".") {
-			newStrs = append(newStrs, this.d.Quote(s))
-		}
-		return strings.Join(newStrs, ".")
-	}
-	return this.d.Quote(s)
+	//if strings.Index(s, ".") != -1 {
+	//	var newStrs []string
+	//	for _, s := range strings.Split(s, ".") {
+	//		newStrs = append(newStrs, this.d.Quote(s))
+	//	}
+	//	return strings.Join(newStrs, ".")
+	//}
+	//return this.d.Quote(s)
+	return s
 }
 
-func (this *builder) parseVal(sql string) (string, error) {
-	return this.d.ParseVal(sql)
+func (this *builder) format(sql string) (string, error) {
+	return this.d.Format(sql)
 }
 
 // RawBuilder 原始 SQL 语句构造器，不会自动添加任何的关键字，主要是为了便于 SQL 语句及参数的管理。
@@ -93,7 +93,7 @@ func (this *RawBuilder) Params(args ...interface{}) *RawBuilder {
 
 func (this *RawBuilder) SQL() (string, []interface{}, error) {
 	var sql = this.sql.String()
-	sql, err := this.parseVal(sql)
+	sql, err := this.format(sql)
 	if err != nil {
 		return "", nil, err
 	}
@@ -109,21 +109,6 @@ func (this *RawBuilder) Write(w Writer) error {
 func (this *RawBuilder) reset() {
 	this.sql.Reset()
 	this.args = this.args[:0]
-}
-
-func (this *RawBuilder) quote(s string) string {
-	if strings.Index(s, ".") != -1 {
-		var newStrs []string
-		for _, s := range strings.Split(s, ".") {
-			newStrs = append(newStrs, this.d.Quote(s))
-		}
-		return strings.Join(newStrs, ".")
-	}
-	return this.d.Quote(s)
-}
-
-func (this *RawBuilder) parseVal(sql string) (string, error) {
-	return this.d.ParseVal(sql)
 }
 
 func (this *RawBuilder) Scan(s Session, dst interface{}) (err error) {

@@ -8,9 +8,9 @@ import (
 func TestInsertBuilder_Clone(t *testing.T) {
 	var ibUser = dbs.Insert("name", "first_name", "last_name").Table("user")
 
-	check(t, ibUser.Clone().Values("n1", "f1", "l1"), "INSERT INTO `user` (`name`, `first_name`, `last_name`) VALUES (?, ?, ?)", []interface{}{"n1", "f1", "l1"})
+	check(t, ibUser.Clone().Values("n1", "f1", "l1"), "INSERT INTO user (name, first_name, last_name) VALUES (?, ?, ?)", []interface{}{"n1", "f1", "l1"})
 
-	check(t, ibUser.Clone().Values("n2", "f2", "l2"), "INSERT INTO `user` (`name`, `first_name`, `last_name`) VALUES (?, ?, ?)", []interface{}{"n2", "f2", "l2"})
+	check(t, ibUser.Clone().Values("n2", "f2", "l2"), "INSERT INTO user (name, first_name, last_name) VALUES (?, ?, ?)", []interface{}{"n2", "f2", "l2"})
 }
 
 func TestInsertBuilder(t *testing.T) {
@@ -24,7 +24,7 @@ func TestInsertBuilder(t *testing.T) {
 	check(
 		t,
 		ib,
-		"INSERT INTO `user` (`name`, `email`, `amount`) VALUES (?, ?, ((SELECT amount FROM user_amount WHERE id=? LIMIT 1 AS amount)+?)) ON DUPLICATE KEY UPDATE name=VALUES(name), email=VALUES(email)",
+		"INSERT INTO user (name, email, amount) VALUES (?, ?, ((SELECT amount FROM user_amount WHERE id=? LIMIT 1 AS amount)+?)) ON DUPLICATE KEY UPDATE name=VALUES(name), email=VALUES(email)",
 		[]interface{}{"yang", "yang@qq.com", 10},
 	)
 }
@@ -40,7 +40,7 @@ func TestInsertBuilder2(t *testing.T) {
 	sb.From("a")
 	ib.Select(sb)
 
-	check(t, ib, "INSERT INTO `b` (`f3`, `f4`) (SELECT f1, ? FROM `a`)", []interface{}{10})
+	check(t, ib, "INSERT INTO b (f3, f4) (SELECT f1, ? FROM a)", []interface{}{10})
 }
 
 func BenchmarkInsertBuilder(b *testing.B) {
@@ -49,6 +49,6 @@ func BenchmarkInsertBuilder(b *testing.B) {
 		ib.Table("user")
 		ib.Columns("id", "name", "status", "age")
 		ib.Values(4, "Sample", 2, 10)
-		ib.SQL()
+		_, _, _ = ib.SQL()
 	}
 }

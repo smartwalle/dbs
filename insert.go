@@ -108,7 +108,7 @@ func (this *InsertBuilder) SQL() (string, []interface{}, error) {
 		return "", nil, err
 	}
 
-	sql, err := this.parseVal(sqlBuf.String())
+	sql, err := this.format(sqlBuf.String())
 	if err != nil {
 		return "", nil, err
 	}

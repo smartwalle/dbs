@@ -78,7 +78,9 @@ func (this *UpdateBuilder) SET(column string, value interface{}) *UpdateBuilder 
 }
 
 // SETS 批量设置需要更新的字段及其值
+//
 // var name = "my name"
+//
 // SETS("name", name, "age", 10)
 func (this *UpdateBuilder) SETS(kvs ...interface{}) *UpdateBuilder {
 	var column string
@@ -138,7 +140,7 @@ func (this *UpdateBuilder) SQL() (string, []interface{}, error) {
 		return "", nil, err
 	}
 
-	sql, err := this.parseVal(sqlBuf.String())
+	sql, err := this.format(sqlBuf.String())
 	if err != nil {
 		return "", nil, err
 	}

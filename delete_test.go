@@ -13,5 +13,5 @@ func TestDeleteBuilder(t *testing.T) {
 	db.Limit(1)
 	db.Offset(2)
 
-	check(t, db, "DELETE u FROM `user` AS u WHERE u.id=? LIMIT ? OFFSET ?", []interface{}{10, int64(1), int64(2)})
+	check(t, db, "DELETE u FROM user AS u WHERE u.id=? LIMIT ? OFFSET ?", []interface{}{10, int64(1), int64(2)})
 }

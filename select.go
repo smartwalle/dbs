@@ -158,7 +158,7 @@ func (this *SelectBuilder) SQL() (string, []interface{}, error) {
 		return "", nil, err
 	}
 
-	sql, err := this.parseVal(sqlBuf.String())
+	sql, err := this.format(sqlBuf.String())
 	if err != nil {
 		return "", nil, err
 	}
@@ -288,7 +288,7 @@ func (this *SelectBuilder) Write(w Writer) (err error) {
 }
 
 func (this *SelectBuilder) Count(alias string) *SelectBuilder {
-	var columns = []string{strings.Join([]string{kCount, "AS", alias}, " ")}
+	var columns = []string{strings.Join([]string{kCount, alias}, " ")}
 
 	var sb = NewSelectBuilder()
 	var cb = this.Clone()

@@ -41,7 +41,7 @@ func TestIN(t *testing.T) {
 	check(t, dbs.IN("a", []int{1, 2, 3, 4}), "a IN (?, ?, ?, ?)", []interface{}{1, 2, 3, 4})
 	check(t, dbs.IN("b", []int{}), "b IN ()", []interface{}{})
 	check(t, dbs.IN("b", nil), "b IN ()", []interface{}{})
-	check(t, dbs.IN("b", dbs.Select("u.id", "u.name").From("user", "AS u").Where("u.id = ?", 10)), "b IN (SELECT u.id, u.name FROM `user` AS u WHERE u.id = ?)", []interface{}{10})
+	check(t, dbs.IN("b", dbs.Select("u.id", "u.name").From("user", "AS u").Where("u.id = ?", 10)), "b IN (SELECT u.id, u.name FROM user AS u WHERE u.id = ?)", []interface{}{10})
 }
 
 func TestEq(t *testing.T) {
