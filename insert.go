@@ -47,8 +47,8 @@ func (this *InsertBuilder) Prefix(sql string, args ...interface{}) *InsertBuilde
 }
 
 func (this *InsertBuilder) Options(options ...string) *InsertBuilder {
-	for _, c := range options {
-		this.options = append(this.options, NewStatement(c))
+	for _, opt := range options {
+		this.options = append(this.options, NewStatement(opt))
 	}
 	return this
 }

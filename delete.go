@@ -42,8 +42,8 @@ func (this *DeleteBuilder) Prefix(sql string, args ...interface{}) *DeleteBuilde
 }
 
 func (this *DeleteBuilder) Options(options ...string) *DeleteBuilder {
-	for _, c := range options {
-		this.options = append(this.options, NewStatement(c))
+	for _, opt := range options {
+		this.options = append(this.options, NewStatement(opt))
 	}
 	return this
 }

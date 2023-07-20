@@ -40,8 +40,8 @@ func (this *UpdateBuilder) Prefix(sql string, args ...interface{}) *UpdateBuilde
 }
 
 func (this *UpdateBuilder) Options(options ...string) *UpdateBuilder {
-	for _, c := range options {
-		this.options = append(this.options, NewStatement(c))
+	for _, opt := range options {
+		this.options = append(this.options, NewStatement(opt))
 	}
 	return this
 }

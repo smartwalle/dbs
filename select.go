@@ -52,8 +52,8 @@ func (this *SelectBuilder) Prefix(sql string, args ...interface{}) *SelectBuilde
 }
 
 func (this *SelectBuilder) Options(options ...string) *SelectBuilder {
-	for _, c := range options {
-		this.options = append(this.options, NewStatement(c))
+	for _, opt := range options {
+		this.options = append(this.options, NewStatement(opt))
 	}
 	return this
 }
