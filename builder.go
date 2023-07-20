@@ -17,31 +17,31 @@ type Builder interface {
 }
 
 type builder struct {
-	p Placeholder
+	placeholder Placeholder
 }
 
 func (this *builder) UsePlaceholder(p Placeholder) {
-	this.p = p
+	this.placeholder = p
 }
 
 func (this *builder) GetPlaceholder() Placeholder {
-	return this.p
+	return this.placeholder
 }
 
 func (this *builder) quote(s string) string {
 	//if strings.Index(s, ".") != -1 {
 	//	var newStrs []string
 	//	for _, s := range strings.Split(s, ".") {
-	//		newStrs = append(newStrs, this.p.Quote(s))
+	//		newStrs = append(newStrs, this.placeholder.Quote(s))
 	//	}
 	//	return strings.Join(newStrs, ".")
 	//}
-	//return this.p.Quote(s)
+	//return this.placeholder.Quote(s)
 	return s
 }
 
 func (this *builder) replace(sql string) (string, error) {
-	return this.p.Replace(sql)
+	return this.placeholder.Replace(sql)
 }
 
 // RawBuilder 原始 SQL 语句构造器，不会自动添加任何的关键字，主要是为了便于 SQL 语句及参数的管理。
@@ -145,7 +145,7 @@ func (this *RawBuilder) ExecContext(ctx context.Context, s Session) (result sql.
 
 func NewBuilder(sql string, args ...interface{}) *RawBuilder {
 	var b = &RawBuilder{}
-	b.p = gPlaceholder
+	b.placeholder = gPlaceholder
 	b.sql = &bytes.Buffer{}
 	b.args = make([]interface{}, 0, 8)
 	b.Append(sql, args...)

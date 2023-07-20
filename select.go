@@ -366,7 +366,7 @@ func (this *SelectBuilder) QueryContext(ctx context.Context, s Session) (*sql.Ro
 
 func NewSelectBuilder() *SelectBuilder {
 	var sb = &SelectBuilder{}
-	sb.p = gPlaceholder
+	sb.placeholder = gPlaceholder
 	return sb
 }
 

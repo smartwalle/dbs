@@ -257,7 +257,7 @@ func (this *UpdateBuilder) ExecContext(ctx context.Context, s Session) (result s
 
 func NewUpdateBuilder() *UpdateBuilder {
 	var ub = &UpdateBuilder{}
-	ub.p = gPlaceholder
+	ub.placeholder = gPlaceholder
 	return ub
 }
 

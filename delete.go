@@ -245,6 +245,6 @@ func (this *DeleteBuilder) ExecContext(ctx context.Context, s Session) (result s
 
 func NewDeleteBuilder() *DeleteBuilder {
 	var db = &DeleteBuilder{}
-	db.p = gPlaceholder
+	db.placeholder = gPlaceholder
 	return db
 }

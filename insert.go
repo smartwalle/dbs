@@ -30,7 +30,7 @@ func (this *InsertBuilder) Type() string {
 func (this *InsertBuilder) UsePlaceholder(p Placeholder) *InsertBuilder {
 	this.builder.UsePlaceholder(p)
 	if this.sb != nil {
-		this.sb.UsePlaceholder(this.p)
+		this.sb.UsePlaceholder(this.placeholder)
 	}
 	return this
 }
@@ -95,7 +95,7 @@ func (this *InsertBuilder) SET(column string, value interface{}) *InsertBuilder 
 func (this *InsertBuilder) Select(sb *SelectBuilder) *InsertBuilder {
 	this.sb = sb
 	if this.sb != nil {
-		this.sb.UsePlaceholder(this.p)
+		this.sb.UsePlaceholder(this.placeholder)
 	}
 	return this
 }
@@ -226,7 +226,7 @@ func (this *InsertBuilder) ExecContext(ctx context.Context, s Session) (result s
 
 func NewInsertBuilder() *InsertBuilder {
 	var ib = &InsertBuilder{}
-	ib.p = gPlaceholder
+	ib.placeholder = gPlaceholder
 	return ib
 }
 
