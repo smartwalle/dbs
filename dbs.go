@@ -30,8 +30,8 @@ type Database interface {
 
 	Close() error
 
-	Begin() (*Tx, error)
-	BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error)
+	Begin() (Transaction, error)
+	BeginTx(ctx context.Context, opts *sql.TxOptions) (Transaction, error)
 }
 
 type Transaction interface {
@@ -150,11 +150,11 @@ func (this *DB) QueryRowContext(ctx context.Context, query string, args ...any) 
 	return stmt.QueryRowContext(ctx, args...)
 }
 
-func (this *DB) Begin() (*Tx, error) {
+func (this *DB) Begin() (Transaction, error) {
 	return this.BeginTx(context.Background(), nil)
 }
 
-func (this *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
+func (this *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (Transaction, error) {
 	tx, err := this.db.BeginTx(ctx, opts)
 	if err != nil {
 		return nil, err
