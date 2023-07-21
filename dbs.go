@@ -59,7 +59,7 @@ func Open(driver, url string, maxOpen, maxIdle int) (db *sql.DB, err error) {
 func Wrap(db *sql.DB) *DB {
 	var ndb = &DB{}
 	ndb.db = db
-	ndb.cache = dbc.New[*sql.Stmt]()
+	ndb.cache = dbc.New[*sql.Stmt](dbc.WithHitTTL(60))
 	ndb.cache.OnEvicted(func(key string, value *sql.Stmt) {
 		if value != nil {
 			value.Close()
