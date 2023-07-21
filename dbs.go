@@ -56,7 +56,7 @@ func Open(driver, url string, maxOpen, maxIdle int) (db *sql.DB, err error) {
 	return db, err
 }
 
-func Wrap(db *sql.DB) *DB {
+func New(db *sql.DB) *DB {
 	var ndb = &DB{}
 	ndb.db = db
 	ndb.cache = dbc.New[*sql.Stmt](dbc.WithHitTTL(60))
