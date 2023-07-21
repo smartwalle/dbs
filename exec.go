@@ -6,10 +6,10 @@ import (
 )
 
 func scanContext(ctx context.Context, s Session, b Builder, dst interface{}) (err error) {
-	//var tx TX
+	//var tx Transaction
 	//var prefix string
 	//
-	//if nTx, ok := s.(TX); ok {
+	//if nTx, ok := s.(Transaction); ok {
 	//	tx = nTx
 	//	prefix = tx.String() + " " + b.Type()
 	//} else {
@@ -43,10 +43,10 @@ func scanContext(ctx context.Context, s Session, b Builder, dst interface{}) (er
 }
 
 func scanRowContext(ctx context.Context, s Session, b Builder, dst ...interface{}) (err error) {
-	//var tx TX
+	//var tx Transaction
 	//var prefix string
 	//
-	//if nTx, ok := s.(TX); ok {
+	//if nTx, ok := s.(Transaction); ok {
 	//	tx = nTx
 	//	prefix = tx.String() + " " + b.Type()
 	//} else {
@@ -96,10 +96,10 @@ func scanRowContext(ctx context.Context, s Session, b Builder, dst ...interface{
 }
 
 func queryContext(ctx context.Context, s Session, b Builder) (result *sql.Rows, err error) {
-	//var tx TX
+	//var tx Transaction
 	//var prefix string
 	//
-	//if nTx, ok := s.(TX); ok {
+	//if nTx, ok := s.(Transaction); ok {
 	//	tx = nTx
 	//	prefix = tx.String() + " " + b.Type()
 	//} else {
@@ -126,10 +126,10 @@ func queryContext(ctx context.Context, s Session, b Builder) (result *sql.Rows, 
 }
 
 func execContext(ctx context.Context, s Session, b Builder) (result sql.Result, err error) {
-	//var tx TX
+	//var tx Transaction
 	//var prefix string
 	//
-	//if nTx, ok := s.(TX); ok {
+	//if nTx, ok := s.(Transaction); ok {
 	//	tx = nTx
 	//	prefix = tx.String() + " " + b.Type()
 	//} else {

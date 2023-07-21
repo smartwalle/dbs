@@ -5,44 +5,40 @@ import (
 	"database/sql"
 	"github.com/smartwalle/dbc"
 	"github.com/smartwalle/nsync/singleflight"
-	"sync"
 	"time"
 )
 
 var ErrNoRows = sql.ErrNoRows
+var ErrTxDone = sql.ErrTxDone
 
 type Session interface {
+	Prepare(query string) (*sql.Stmt, error)
+	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
+
 	Exec(query string, args ...interface{}) (sql.Result, error)
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 
 	Query(query string, args ...interface{}) (*sql.Rows, error)
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 
-	Prepare(query string) (*sql.Stmt, error)
-	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
+	QueryRow(query string, args ...any) *sql.Row
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
-type DB interface {
+type Database interface {
 	Session
 
 	Close() error
 
-	Begin() (*sql.Tx, error)
-	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
+	Begin() (*Tx, error)
+	BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error)
 }
 
-type TX interface {
-	DB
+type Transaction interface {
+	Session
 
-	// Commit 提交事务
-	Commit() (err error)
-
-	// Rollback 回滚事务
 	Rollback() error
-
-	Stmt(stmt *sql.Stmt) *sql.Stmt
-
-	StmtContext(ctx context.Context, stmt *sql.Stmt) *sql.Stmt
+	Commit() error
 }
 
 func Open(driver, url string, maxOpen, maxIdle int) (db *sql.DB, err error) {
@@ -57,12 +53,11 @@ func Open(driver, url string, maxOpen, maxIdle int) (db *sql.DB, err error) {
 
 	db.SetMaxIdleConns(maxIdle)
 	db.SetMaxOpenConns(maxOpen)
-
 	return db, err
 }
 
-func Wrap(db *sql.DB) DB {
-	var ndb = &dbsDB{}
+func Wrap(db *sql.DB) *DB {
+	var ndb = &DB{}
 	ndb.db = db
 	ndb.cache = dbc.New[*sql.Stmt]()
 	ndb.cache.OnEvicted(func(key string, value *sql.Stmt) {
@@ -74,38 +69,41 @@ func Wrap(db *sql.DB) DB {
 	return ndb
 }
 
-type dbsDB struct {
+type DB struct {
 	db    *sql.DB
 	cache dbc.Cache[string, *sql.Stmt]
 	group singleflight.Group[string, *sql.Stmt]
 }
 
-func (this *dbsDB) Close() error {
+func (this *DB) DB() *sql.DB {
+	return this.db
+}
+
+func (this *DB) Close() error {
 	this.cache.Close()
 	return this.db.Close()
 }
 
-func (this *dbsDB) Ping() error {
+func (this *DB) Ping() error {
 	return this.db.Ping()
 }
 
-func (this *dbsDB) PingContext(ctx context.Context) error {
+func (this *DB) PingContext(ctx context.Context) error {
 	return this.db.PingContext(ctx)
 }
 
-func (this *dbsDB) Prepare(query string) (*sql.Stmt, error) {
+func (this *DB) Prepare(query string) (*sql.Stmt, error) {
 	return this.PrepareContext(context.Background(), query)
 }
 
-func (this *dbsDB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+func (this *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
 	return this.db.PrepareContext(ctx, query)
 }
 
-func (this *dbsDB) prepare(ctx context.Context, query string) (*sql.Stmt, error) {
+func (this *DB) prepare(ctx context.Context, query string) (*sql.Stmt, error) {
 	if stmt, found := this.cache.Get(query); found {
 		return stmt, nil
 	}
-
 	return this.group.Do(query, func(key string) (*sql.Stmt, error) {
 		stmt, err := this.db.PrepareContext(ctx, key)
 		if err != nil {
@@ -116,11 +114,11 @@ func (this *dbsDB) prepare(ctx context.Context, query string) (*sql.Stmt, error)
 	})
 }
 
-func (this *dbsDB) Exec(query string, args ...interface{}) (sql.Result, error) {
+func (this *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
 	return this.ExecContext(context.Background(), query, args...)
 }
 
-func (this *dbsDB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (this *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
 	stmt, err := this.prepare(ctx, query)
 	if err != nil {
 		return nil, err
@@ -128,11 +126,11 @@ func (this *dbsDB) ExecContext(ctx context.Context, query string, args ...interf
 	return stmt.ExecContext(ctx, args...)
 }
 
-func (this *dbsDB) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (this *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return this.QueryContext(context.Background(), query, args...)
 }
 
-func (this *dbsDB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+func (this *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
 	stmt, err := this.prepare(ctx, query)
 	if err != nil {
 		return nil, err
@@ -140,166 +138,111 @@ func (this *dbsDB) QueryContext(ctx context.Context, query string, args ...inter
 	return stmt.QueryContext(ctx, args...)
 }
 
-// Begin 创建新的事务。
-//
-// 本方法是为了实现 DB 接口，不建议直接使用。推荐使用 dbs.NewTx() 或者 dbs.MustTx()。
-func (this *dbsDB) Begin() (*sql.Tx, error) {
-	return this.db.Begin()
+func (this *DB) QueryRow(query string, args ...any) *sql.Row {
+	return this.QueryRowContext(context.Background(), query, args...)
 }
 
-// BeginTx 创建新的事务。
-//
-// 本方法是为了实现 DB 接口，不建议直接使用。推荐使用 dbs.NewTxContext() 或者 dbs.MustTxContext()。
-func (this *dbsDB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
-	return this.db.BeginTx(ctx, opts)
+func (this *DB) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+	stmt, err := this.prepare(ctx, query)
+	if err != nil {
+		return nil
+	}
+	return stmt.QueryRowContext(ctx, args...)
+}
+
+func (this *DB) Begin() (*Tx, error) {
+	return this.BeginTx(context.Background(), nil)
+}
+
+func (this *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
+	tx, err := this.db.BeginTx(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	var nTx = &Tx{}
+	nTx.tx = tx
+	nTx.preparer = this
+	return nTx, err
 }
 
 type preparer interface {
 	prepare(ctx context.Context, query string) (*sql.Stmt, error)
 }
 
-type dbsTx struct {
-	*sql.Tx
-	p    preparer
-	done bool
-	mu   sync.Mutex
+type Tx struct {
+	tx       *sql.Tx
+	preparer preparer
 }
 
-func (this *dbsTx) stmt(ctx context.Context, query string) (*sql.Stmt, error) {
-	var stmt, err = this.p.prepare(ctx, query)
+func (this *Tx) TX() *sql.Tx {
+	return this.tx
+}
+
+func (this *Tx) stmt(ctx context.Context, query string) (*sql.Stmt, error) {
+	var stmt, err = this.preparer.prepare(ctx, query)
 	if err != nil {
 		return nil, err
 	}
-	return this.StmtContext(ctx, stmt), nil
+	return this.tx.StmtContext(ctx, stmt), nil
 }
 
-func (this *dbsTx) Exec(query string, args ...interface{}) (sql.Result, error) {
+func (this *Tx) Prepare(query string) (*sql.Stmt, error) {
+	return this.PrepareContext(context.Background(), query)
+}
+
+func (this *Tx) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	return this.tx.PrepareContext(ctx, query)
+}
+
+func (this *Tx) Exec(query string, args ...interface{}) (sql.Result, error) {
 	return this.ExecContext(context.Background(), query, args...)
 }
 
-func (this *dbsTx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	if this.p != nil {
+func (this *Tx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	if this.preparer != nil {
 		stmt, err := this.stmt(ctx, query)
 		if err != nil {
 			return nil, err
 		}
 		return stmt.ExecContext(ctx, args...)
 	}
-	return this.Tx.ExecContext(ctx, query, args...)
+	return this.tx.ExecContext(ctx, query, args...)
 }
 
-func (this *dbsTx) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (this *Tx) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return this.QueryContext(context.Background(), query, args...)
 }
 
-func (this *dbsTx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	if this.p != nil {
+func (this *Tx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	if this.preparer != nil {
 		stmt, err := this.stmt(ctx, query)
 		if err != nil {
 			return nil, err
 		}
 		return stmt.QueryContext(ctx, args...)
 	}
-	return this.Tx.QueryContext(ctx, query, args...)
+	return this.tx.QueryContext(ctx, query, args...)
 }
 
-func (this *dbsTx) Commit() error {
-	this.mu.Lock()
-	var err = this.Tx.Commit()
-	this.done = true
-	this.mu.Unlock()
-	return err
+func (this *Tx) QueryRow(query string, args ...any) *sql.Row {
+	return this.QueryRowContext(context.Background(), query, args...)
 }
 
-func (this *dbsTx) Rollback() error {
-	this.mu.Lock()
-	var err = this.Tx.Rollback()
-	this.done = true
-	this.mu.Unlock()
-	return err
-}
-
-// Close 判断事务是否完成，如果未完成，则执行 Rollback 操作
-func (this *dbsTx) Close() error {
-	this.mu.Lock()
-	if this.done {
-		this.mu.Unlock()
-		return nil
-	}
-	var err = this.Tx.Rollback()
-	this.done = true
-	this.mu.Unlock()
-	return err
-}
-
-// Begin 不会创建新的事务，如果当前事务已经关闭，则会返回事务已结束的错误，如果事务没有关闭，则返回当前事务。
-//
-// 本方法是为了实现 DB 接口，不建议直接使用。推荐使用 dbs.NewTx() 或者 dbs.MustTx()。
-func (this *dbsTx) Begin() (*sql.Tx, error) {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	if this.done {
-		return nil, sql.ErrTxDone
-	}
-	return this.Tx, nil
-}
-
-// BeginTx 不会创建新的事务，如果当前事务已经关闭，则会返回事务已结束的错误，如果事务没有关闭，则返回当前事务。
-//
-// 本方法是为了实现 DB 接口，不建议直接使用。推荐使用 dbs.NewTxContext() 或者 dbs.MustTxContext()。
-func (this *dbsTx) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	if this.done {
-		return nil, sql.ErrTxDone
-	}
-	return this.Tx, nil
-}
-
-func NewTx(db DB) (TX, error) {
-	return newTxContext(context.Background(), db, nil)
-}
-
-func MustTx(db DB) TX {
-	tx, err := newTxContext(context.Background(), db, nil)
-	if err != nil {
-		panic(err)
-	}
-	return tx
-}
-
-func NewTxContext(ctx context.Context, db DB, opts *sql.TxOptions) (TX, error) {
-	return newTxContext(ctx, db, opts)
-}
-
-func MustTxContext(ctx context.Context, db DB, opts *sql.TxOptions) TX {
-	tx, err := newTxContext(ctx, db, opts)
-	if err != nil {
-		panic(err)
-	}
-	return tx
-}
-
-func newTxContext(ctx context.Context, db DB, opts *sql.TxOptions) (TX, error) {
-	if nt, ok := db.(*dbsTx); ok {
-		nt.mu.Lock()
-		if nt.done {
-			nt.mu.Unlock()
-			return nil, sql.ErrTxDone
+func (this *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+	if this.preparer != nil {
+		stmt, err := this.stmt(ctx, query)
+		if err != nil {
+			return nil
 		}
-		nt.mu.Unlock()
-		return nt, nil
+		return stmt.QueryRowContext(ctx, args...)
 	}
+	return this.tx.QueryRowContext(ctx, query, args...)
+}
 
-	var tx = &dbsTx{}
-	var err error
+func (this *Tx) Commit() error {
+	return this.tx.Commit()
+}
 
-	tx.Tx, err = db.BeginTx(ctx, opts)
-	if err != nil {
-		return nil, err
-	}
-	tx.p, _ = db.(preparer)
-	return tx, err
+func (this *Tx) Rollback() error {
+	return this.tx.Rollback()
 }
