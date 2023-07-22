@@ -110,7 +110,7 @@ func (this *DB) prepare(ctx context.Context, query string) (*sql.Stmt, error) {
 			return nil, err
 		}
 		this.cache.SetEx(key, stmt, time.Now().Add(time.Minute*30).Unix())
-		return stmt, err
+		return stmt, nil
 	})
 }
 
@@ -162,7 +162,7 @@ func (this *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (Transaction, 
 	var nTx = &Tx{}
 	nTx.tx = tx
 	nTx.preparer = this
-	return nTx, err
+	return nTx, nil
 }
 
 type preparer interface {
