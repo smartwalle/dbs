@@ -169,10 +169,6 @@ type Preparer interface {
 	PreparedStatement(ctx context.Context, query string) (*sql.Stmt, error)
 }
 
-func WrapTx(tx *sql.Tx) *Tx {
-	return &Tx{tx: tx}
-}
-
 type Tx struct {
 	tx       *sql.Tx
 	preparer Preparer
