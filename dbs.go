@@ -30,8 +30,8 @@ type Database interface {
 
 	Close() error
 
-	Begin() (Transaction, error)
-	BeginTx(ctx context.Context, opts *sql.TxOptions) (Transaction, error)
+	Begin() (*Tx, error)
+	BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error)
 }
 
 type Transaction interface {
@@ -100,7 +100,7 @@ func (this *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, er
 	return this.db.PrepareContext(ctx, query)
 }
 
-func (this *DB) prepare(ctx context.Context, query string) (*sql.Stmt, error) {
+func (this *DB) PreparedStatement(ctx context.Context, query string) (*sql.Stmt, error) {
 	if stmt, found := this.cache.Get(query); found {
 		return stmt, nil
 	}
@@ -119,7 +119,7 @@ func (this *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
 }
 
 func (this *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	stmt, err := this.prepare(ctx, query)
+	stmt, err := this.PreparedStatement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func (this *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
 }
 
 func (this *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	stmt, err := this.prepare(ctx, query)
+	stmt, err := this.PreparedStatement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -143,18 +143,18 @@ func (this *DB) QueryRow(query string, args ...any) *sql.Row {
 }
 
 func (this *DB) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
-	stmt, err := this.prepare(ctx, query)
+	stmt, err := this.PreparedStatement(ctx, query)
 	if err != nil {
 		return nil
 	}
 	return stmt.QueryRowContext(ctx, args...)
 }
 
-func (this *DB) Begin() (Transaction, error) {
+func (this *DB) Begin() (*Tx, error) {
 	return this.BeginTx(context.Background(), nil)
 }
 
-func (this *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (Transaction, error) {
+func (this *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
 	tx, err := this.db.BeginTx(ctx, opts)
 	if err != nil {
 		return nil, err
@@ -165,21 +165,25 @@ func (this *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (Transaction, 
 	return nTx, nil
 }
 
-type preparer interface {
-	prepare(ctx context.Context, query string) (*sql.Stmt, error)
+type Preparer interface {
+	PreparedStatement(ctx context.Context, query string) (*sql.Stmt, error)
+}
+
+func WrapTx(tx *sql.Tx) *Tx {
+	return &Tx{tx: tx}
 }
 
 type Tx struct {
 	tx       *sql.Tx
-	preparer preparer
+	preparer Preparer
 }
 
-func (this *Tx) TX() *sql.Tx {
+func (this *Tx) Tx() *sql.Tx {
 	return this.tx
 }
 
 func (this *Tx) stmt(ctx context.Context, query string) (*sql.Stmt, error) {
-	var stmt, err = this.preparer.prepare(ctx, query)
+	var stmt, err = this.preparer.PreparedStatement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
