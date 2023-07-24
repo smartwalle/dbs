@@ -22,7 +22,7 @@ func New(master *dbs.DB, slaves ...*dbs.DB) *DB {
 	return ndb
 }
 
-func (this *DB) Master() dbs.Database {
+func (this *DB) Master() *dbs.DB {
 	return this.master
 }
 
