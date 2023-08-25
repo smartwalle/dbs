@@ -1,100 +1,49 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	"github.com/smartwalle/dbs"
+	"time"
 )
 
-func main() {
-	db, err := sql.Open("mysql", "xxx")
+type Mail struct {
+	Id        string     `sql:"id"`
+	Email     string     `sql:"email"`
+	Status    string     `sql:"status"`
+	CreatedAt *time.Time `sql:"created_at"`
+	UpdatedAt *time.Time `sql:"updated_at"`
+}
+
+func postgresql() {
+	db, err := dbs.Open("postgres", "host=192.168.1.99 port=5432 user=postgres password=postgres dbname=test sslmode=disable", 10, 1)
 	if err != nil {
 		fmt.Println("连接数据库出错：", err)
 		return
 	}
-	defer db.Close()
+
+	var ndb = dbs.New(db)
+	defer ndb.Close()
 
 	var sb = dbs.NewSelectBuilder()
-	sb.Selects("u.id", "u.name", "u.age")
-	sb.From("user", "AS u")
-	sb.Where("u.id = ?", 1)
-	sb.Limit(1)
+	sb.UsePlaceholder(dbs.DollarPlaceholder)
+	sb.Selects("id", "email", "status", "created_at", "updated_at")
+	sb.From("mail")
+	sb.Limit(10)
+	sb.OrderBy("id")
 
-	var user *User
-	if err := sb.Scan(db, &user); err != nil {
-		fmt.Println("Query 出错：", err)
+	var mails []*Mail
+	if err = sb.Scan(ndb, &mails); err != nil {
+		fmt.Println("查询发生错误:", err)
+		return
 	}
 
-	if user != nil {
-		fmt.Println(user.Id, user.Name, user.Age)
+	for _, mail := range mails {
+		fmt.Println(mail.Id, mail.Email, mail.Status, mail.CreatedAt, mail.UpdatedAt)
 	}
-
-	// 事务示例
-	//var tx = dbs.MustTx(db)
-	//
-	//var sb2 = dbs.NewSelectBuilder()
-	//if err = sb2.Scan(tx, &user); err != nil {
-	//	return
-	//}
-	//
-	//var ib = dbs.NewInsertBuilder()
-	//if _, err = ib.Exec(tx); err != nil {
-	//	return
-	//}
-	//
-	//var ub = dbs.NewUpdateBuilder()
-	//if _, err = ub.Exec(tx); err != nil {
-	//	return
-	//}
-	//
-	//var rb = dbs.NewDeleteBuilder()
-	//if _, err = rb.Exec(tx); err != nil {
-	//	return
-	//}
-	//
-	//tx.Commit()
 }
 
-type User struct {
-	Id   int64  `sql:"id"`
-	Name string `sql:"name"`
-	Age  int    `sql:"age"`
-}
-
-func selectBuilder() {
-	var sb = dbs.NewSelectBuilder()
-	sb.Selects("u.id", "u.name AS username", "u.age")
-	sb.Select(dbs.Alias("b.amount", "user_amount"))
-	sb.From("user", "AS u")
-	sb.LeftJoin("bank", "AS b ON b.user_id = u.id")
-	sb.Where("u.id = ?", 1)
-	fmt.Println(sb.SQL())
-}
-
-func insertBuilder() {
-	var ib = dbs.NewInsertBuilder()
-	ib.Table("user")
-	ib.Columns("name", "age")
-	ib.Values("用户1", 18)
-	ib.Values("用户2", 20)
-	fmt.Println(ib.SQL())
-}
-
-func updateBuilder() {
-	var ub = dbs.NewUpdateBuilder()
-	ub.Table("user")
-	ub.SET("name", "新的名字")
-	ub.Where("id = ? ", 1)
-	ub.Limit(1)
-	fmt.Println(ub.SQL())
-}
-
-func deleteBuilder() {
-	var rb = dbs.NewDeleteBuilder()
-	rb.Table("user")
-	rb.Where("id = ?", 1)
-	rb.Limit(1)
-	fmt.Println(rb.SQL())
+func main() {
+	postgresql()
 }
