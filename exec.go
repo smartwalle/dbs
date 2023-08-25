@@ -119,9 +119,9 @@ func queryContext(ctx context.Context, s Session, b Builder) (result *sql.Rows, 
 	}
 	//logger.Output(3, fmt.Sprintln(prefix, "Build Success:", sqlStr, args))
 	result, err = s.QueryContext(ctx, sqlStr, args...)
-	if err != nil {
-		//logger.Output(3, fmt.Sprintln(prefix, "Query Failed:", err))
-	}
+	//if err != nil {
+	//	logger.Output(3, fmt.Sprintln(prefix, "Query Failed:", err))
+	//}
 	return result, err
 }
 
