@@ -181,8 +181,12 @@ func (this *Mapper) getStructDescriptor(key reflect.Type) (structDescriptor, boo
 
 func (this *Mapper) setStructDescriptor(key reflect.Type, value structDescriptor) {
 	var structs = this.structs.Load().(map[reflect.Type]structDescriptor)
-	structs[key] = value
-	this.structs.Store(structs)
+	var nStructs = make(map[reflect.Type]structDescriptor, len(structs)+1)
+	for k, v := range structs {
+		nStructs[k] = v
+	}
+	nStructs[key] = value
+	this.structs.Store(nStructs)
 }
 
 type structQueueElement struct {
