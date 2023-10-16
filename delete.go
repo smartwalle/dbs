@@ -14,17 +14,17 @@ const (
 
 type DeleteBuilder struct {
 	builder
-	prefixes statements
-	options  statements
+	prefixes Clauses
+	options  Clauses
 	alias    []string
-	tables   statements
+	tables   Clauses
 	using    string
-	joins    statements
-	wheres   statements
+	joins    Clauses
+	wheres   Clauses
 	orderBys []string
-	limit    Statement
-	offset   Statement
-	suffixes statements
+	limit    SQLClause
+	offset   SQLClause
+	suffixes Clauses
 }
 
 func (this *DeleteBuilder) Type() string {
@@ -37,13 +37,13 @@ func (this *DeleteBuilder) UsePlaceholder(p Placeholder) *DeleteBuilder {
 }
 
 func (this *DeleteBuilder) Prefix(sql string, args ...interface{}) *DeleteBuilder {
-	this.prefixes = append(this.prefixes, NewStatement(sql, args...))
+	this.prefixes = append(this.prefixes, NewClause(sql, args...))
 	return this
 }
 
 func (this *DeleteBuilder) Options(options ...string) *DeleteBuilder {
 	for _, opt := range options {
-		this.options = append(this.options, NewStatement(opt))
+		this.options = append(this.options, NewClause(opt))
 	}
 	return this
 }
@@ -57,7 +57,7 @@ func (this *DeleteBuilder) Table(table string, args ...string) *DeleteBuilder {
 	var ts []string
 	ts = append(ts, this.quote(table))
 	ts = append(ts, args...)
-	this.tables = append(this.tables, NewStatement(strings.Join(ts, " ")))
+	this.tables = append(this.tables, NewClause(strings.Join(ts, " ")))
 	return this
 }
 
@@ -80,14 +80,14 @@ func (this *DeleteBuilder) LeftJoin(table, suffix string, args ...interface{}) *
 
 func (this *DeleteBuilder) join(join, table, suffix string, args ...interface{}) *DeleteBuilder {
 	var sql = []string{join, this.quote(table), suffix}
-	this.joins = append(this.joins, NewStatement(strings.Join(sql, " "), args...))
+	this.joins = append(this.joins, NewClause(strings.Join(sql, " "), args...))
 	return this
 }
 
 func (this *DeleteBuilder) Where(sql interface{}, args ...interface{}) *DeleteBuilder {
-	var stmt = parseStmt(sql, args...)
-	if stmt != nil {
-		this.wheres = append(this.wheres, stmt)
+	var clause = parseClause(sql, args...)
+	if clause != nil {
+		this.wheres = append(this.wheres, clause)
 	}
 	return this
 }
@@ -98,19 +98,19 @@ func (this *DeleteBuilder) OrderBy(sql ...string) *DeleteBuilder {
 }
 
 func (this *DeleteBuilder) Limit(limit int64) *DeleteBuilder {
-	this.limit = NewStatement(" LIMIT ?", limit)
+	this.limit = NewClause(" LIMIT ?", limit)
 	return this
 }
 
 func (this *DeleteBuilder) Offset(offset int64) *DeleteBuilder {
-	this.offset = NewStatement(" OFFSET ?", offset)
+	this.offset = NewClause(" OFFSET ?", offset)
 	return this
 }
 
 func (this *DeleteBuilder) Suffix(sql interface{}, args ...interface{}) *DeleteBuilder {
-	var stmt = parseStmt(sql, args...)
-	if stmt != nil {
-		this.suffixes = append(this.suffixes, stmt)
+	var clause = parseClause(sql, args...)
+	if clause != nil {
+		this.suffixes = append(this.suffixes, clause)
 	}
 	return this
 }
@@ -132,10 +132,10 @@ func (this *DeleteBuilder) SQL() (string, []interface{}, error) {
 
 func (this *DeleteBuilder) Write(w Writer) (err error) {
 	if len(this.tables) == 0 {
-		return errors.New("dbs: DELETE statement must specify a table")
+		return errors.New("dbs: DELETE clause must specify a table")
 	}
 	if len(this.wheres) == 0 {
-		return errors.New("dbs: DELETE statement must have at least one where")
+		return errors.New("dbs: DELETE clause must have at least one where")
 	}
 
 	if len(this.prefixes) > 0 {

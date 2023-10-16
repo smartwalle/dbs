@@ -14,12 +14,12 @@ const (
 
 type InsertBuilder struct {
 	builder
-	prefixes statements
-	options  statements
+	prefixes Clauses
+	options  Clauses
 	columns  []string
 	table    string
 	values   [][]interface{}
-	suffixes statements
+	suffixes Clauses
 	sb       *SelectBuilder
 }
 
@@ -42,13 +42,13 @@ func (this *InsertBuilder) Clone() *InsertBuilder {
 }
 
 func (this *InsertBuilder) Prefix(sql string, args ...interface{}) *InsertBuilder {
-	this.prefixes = append(this.prefixes, NewStatement(sql, args...))
+	this.prefixes = append(this.prefixes, NewClause(sql, args...))
 	return this
 }
 
 func (this *InsertBuilder) Options(options ...string) *InsertBuilder {
 	for _, opt := range options {
-		this.options = append(this.options, NewStatement(opt))
+		this.options = append(this.options, NewClause(opt))
 	}
 	return this
 }
@@ -74,9 +74,9 @@ func (this *InsertBuilder) Values(values ...interface{}) *InsertBuilder {
 }
 
 func (this *InsertBuilder) Suffix(sql interface{}, args ...interface{}) *InsertBuilder {
-	var stmt = parseStmt(sql, args...)
-	if stmt != nil {
-		this.suffixes = append(this.suffixes, stmt)
+	var clause = parseClause(sql, args...)
+	if clause != nil {
+		this.suffixes = append(this.suffixes, clause)
 	}
 	return this
 }
@@ -117,10 +117,10 @@ func (this *InsertBuilder) SQL() (string, []interface{}, error) {
 
 func (this *InsertBuilder) Write(w Writer) (err error) {
 	if len(this.table) == 0 {
-		return errors.New("dbs: INSERT statement must specify a table")
+		return errors.New("dbs: Insert clause must specify a table")
 	}
 	if len(this.values) == 0 && this.sb == nil {
-		return errors.New("dbs: INSERT statement must have at least one set of values")
+		return errors.New("dbs: Insert clause must have at least one set of values")
 	}
 
 	if len(this.prefixes) > 0 {
@@ -175,7 +175,7 @@ func (this *InsertBuilder) Write(w Writer) (err error) {
 			var valuePlaceholder = make([]string, len(value))
 			for i, v := range value {
 				switch vt := v.(type) {
-				case Statement:
+				case SQLClause:
 					vSQL, vArgs, _ := vt.SQL()
 					valuePlaceholder[i] = vSQL
 					w.WriteArgs(vArgs...)

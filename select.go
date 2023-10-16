@@ -17,19 +17,19 @@ const (
 
 type SelectBuilder struct {
 	builder
-	prefixes statements
-	options  statements
+	prefixes Clauses
+	options  Clauses
 	columns  []string
-	selects  statements
-	from     statements
-	joins    statements
-	wheres   statements
+	selects  Clauses
+	from     Clauses
+	joins    Clauses
+	wheres   Clauses
 	groupBys []string
-	having   statements
+	having   Clauses
 	orderBys []string
-	limit    Statement
-	offset   Statement
-	suffixes statements
+	limit    SQLClause
+	offset   SQLClause
+	suffixes Clauses
 }
 
 func (this *SelectBuilder) Type() string {
@@ -47,13 +47,13 @@ func (this *SelectBuilder) Clone() *SelectBuilder {
 }
 
 func (this *SelectBuilder) Prefix(sql string, args ...interface{}) *SelectBuilder {
-	this.prefixes = append(this.prefixes, NewStatement(sql, args...))
+	this.prefixes = append(this.prefixes, NewClause(sql, args...))
 	return this
 }
 
 func (this *SelectBuilder) Options(options ...string) *SelectBuilder {
 	for _, opt := range options {
-		this.options = append(this.options, NewStatement(opt))
+		this.options = append(this.options, NewClause(opt))
 	}
 	return this
 }
@@ -64,10 +64,10 @@ func (this *SelectBuilder) Selects(columns ...string) *SelectBuilder {
 }
 
 func (this *SelectBuilder) Select(column interface{}, args ...interface{}) *SelectBuilder {
-	var stmt = parseStmt(column, args...)
+	var clause = parseClause(column, args...)
 
-	if stmt != nil {
-		this.selects = append(this.selects, stmt)
+	if clause != nil {
+		this.selects = append(this.selects, clause)
 	}
 	return this
 }
@@ -79,12 +79,12 @@ func (this *SelectBuilder) From(table string, args ...string) *SelectBuilder {
 	if argsLen > 0 {
 		ts = append(ts, args...)
 	}
-	this.from = append(this.from, NewStatement(strings.Join(ts, " ")))
+	this.from = append(this.from, NewClause(strings.Join(ts, " ")))
 	return this
 }
 
-func (this *SelectBuilder) FromStmt(stmt Statement) *SelectBuilder {
-	this.from = append(this.from, stmt)
+func (this *SelectBuilder) FromClause(clause SQLClause) *SelectBuilder {
+	this.from = append(this.from, clause)
 	return this
 }
 
@@ -102,14 +102,14 @@ func (this *SelectBuilder) LeftJoin(table, suffix string, args ...interface{}) *
 
 func (this *SelectBuilder) join(join, table, suffix string, args ...interface{}) *SelectBuilder {
 	var sql = []string{join, this.quote(table), suffix}
-	this.joins = append(this.joins, NewStatement(strings.Join(sql, " "), args...))
+	this.joins = append(this.joins, NewClause(strings.Join(sql, " "), args...))
 	return this
 }
 
 func (this *SelectBuilder) Where(sql interface{}, args ...interface{}) *SelectBuilder {
-	var stmt = parseStmt(sql, args...)
-	if stmt != nil {
-		this.wheres = append(this.wheres, stmt)
+	var clause = parseClause(sql, args...)
+	if clause != nil {
+		this.wheres = append(this.wheres, clause)
 	}
 	return this
 }
@@ -120,9 +120,9 @@ func (this *SelectBuilder) GroupBy(groupBys ...string) *SelectBuilder {
 }
 
 func (this *SelectBuilder) Having(sql interface{}, args ...interface{}) *SelectBuilder {
-	var stmt = parseStmt(sql, args...)
-	if stmt != nil {
-		this.having = append(this.having, stmt)
+	var clause = parseClause(sql, args...)
+	if clause != nil {
+		this.having = append(this.having, clause)
 	}
 	return this
 }
@@ -133,19 +133,19 @@ func (this *SelectBuilder) OrderBy(sql ...string) *SelectBuilder {
 }
 
 func (this *SelectBuilder) Limit(limit int64) *SelectBuilder {
-	this.limit = NewStatement(" LIMIT ?", limit)
+	this.limit = NewClause(" LIMIT ?", limit)
 	return this
 }
 
 func (this *SelectBuilder) Offset(offset int64) *SelectBuilder {
-	this.offset = NewStatement(" OFFSET ?", offset)
+	this.offset = NewClause(" OFFSET ?", offset)
 	return this
 }
 
 func (this *SelectBuilder) Suffix(sql interface{}, args ...interface{}) *SelectBuilder {
-	var stmt = parseStmt(sql, args...)
-	if stmt != nil {
-		this.suffixes = append(this.suffixes, stmt)
+	var clause = parseClause(sql, args...)
+	if clause != nil {
+		this.suffixes = append(this.suffixes, clause)
 	}
 	return this
 }
@@ -167,7 +167,7 @@ func (this *SelectBuilder) SQL() (string, []interface{}, error) {
 
 func (this *SelectBuilder) Write(w Writer) (err error) {
 	if len(this.columns) == 0 && len(this.selects) == 0 {
-		return errors.New("dbs: SELECT statement must have at least one result column")
+		return errors.New("dbs: SELECT clause must have at least one result column")
 	}
 
 	if len(this.prefixes) > 0 {
@@ -299,7 +299,7 @@ func (this *SelectBuilder) Count(alias string) *SelectBuilder {
 	cb.orderBys = nil
 
 	if len(cb.groupBys) > 0 {
-		sb.FromStmt(Alias(cb, "c"))
+		sb.FromClause(Alias(cb, "c"))
 		sb.columns = columns
 	} else {
 		sb = cb

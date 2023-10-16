@@ -5,14 +5,14 @@ import (
 	"testing"
 )
 
-func TestNewStatement(t *testing.T) {
-	var stmt = dbs.NewStatement("a=", dbs.NewStatement("SELECT tt.id, tt.name FROM test_table AS tt WHERE tt.id=?", 100))
+func TestNewClause(t *testing.T) {
+	var clause = dbs.NewClause("a=", dbs.NewClause("SELECT tt.id, tt.name FROM test_table AS tt WHERE tt.id=?", 100))
 
-	check(t, stmt, "a=(SELECT tt.id, tt.name FROM test_table AS tt WHERE tt.id=?)", []interface{}{100})
+	check(t, clause, "a=(SELECT tt.id, tt.name FROM test_table AS tt WHERE tt.id=?)", []interface{}{100})
 }
 
 func TestAlias(t *testing.T) {
-	var a = dbs.Alias(dbs.NewStatement("SELECT tt.id, tt.name FROM test_table AS tt WHERE tt.id=?", 100), "a")
+	var a = dbs.Alias(dbs.NewClause("SELECT tt.id, tt.name FROM test_table AS tt WHERE tt.id=?", 100), "a")
 
 	check(t, a, "(SELECT tt.id, tt.name FROM test_table AS tt WHERE tt.id=?) AS a", []interface{}{100})
 }
@@ -46,7 +46,7 @@ func TestIN(t *testing.T) {
 
 func TestEq(t *testing.T) {
 	check(t, dbs.Eq{"a": 10}, "(a = ?)", []interface{}{10})
-	check(t, dbs.Eq{"b": dbs.NewStatement("SELECT tt.id, tt.name FROM test_table AS tt WHERE tt.id=?", 1200)}, "(b = SELECT tt.id, tt.name FROM test_table AS tt WHERE tt.id=?)", []interface{}{1200})
+	check(t, dbs.Eq{"b": dbs.NewClause("SELECT tt.id, tt.name FROM test_table AS tt WHERE tt.id=?", 1200)}, "(b = SELECT tt.id, tt.name FROM test_table AS tt WHERE tt.id=?)", []interface{}{1200})
 	check(t, dbs.Eq{"c": nil}, "(c IS NULL)", nil)
 }
 
@@ -59,8 +59,8 @@ func TestLike(t *testing.T) {
 	check(t, dbs.NotLike("a", "hehe", ""), "a NOT LIKE ?", []interface{}{"hehe"})
 }
 
-func check(t *testing.T, stmt testStatement, expectSQL string, expectArgs []interface{}) {
-	sql, args, _ := stmt.SQL()
+func check(t *testing.T, clause testClause, expectSQL string, expectArgs []interface{}) {
+	sql, args, _ := clause.SQL()
 
 	if sql != expectSQL {
 		t.Fatalf("期望 SQL: %s, 实际 SQL: %s", expectSQL, sql)
@@ -77,6 +77,6 @@ func check(t *testing.T, stmt testStatement, expectSQL string, expectArgs []inte
 	}
 }
 
-type testStatement interface {
+type testClause interface {
 	SQL() (string, []interface{}, error)
 }

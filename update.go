@@ -13,16 +13,16 @@ const (
 
 type UpdateBuilder struct {
 	builder
-	prefixes statements
-	options  statements
-	tables   statements
-	joins    statements
-	columns  setStmts
-	wheres   statements
+	prefixes Clauses
+	options  Clauses
+	tables   Clauses
+	joins    Clauses
+	columns  setClauses
+	wheres   Clauses
 	orderBys []string
-	limit    Statement
-	offset   Statement
-	suffixes statements
+	limit    SQLClause
+	offset   SQLClause
+	suffixes Clauses
 }
 
 func (this *UpdateBuilder) Type() string {
@@ -35,13 +35,13 @@ func (this *UpdateBuilder) UsePlaceholder(p Placeholder) *UpdateBuilder {
 }
 
 func (this *UpdateBuilder) Prefix(sql string, args ...interface{}) *UpdateBuilder {
-	this.prefixes = append(this.prefixes, NewStatement(sql, args...))
+	this.prefixes = append(this.prefixes, NewClause(sql, args...))
 	return this
 }
 
 func (this *UpdateBuilder) Options(options ...string) *UpdateBuilder {
 	for _, opt := range options {
-		this.options = append(this.options, NewStatement(opt))
+		this.options = append(this.options, NewClause(opt))
 	}
 	return this
 }
@@ -50,7 +50,7 @@ func (this *UpdateBuilder) Table(table string, args ...string) *UpdateBuilder {
 	var ts []string
 	ts = append(ts, this.quote(table))
 	ts = append(ts, args...)
-	this.tables = append(this.tables, NewStatement(strings.Join(ts, " ")))
+	this.tables = append(this.tables, NewClause(strings.Join(ts, " ")))
 	return this
 }
 
@@ -68,7 +68,7 @@ func (this *UpdateBuilder) LeftJoin(table, suffix string, args ...interface{}) *
 
 func (this *UpdateBuilder) join(join, table, suffix string, args ...interface{}) *UpdateBuilder {
 	var sql = []string{join, this.quote(table), suffix}
-	this.joins = append(this.joins, NewStatement(strings.Join(sql, " "), args...))
+	this.joins = append(this.joins, NewClause(strings.Join(sql, " "), args...))
 	return this
 }
 
@@ -102,9 +102,9 @@ func (this *UpdateBuilder) SetMap(data map[string]interface{}) *UpdateBuilder {
 }
 
 func (this *UpdateBuilder) Where(sql interface{}, args ...interface{}) *UpdateBuilder {
-	var stmt = parseStmt(sql, args...)
-	if stmt != nil {
-		this.wheres = append(this.wheres, stmt)
+	var clause = parseClause(sql, args...)
+	if clause != nil {
+		this.wheres = append(this.wheres, clause)
 	}
 	return this
 }
@@ -115,19 +115,19 @@ func (this *UpdateBuilder) OrderBy(sql ...string) *UpdateBuilder {
 }
 
 func (this *UpdateBuilder) Limit(limit int64) *UpdateBuilder {
-	this.limit = NewStatement(" LIMIT ?", limit)
+	this.limit = NewClause(" LIMIT ?", limit)
 	return this
 }
 
 func (this *UpdateBuilder) Offset(offset int64) *UpdateBuilder {
-	this.offset = NewStatement(" OFFSET ?", offset)
+	this.offset = NewClause(" OFFSET ?", offset)
 	return this
 }
 
 func (this *UpdateBuilder) Suffix(sql interface{}, args ...interface{}) *UpdateBuilder {
-	var stmt = parseStmt(sql, args...)
-	if stmt != nil {
-		this.suffixes = append(this.suffixes, stmt)
+	var clause = parseClause(sql, args...)
+	if clause != nil {
+		this.suffixes = append(this.suffixes, clause)
 	}
 	return this
 }
@@ -149,13 +149,13 @@ func (this *UpdateBuilder) SQL() (string, []interface{}, error) {
 
 func (this *UpdateBuilder) Write(w Writer) (err error) {
 	if len(this.tables) == 0 {
-		return errors.New("dbs: UPDATE statement must specify a table")
+		return errors.New("dbs: Update clause must specify a table")
 	}
 	if len(this.columns) == 0 {
-		return errors.New("dbs: UPDATE statement must have at least one Set")
+		return errors.New("dbs: Update clause must have at least one Set")
 	}
 	if len(this.wheres) == 0 {
-		return errors.New("dbs: UPDATE statement must have at least one where")
+		return errors.New("dbs: Update clause must have at least one where")
 	}
 
 	if len(this.prefixes) > 0 {
