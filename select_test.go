@@ -5,14 +5,6 @@ import (
 	"testing"
 )
 
-func TestSelectBuilder_Clone(t *testing.T) {
-	var sbUser = dbs.Select("u.name", "u.first_name", "u.last_name").From("user", "AS u").Where("a = ?", 10)
-
-	check(t, sbUser.Clone().Where("u.id = ?", 10), "SELECT u.name, u.first_name, u.last_name FROM user AS u WHERE a = ? AND u.id = ?", []interface{}{10, 10})
-	check(t, sbUser.Clone().Where("u.id = ?", 20), "SELECT u.name, u.first_name, u.last_name FROM user AS u WHERE a = ? AND u.id = ?", []interface{}{10, 20})
-	check(t, sbUser.Clone().Where("u.email = ?", "qqq@qq.com"), "SELECT u.name, u.first_name, u.last_name FROM user AS u WHERE a = ? AND u.email = ?", []interface{}{10, "qqq@qq.com"})
-}
-
 func TestSelectBuilder(t *testing.T) {
 	var sb = dbs.NewSelectBuilder()
 	sb.Selects("u.id")

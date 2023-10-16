@@ -41,11 +41,6 @@ func (this *SelectBuilder) UsePlaceholder(p Placeholder) *SelectBuilder {
 	return this
 }
 
-func (this *SelectBuilder) Clone() *SelectBuilder {
-	var sb = *this
-	return &sb
-}
-
 func (this *SelectBuilder) Prefix(sql string, args ...interface{}) *SelectBuilder {
 	this.prefixes = append(this.prefixes, NewClause(sql, args...))
 	return this
@@ -291,7 +286,8 @@ func (this *SelectBuilder) Count(alias string) *SelectBuilder {
 	var columns = []string{strings.Join([]string{kCount, alias}, " ")}
 
 	var sb = NewSelectBuilder()
-	var cb = this.Clone()
+	var tsb = *sb
+	var cb = &tsb
 	cb.columns = columns
 	cb.selects = nil
 	cb.limit = nil

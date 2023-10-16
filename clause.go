@@ -53,19 +53,19 @@ func (this *Clause) Write(w Writer) error {
 	}
 
 	for _, arg := range this.args {
-		switch ta := arg.(type) {
+		switch argType := arg.(type) {
 		case SQLClause:
 			if _, err := w.WriteString("("); err != nil {
 				return err
 			}
-			if err := ta.Write(w); err != nil {
+			if err := argType.Write(w); err != nil {
 				return err
 			}
 			if _, err := w.WriteString(")"); err != nil {
 				return err
 			}
 		default:
-			w.WriteArgs(ta)
+			w.WriteArgs(argType)
 		}
 	}
 	return nil

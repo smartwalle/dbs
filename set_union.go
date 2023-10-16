@@ -11,8 +11,7 @@ const (
 
 type UnionBuilder struct {
 	builder
-	all      bool
-	clauses  Clauses
+	clauses  []SQLClause
 	orderBys []string
 	limit    SQLClause
 	offset   SQLClause
@@ -27,20 +26,27 @@ func (this *UnionBuilder) UsePlaceholder(p Placeholder) *UnionBuilder {
 	return this
 }
 
-func (this *UnionBuilder) Clone() *UnionBuilder {
-	var sb = *this
-	return &sb
-}
-
-func (this *UnionBuilder) Union(clause ...SQLClause) *UnionBuilder {
-	this.all = false
-	this.clauses = clause
+func (this *UnionBuilder) Union(clauses ...SQLClause) *UnionBuilder {
+	var first = len(this.clauses) == 0
+	for i, clause := range clauses {
+		if i == 0 && first {
+			this.clauses = append(this.clauses, NewClause("", clause))
+		} else {
+			this.clauses = append(this.clauses, NewClause(" UNION ", clause))
+		}
+	}
 	return this
 }
 
-func (this *UnionBuilder) UnionAll(clause ...SQLClause) *UnionBuilder {
-	this.all = true
-	this.clauses = clause
+func (this *UnionBuilder) UnionAll(clauses ...SQLClause) *UnionBuilder {
+	var first = len(this.clauses) == 0
+	for i, clause := range clauses {
+		if i == 0 && first {
+			this.clauses = append(this.clauses, NewClause("", clause))
+		} else {
+			this.clauses = append(this.clauses, NewClause(" UNION ALL ", clause))
+		}
+	}
 	return this
 }
 
@@ -79,17 +85,10 @@ func (this *UnionBuilder) Write(w Writer) (err error) {
 		return errors.New("dbs: UNION clause must have at least two clause")
 	}
 
-	for i, clause := range this.clauses {
-		if i > 0 {
-			if this.all {
-				w.WriteString(" UNION ALL ")
-			} else {
-				w.WriteString(" UNION ")
-			}
+	for _, clause := range this.clauses {
+		if err = clause.Write(w); err != nil {
+			return err
 		}
-		w.WriteString("(")
-		clause.Write(w)
-		w.WriteString(")")
 	}
 
 	if len(this.orderBys) > 0 {

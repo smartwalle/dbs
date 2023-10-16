@@ -35,12 +35,6 @@ func (this *InsertBuilder) UsePlaceholder(p Placeholder) *InsertBuilder {
 	return this
 }
 
-func (this *InsertBuilder) Clone() *InsertBuilder {
-	var ib = *this
-	ib.values = nil
-	return &ib
-}
-
 func (this *InsertBuilder) Prefix(sql string, args ...interface{}) *InsertBuilder {
 	this.prefixes = append(this.prefixes, NewClause(sql, args...))
 	return this

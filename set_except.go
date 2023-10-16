@@ -26,13 +26,27 @@ func (this *ExceptBuilder) UsePlaceholder(p Placeholder) *ExceptBuilder {
 	return this
 }
 
-func (this *ExceptBuilder) Clone() *ExceptBuilder {
-	var sb = *this
-	return &sb
+func (this *ExceptBuilder) Except(clauses ...SQLClause) *ExceptBuilder {
+	var first = len(this.clauses) == 0
+	for i, clause := range clauses {
+		if i == 0 && first {
+			this.clauses = append(this.clauses, NewClause("", clause))
+		} else {
+			this.clauses = append(this.clauses, NewClause(" EXCEPT ", clause))
+		}
+	}
+	return this
 }
 
-func (this *ExceptBuilder) Except(clause ...SQLClause) *ExceptBuilder {
-	this.clauses = clause
+func (this *ExceptBuilder) ExceptAll(clauses ...SQLClause) *ExceptBuilder {
+	var first = len(this.clauses) == 0
+	for i, clause := range clauses {
+		if i == 0 && first {
+			this.clauses = append(this.clauses, NewClause("", clause))
+		} else {
+			this.clauses = append(this.clauses, NewClause(" EXCEPT ALL ", clause))
+		}
+	}
 	return this
 }
 
@@ -71,13 +85,10 @@ func (this *ExceptBuilder) Write(w Writer) (err error) {
 		return errors.New("dbs: EXCEPT clause must have at least two clause")
 	}
 
-	for i, clause := range this.clauses {
-		if i > 0 {
-			w.WriteString(" EXCEPT ")
+	for _, clause := range this.clauses {
+		if err = clause.Write(w); err != nil {
+			return err
 		}
-		w.WriteString("(")
-		clause.Write(w)
-		w.WriteString(")")
 	}
 
 	if len(this.orderBys) > 0 {

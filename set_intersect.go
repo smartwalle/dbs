@@ -11,7 +11,7 @@ const (
 
 type IntersectBuilder struct {
 	builder
-	clauses  Clauses
+	clauses  []SQLClause
 	orderBys []string
 	limit    SQLClause
 	offset   SQLClause
@@ -26,13 +26,27 @@ func (this *IntersectBuilder) UsePlaceholder(p Placeholder) *IntersectBuilder {
 	return this
 }
 
-func (this *IntersectBuilder) Clone() *IntersectBuilder {
-	var sb = *this
-	return &sb
+func (this *IntersectBuilder) Intersect(clauses ...SQLClause) *IntersectBuilder {
+	var first = len(this.clauses) == 0
+	for i, clause := range clauses {
+		if i == 0 && first {
+			this.clauses = append(this.clauses, NewClause("", clause))
+		} else {
+			this.clauses = append(this.clauses, NewClause(" INTERSECT ", clause))
+		}
+	}
+	return this
 }
 
-func (this *IntersectBuilder) Intersect(clause ...SQLClause) *IntersectBuilder {
-	this.clauses = clause
+func (this *IntersectBuilder) IntersectAll(clauses ...SQLClause) *IntersectBuilder {
+	var first = len(this.clauses) == 0
+	for i, clause := range clauses {
+		if i == 0 && first {
+			this.clauses = append(this.clauses, NewClause("", clause))
+		} else {
+			this.clauses = append(this.clauses, NewClause(" INTERSECT ALL ", clause))
+		}
+	}
 	return this
 }
 
@@ -71,13 +85,10 @@ func (this *IntersectBuilder) Write(w Writer) (err error) {
 		return errors.New("dbs: INTERSECT clause must have at least two clause")
 	}
 
-	for i, clause := range this.clauses {
-		if i > 0 {
-			w.WriteString(" INTERSECT ")
+	for _, clause := range this.clauses {
+		if err = clause.Write(w); err != nil {
+			return err
 		}
-		w.WriteString("(")
-		clause.Write(w)
-		w.WriteString(")")
 	}
 
 	if len(this.orderBys) > 0 {

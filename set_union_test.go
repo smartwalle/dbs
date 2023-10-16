@@ -17,7 +17,6 @@ func TestUnionBuilder(t *testing.T) {
 	var ub = dbs.NewUnionBuilder()
 	ub.UnionAll(s1, s2)
 	ub.OrderBy("price")
-	t.Log(ub.SQL())
 
 	check(
 		t,

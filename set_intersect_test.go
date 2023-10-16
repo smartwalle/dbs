@@ -17,7 +17,6 @@ func TestIntersectBuilder(t *testing.T) {
 	var ub = dbs.NewIntersectBuilder()
 	ub.Intersect(s1, s2)
 	ub.OrderBy("price")
-	t.Log(ub.SQL())
 
 	check(
 		t,

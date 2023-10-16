@@ -5,14 +5,6 @@ import (
 	"testing"
 )
 
-func TestInsertBuilder_Clone(t *testing.T) {
-	var ibUser = dbs.Insert("name", "first_name", "last_name").Table("user")
-
-	check(t, ibUser.Clone().Values("n1", "f1", "l1"), "INSERT INTO user (name, first_name, last_name) VALUES (?, ?, ?)", []interface{}{"n1", "f1", "l1"})
-
-	check(t, ibUser.Clone().Values("n2", "f2", "l2"), "INSERT INTO user (name, first_name, last_name) VALUES (?, ?, ?)", []interface{}{"n2", "f2", "l2"})
-}
-
 func TestInsertBuilder(t *testing.T) {
 	var ib = dbs.NewInsertBuilder()
 	ib.Table("user")
