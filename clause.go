@@ -29,30 +29,27 @@ type Clause struct {
 }
 
 func NewClause(sql interface{}, args ...interface{}) *Clause {
-	var s = &Clause{}
-	s.sql = sql
-	s.args = args
-	return s
+	return &Clause{sql: sql, args: args}
 }
 
 func SQL(sql string, args ...interface{}) *Clause {
 	return NewClause(sql, args...)
 }
 
-func (this *Clause) Write(w Writer) error {
-	switch ts := this.sql.(type) {
+func (clause *Clause) Write(w Writer) error {
+	switch sqlType := clause.sql.(type) {
 	case SQLClause:
-		if err := ts.Write(w); err != nil {
+		if err := sqlType.Write(w); err != nil {
 			return err
 		}
 	case string:
-		if _, err := w.WriteString(ts); err != nil {
+		if _, err := w.WriteString(sqlType); err != nil {
 			return err
 		}
 	default:
 	}
 
-	for _, arg := range this.args {
+	for _, arg := range clause.args {
 		switch argType := arg.(type) {
 		case SQLClause:
 			if _, err := w.WriteString("("); err != nil {
@@ -71,26 +68,26 @@ func (this *Clause) Write(w Writer) error {
 	return nil
 }
 
-func (this *Clause) SQL() (string, []interface{}, error) {
+func (clause *Clause) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.Write(sqlBuf)
+	err := clause.Write(sqlBuf)
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
 type pureClause string
 
-func (this pureClause) Write(w Writer) error {
-	_, err := w.WriteString(string(this))
+func (clause pureClause) Write(w Writer) error {
+	_, err := w.WriteString(string(clause))
 	return err
 }
 
-func (this pureClause) SQL() (string, []interface{}, error) {
+func (clause pureClause) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.Write(sqlBuf)
+	err := clause.Write(sqlBuf)
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
@@ -100,14 +97,11 @@ type aliasClause struct {
 }
 
 func Alias(sql interface{}, alias string) *aliasClause {
-	var s = &aliasClause{}
-	s.sql = sql
-	s.alias = alias
-	return s
+	return &aliasClause{sql: sql, alias: alias}
 }
 
-func (this *aliasClause) Write(w Writer) error {
-	switch ts := this.sql.(type) {
+func (clause *aliasClause) Write(w Writer) error {
+	switch ts := clause.sql.(type) {
 	case SQLClause:
 		if _, err := w.WriteString("("); err != nil {
 			return err
@@ -128,17 +122,17 @@ func (this *aliasClause) Write(w Writer) error {
 	if _, err := w.WriteString(" AS "); err != nil {
 		return err
 	}
-	if _, err := w.WriteString(this.alias); err != nil {
+	if _, err := w.WriteString(clause.alias); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (this *aliasClause) SQL() (string, []interface{}, error) {
+func (clause *aliasClause) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.Write(sqlBuf)
+	err := clause.Write(sqlBuf)
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
@@ -149,55 +143,55 @@ type whenClause struct {
 }
 
 type caseClause struct {
-	whatClause SQLClause
-	whenClause []whenClause
-	elseClause SQLClause
+	whatClause  SQLClause
+	whenClauses []whenClause
+	elseClause  SQLClause
 }
 
 func Case(what ...interface{}) *caseClause {
-	var c = &caseClause{}
+	var clause = &caseClause{}
 	switch len(what) {
 	case 0:
 	default:
-		c.what(what[0])
+		clause.what(what[0])
 	}
-	return c
+	return clause
 }
 
-func (this *caseClause) Write(w Writer) error {
+func (clause *caseClause) Write(w Writer) error {
 	if _, err := w.WriteString("CASE"); err != nil {
 		return err
 	}
-	if this.whatClause != nil {
+	if clause.whatClause != nil {
 		if _, err := w.WriteString(" "); err != nil {
 			return err
 		}
-		if err := this.whatClause.Write(w); err != nil {
+		if err := clause.whatClause.Write(w); err != nil {
 			return err
 		}
 	}
 
-	for _, wp := range this.whenClause {
+	for _, when := range clause.whenClauses {
 		if _, err := w.WriteString(" WHEN "); err != nil {
 			return err
 		}
-		if err := wp.when.Write(w); err != nil {
+		if err := when.when.Write(w); err != nil {
 			return err
 		}
 		if _, err := w.WriteString(" THEN "); err != nil {
 			return err
 		}
-		if err := wp.then.Write(w); err != nil {
+		if err := when.then.Write(w); err != nil {
 			return err
 		}
-		w.WriteArgs(wp.args...)
+		w.WriteArgs(when.args...)
 	}
 
-	if this.elseClause != nil {
+	if clause.elseClause != nil {
 		if _, err := w.WriteString(" ELSE "); err != nil {
 			return err
 		}
-		if err := this.elseClause.Write(w); err != nil {
+		if err := clause.elseClause.Write(w); err != nil {
 			return err
 		}
 	}
@@ -208,27 +202,27 @@ func (this *caseClause) Write(w Writer) error {
 	return nil
 }
 
-func (this *caseClause) SQL() (string, []interface{}, error) {
+func (clause *caseClause) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.Write(sqlBuf)
+	err := clause.Write(sqlBuf)
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
-func (this *caseClause) what(what interface{}) *caseClause {
-	this.whatClause = parseClause(what)
-	return this
+func (clause *caseClause) what(what interface{}) *caseClause {
+	clause.whatClause = parseClause(what)
+	return clause
 }
 
-func (this *caseClause) When(when, then interface{}, args ...interface{}) *caseClause {
-	this.whenClause = append(this.whenClause, whenClause{parseClause(when), parseClause(then), args})
-	return this
+func (clause *caseClause) When(when, then interface{}, args ...interface{}) *caseClause {
+	clause.whenClauses = append(clause.whenClauses, whenClause{parseClause(when), parseClause(then), args})
+	return clause
 }
 
-func (this *caseClause) Else(sql interface{}, args ...interface{}) *caseClause {
-	this.elseClause = parseClause(sql, args...)
-	return this
+func (clause *caseClause) Else(sql interface{}, args ...interface{}) *caseClause {
+	clause.elseClause = parseClause(sql, args...)
+	return clause
 }
 
 type setClause struct {
@@ -240,33 +234,33 @@ func newSet(column string, value interface{}) *setClause {
 	return &setClause{column, value}
 }
 
-func (this *setClause) Write(w Writer) error {
-	w.WriteString(this.column)
+func (clause *setClause) Write(w Writer) error {
+	w.WriteString(clause.column)
 	w.WriteString("=")
-	switch tv := this.value.(type) {
+	switch tv := clause.value.(type) {
 	case SQLClause:
 		if err := tv.Write(w); err != nil {
 			return err
 		}
 	default:
 		w.WriteString("?")
-		w.WriteArgs(this.value)
+		w.WriteArgs(clause.value)
 	}
 	return nil
 }
 
-func (this *setClause) SQL() (string, []interface{}, error) {
+func (clause *setClause) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.Write(sqlBuf)
+	err := clause.Write(sqlBuf)
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
 type setClauses []*setClause
 
-func (this setClauses) Write(w Writer, sep string) error {
-	for i, c := range this {
+func (clause setClauses) Write(w Writer, sep string) error {
+	for i, c := range clause {
 		if i != 0 {
 			if _, err := w.WriteString(sep); err != nil {
 				return err
@@ -279,36 +273,36 @@ func (this setClauses) Write(w Writer, sep string) error {
 	return nil
 }
 
-func (this setClauses) SQL() (string, []interface{}, error) {
+func (clause setClauses) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.Write(sqlBuf, ", ")
+	err := clause.Write(sqlBuf, ", ")
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
 type Clauses []SQLClause
 
-func (this Clauses) Write(w Writer, sep string) error {
-	for i, clause := range this {
+func (clauses Clauses) Write(w Writer, sep string) error {
+	for i, clause := range clauses {
 		if i != 0 {
 			if _, err := w.WriteString(sep); err != nil {
 				return err
 			}
 		}
-		switch st := clause.(type) {
+		switch clauseType := clause.(type) {
 		case *whereClause:
 			if _, err := w.WriteString("("); err != nil {
 				return err
 			}
-			if err := st.Write(w); err != nil {
+			if err := clauseType.Write(w); err != nil {
 				return err
 			}
 			if _, err := w.WriteString(")"); err != nil {
 				return err
 			}
 		default:
-			if err := st.Write(w); err != nil {
+			if err := clauseType.Write(w); err != nil {
 				return err
 			}
 		}
@@ -319,11 +313,11 @@ func (this Clauses) Write(w Writer, sep string) error {
 	return nil
 }
 
-func (this Clauses) SQL() (string, []interface{}, error) {
+func (clauses Clauses) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.Write(sqlBuf, ", ")
+	err := clauses.Write(sqlBuf, ", ")
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
@@ -332,27 +326,27 @@ type whereClause struct {
 	sep     string
 }
 
-func (this *whereClause) Write(w Writer) error {
-	for i, clause := range this.clauses {
+func (clause *whereClause) Write(w Writer) error {
+	for i, ele := range clause.clauses {
 		if i != 0 {
-			if _, err := w.WriteString(this.sep); err != nil {
+			if _, err := w.WriteString(clause.sep); err != nil {
 				return err
 			}
 		}
 
-		switch st := clause.(type) {
+		switch clauseType := ele.(type) {
 		case *whereClause:
 			if _, err := w.WriteString("("); err != nil {
 				return err
 			}
-			if err := st.Write(w); err != nil {
+			if err := clauseType.Write(w); err != nil {
 				return err
 			}
 			if _, err := w.WriteString(")"); err != nil {
 				return err
 			}
 		default:
-			if err := st.Write(w); err != nil {
+			if err := clauseType.Write(w); err != nil {
 				return err
 			}
 		}
@@ -361,39 +355,33 @@ func (this *whereClause) Write(w Writer) error {
 	return nil
 }
 
-func (this *whereClause) SQL() (string, []interface{}, error) {
+func (clause *whereClause) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.Write(sqlBuf)
+	err := clause.Write(sqlBuf)
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
-func (this *whereClause) Appends(clauses ...SQLClause) *whereClause {
-	this.clauses = append(this.clauses, clauses...)
-	return this
+func (clause *whereClause) Appends(clauses ...SQLClause) *whereClause {
+	clause.clauses = append(clause.clauses, clauses...)
+	return clause
 }
 
-func (this *whereClause) Append(sql interface{}, args ...interface{}) *whereClause {
-	var s = parseClause(sql, args...)
-	if s != nil {
-		this.clauses = append(this.clauses, s)
+func (clause *whereClause) Append(sql interface{}, args ...interface{}) *whereClause {
+	var nClause = parseClause(sql, args...)
+	if nClause != nil {
+		clause.clauses = append(clause.clauses, nClause)
 	}
-	return this
+	return clause
 }
 
 func AND(clauses ...SQLClause) *whereClause {
-	var s = &whereClause{}
-	s.clauses = clauses
-	s.sep = " AND "
-	return s
+	return &whereClause{clauses: clauses, sep: " AND "}
 }
 
 func OR(clauses ...SQLClause) *whereClause {
-	var s = &whereClause{}
-	s.clauses = clauses
-	s.sep = " OR "
-	return s
+	return &whereClause{clauses: clauses, sep: " OR "}
 }
 
 func in(sql, exp string, args interface{}) SQLClause {
@@ -401,33 +389,30 @@ func in(sql, exp string, args interface{}) SQLClause {
 		return nil
 	}
 
-	var params []interface{}
+	var nArgs []interface{}
 	if args == nil {
-		sql = fmt.Sprintf("%s %s (%s)", sql, exp, placeholders(len(params)))
+		sql = fmt.Sprintf("%s %s (%s)", sql, exp, placeholders(len(nArgs)))
 	} else {
 		var pValue = reflect.ValueOf(args)
 		var pKind = pValue.Kind()
 
 		if pKind == reflect.Array || pKind == reflect.Slice {
 			var l = pValue.Len()
-			params = make([]interface{}, l)
+			nArgs = make([]interface{}, l)
 			for i := 0; i < l; i++ {
-				params[i] = pValue.Index(i).Interface()
+				nArgs[i] = pValue.Index(i).Interface()
 			}
-			sql = fmt.Sprintf("%s %s (%s)", sql, exp, placeholders(len(params)))
+			sql = fmt.Sprintf("%s %s (%s)", sql, exp, placeholders(len(nArgs)))
 		} else {
 			switch args.(type) {
 			case SQLClause:
 				sql = fmt.Sprintf("%s %s ", sql, exp)
-				params = append(params, args)
+				nArgs = append(nArgs, args)
 			}
 		}
 	}
 
-	var s = &Clause{}
-	s.sql = sql
-	s.args = params
-	return s
+	return &Clause{sql: sql, args: nArgs}
 }
 
 func IN(sql string, args interface{}) SQLClause {
@@ -439,11 +424,11 @@ func NotIn(sql string, args interface{}) SQLClause {
 }
 
 func parseClause(sql interface{}, args ...interface{}) SQLClause {
-	switch s := sql.(type) {
+	switch sqlType := sql.(type) {
 	case string:
-		return NewClause(s, args...)
+		return NewClause(sqlType, args...)
 	case SQLClause:
-		return s
+		return sqlType
 	default:
 		return NewClause(fmt.Sprintf("%v", sql), args...)
 	}
@@ -456,16 +441,16 @@ var eqMap = map[bool]string{true: "=", false: "<>"}
 
 type Eq map[string]interface{}
 
-func (this Eq) write(eq bool, w Writer) error {
+func (clause Eq) write(eq bool, w Writer) error {
 	var index = 0
-	for key, value := range this {
+	for key, value := range clause {
 		if key == "" {
 			continue
 		}
 
-		var clause = ""
+		var nClause = ""
 		if value == nil {
-			clause = fmt.Sprintf("%s %s NULL", key, isMap[eq])
+			nClause = fmt.Sprintf("%s %s NULL", key, isMap[eq])
 		} else {
 			var pValue = reflect.ValueOf(value)
 			var pKind = pValue.Kind()
@@ -475,7 +460,7 @@ func (this Eq) write(eq bool, w Writer) error {
 						w.WriteArgs(pValue.Index(i).Interface())
 					}
 				}
-				clause = fmt.Sprintf("%s %s (%s)", key, inMap[eq], placeholders(pValue.Len()))
+				nClause = fmt.Sprintf("%s %s (%s)", key, inMap[eq], placeholders(pValue.Len()))
 			} else {
 				switch v := value.(type) {
 				case SQLClause:
@@ -483,16 +468,16 @@ func (this Eq) write(eq bool, w Writer) error {
 					if err != nil {
 						return err
 					}
-					clause = fmt.Sprintf("%s %s %s", key, eqMap[eq], sql)
+					nClause = fmt.Sprintf("%s %s %s", key, eqMap[eq], sql)
 					w.WriteArgs(arg...)
 				default:
-					clause = fmt.Sprintf("%s %s ?", key, eqMap[eq])
+					nClause = fmt.Sprintf("%s %s ?", key, eqMap[eq])
 					w.WriteArgs(value)
 				}
 			}
 		}
 
-		if clause != "" {
+		if nClause != "" {
 			if index != 0 {
 				if _, err := w.WriteString(" AND "); err != nil {
 					return err
@@ -502,7 +487,7 @@ func (this Eq) write(eq bool, w Writer) error {
 			if _, err := w.WriteString("("); err != nil {
 				return err
 			}
-			if _, err := w.WriteString(clause); err != nil {
+			if _, err := w.WriteString(nClause); err != nil {
 				return err
 			}
 			if _, err := w.WriteString(")"); err != nil {
@@ -514,29 +499,29 @@ func (this Eq) write(eq bool, w Writer) error {
 	return nil
 }
 
-func (this Eq) Write(w Writer) error {
-	return this.write(true, w)
+func (clause Eq) Write(w Writer) error {
+	return clause.write(true, w)
 }
 
-func (this Eq) SQL() (string, []interface{}, error) {
+func (clause Eq) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.Write(sqlBuf)
+	err := clause.Write(sqlBuf)
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
 type NotEq Eq
 
-func (this NotEq) Write(w Writer) error {
-	return Eq(this).write(false, w)
+func (clause NotEq) Write(w Writer) error {
+	return Eq(clause).write(false, w)
 }
 
-func (this NotEq) SQL() (string, []interface{}, error) {
+func (clause NotEq) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.Write(sqlBuf)
+	err := clause.Write(sqlBuf)
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
@@ -544,10 +529,10 @@ func like(sql, exp string, a ...interface{}) SQLClause {
 	var buf = &bytes.Buffer{}
 	fmt.Fprintf(buf, "%s %s ?", sql, exp)
 
-	var s = &Clause{}
-	s.sql = buf.String()
-	s.args = append(s.args, fmt.Sprint(a...))
-	return s
+	var clause = &Clause{}
+	clause.sql = buf.String()
+	clause.args = append(clause.args, fmt.Sprint(a...))
+	return clause
 }
 
 func Like(sql string, args ...interface{}) SQLClause {

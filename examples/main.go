@@ -33,7 +33,7 @@ func postgresql() {
 	sb.Limit(10)
 	sb.OrderBy("id")
 
-	var mails []*Mail
+	var mails []Mail
 	if err = sb.Scan(ndb, &mails); err != nil {
 		fmt.Println("查询发生错误:", err)
 		return

@@ -20,28 +20,28 @@ type builder struct {
 	placeholder Placeholder
 }
 
-func (this *builder) UsePlaceholder(p Placeholder) {
-	this.placeholder = p
+func (b *builder) UsePlaceholder(p Placeholder) {
+	b.placeholder = p
 }
 
-func (this *builder) GetPlaceholder() Placeholder {
-	return this.placeholder
+func (b *builder) GetPlaceholder() Placeholder {
+	return b.placeholder
 }
 
-func (this *builder) quote(s string) string {
+func (b *builder) quote(s string) string {
 	//if strings.Index(s, ".") != -1 {
 	//	var newStrs []string
 	//	for _, s := range strings.Split(s, ".") {
-	//		newStrs = append(newStrs, this.placeholder.Quote(s))
+	//		newStrs = append(newStrs, b.placeholder.Quote(s))
 	//	}
 	//	return strings.Join(newStrs, ".")
 	//}
-	//return this.placeholder.Quote(s)
+	//return b.placeholder.Quote(s)
 	return s
 }
 
-func (this *builder) replace(sql string) (string, error) {
-	return this.placeholder.Replace(sql)
+func (b *builder) replace(sql string) (string, error) {
+	return b.placeholder.Replace(sql)
 }
 
 // RawBuilder 原始 SQL 语句构造器，不会自动添加任何的关键字，主要是为了便于 SQL 语句及参数的管理。
@@ -51,96 +51,96 @@ type RawBuilder struct {
 	args []interface{}
 }
 
-func (this *RawBuilder) Type() string {
+func (rb *RawBuilder) Type() string {
 	return kRawBuilder
 }
 
-func (this *RawBuilder) UsePlaceholder(p Placeholder) *RawBuilder {
-	this.builder.UsePlaceholder(p)
-	return this
+func (rb *RawBuilder) UsePlaceholder(p Placeholder) *RawBuilder {
+	rb.builder.UsePlaceholder(p)
+	return rb
 }
 
-func (this *RawBuilder) Append(sql string, args ...interface{}) *RawBuilder {
+func (rb *RawBuilder) Append(sql string, args ...interface{}) *RawBuilder {
 	if sql != "" {
-		if this.sql.Len() > 0 {
-			this.sql.WriteString(" ")
+		if rb.sql.Len() > 0 {
+			rb.sql.WriteString(" ")
 		}
-		this.sql.WriteString(sql)
+		rb.sql.WriteString(sql)
 	}
 	if len(args) > 0 {
-		this.args = append(this.args, args...)
+		rb.args = append(rb.args, args...)
 	}
-	return this
+	return rb
 }
 
-func (this *RawBuilder) Format(format string, args ...interface{}) *RawBuilder {
+func (rb *RawBuilder) Format(format string, args ...interface{}) *RawBuilder {
 	var v = fmt.Sprintf(format, args...)
 	if v != "" {
-		if this.sql.Len() > 0 {
-			this.sql.WriteString(" ")
+		if rb.sql.Len() > 0 {
+			rb.sql.WriteString(" ")
 		}
-		this.sql.WriteString(v)
+		rb.sql.WriteString(v)
 	}
-	return this
+	return rb
 }
 
-func (this *RawBuilder) Params(args ...interface{}) *RawBuilder {
+func (rb *RawBuilder) Params(args ...interface{}) *RawBuilder {
 	if len(args) > 0 {
-		this.args = append(this.args, args...)
+		rb.args = append(rb.args, args...)
 	}
-	return this
+	return rb
 }
 
-func (this *RawBuilder) SQL() (string, []interface{}, error) {
-	var sql = this.sql.String()
-	sql, err := this.replace(sql)
+func (rb *RawBuilder) SQL() (string, []interface{}, error) {
+	var sql = rb.sql.String()
+	sql, err := rb.replace(sql)
 	if err != nil {
 		return "", nil, err
 	}
-	return sql, this.args, nil
+	return sql, rb.args, nil
 }
 
-func (this *RawBuilder) Write(w Writer) error {
-	w.WriteString(this.sql.String())
-	w.WriteArgs(this.args...)
+func (rb *RawBuilder) Write(w Writer) error {
+	w.WriteString(rb.sql.String())
+	w.WriteArgs(rb.args...)
 	return nil
 }
 
-func (this *RawBuilder) reset() {
-	this.sql.Reset()
-	this.args = this.args[:0]
+func (rb *RawBuilder) reset() {
+	rb.sql.Reset()
+	rb.args = rb.args[:0]
 }
 
-func (this *RawBuilder) Scan(s Session, dst interface{}) (err error) {
-	return scanContext(context.Background(), s, this, dst)
+func (rb *RawBuilder) Scan(s Session, dst interface{}) (err error) {
+	return scanContext(context.Background(), s, rb, dst)
 }
 
-func (this *RawBuilder) ScanContext(ctx context.Context, s Session, dst interface{}) (err error) {
-	return scanContext(ctx, s, this, dst)
+func (rb *RawBuilder) ScanContext(ctx context.Context, s Session, dst interface{}) (err error) {
+	return scanContext(ctx, s, rb, dst)
 }
 
-func (this *RawBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
-	return scanRowContext(context.Background(), s, this, dst...)
+func (rb *RawBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
+	return scanRowContext(context.Background(), s, rb, dst...)
 }
 
-func (this *RawBuilder) ScanRowContext(ctx context.Context, s Session, dst ...interface{}) (err error) {
-	return scanRowContext(ctx, s, this, dst...)
+func (rb *RawBuilder) ScanRowContext(ctx context.Context, s Session, dst ...interface{}) (err error) {
+	return scanRowContext(ctx, s, rb, dst...)
 }
 
-func (this *RawBuilder) Query(s Session) (*sql.Rows, error) {
-	return queryContext(context.Background(), s, this)
+func (rb *RawBuilder) Query(s Session) (*sql.Rows, error) {
+	return queryContext(context.Background(), s, rb)
 }
 
-func (this *RawBuilder) QueryContext(ctx context.Context, s Session) (*sql.Rows, error) {
-	return queryContext(ctx, s, this)
+func (rb *RawBuilder) QueryContext(ctx context.Context, s Session) (*sql.Rows, error) {
+	return queryContext(ctx, s, rb)
 }
 
-func (this *RawBuilder) Exec(s Session) (sql.Result, error) {
-	return execContext(context.Background(), s, this)
+func (rb *RawBuilder) Exec(s Session) (sql.Result, error) {
+	return execContext(context.Background(), s, rb)
 }
 
-func (this *RawBuilder) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
-	return execContext(ctx, s, this)
+func (rb *RawBuilder) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
+	return execContext(ctx, s, rb)
 }
 
 func NewBuilder(sql string, args ...interface{}) *RawBuilder {

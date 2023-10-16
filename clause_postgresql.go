@@ -7,8 +7,8 @@ type onConflictDoUpdateClause struct {
 	clauses Clauses
 }
 
-func (this *onConflictDoUpdateClause) Write(w Writer) error {
-	if len(this.clauses) == 0 || len(this.columns) == 0 {
+func (clause *onConflictDoUpdateClause) Write(w Writer) error {
+	if len(clause.clauses) == 0 || len(clause.columns) == 0 {
 		return nil
 	}
 
@@ -16,7 +16,7 @@ func (this *onConflictDoUpdateClause) Write(w Writer) error {
 		return err
 	}
 
-	if _, err := w.WriteString(strings.Join(this.columns, ", ")); err != nil {
+	if _, err := w.WriteString(strings.Join(clause.columns, ", ")); err != nil {
 		return err
 	}
 
@@ -24,29 +24,27 @@ func (this *onConflictDoUpdateClause) Write(w Writer) error {
 		return err
 	}
 
-	return this.clauses.Write(w, ", ")
+	return clause.clauses.Write(w, ", ")
 }
 
-func (this *onConflictDoUpdateClause) SQL() (string, []interface{}, error) {
+func (clause *onConflictDoUpdateClause) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	err := this.Write(sqlBuf)
+	err := clause.Write(sqlBuf)
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
-func (this *onConflictDoUpdateClause) Append(sql interface{}, args ...interface{}) *onConflictDoUpdateClause {
-	this.clauses = append(this.clauses, NewClause(sql, args...))
-	return this
+func (clause *onConflictDoUpdateClause) Append(sql interface{}, args ...interface{}) *onConflictDoUpdateClause {
+	clause.clauses = append(clause.clauses, NewClause(sql, args...))
+	return clause
 }
 
-func (this *onConflictDoUpdateClause) Appends(clauses ...SQLClause) *onConflictDoUpdateClause {
-	this.clauses = append(this.clauses, clauses...)
-	return this
+func (clause *onConflictDoUpdateClause) Appends(clauses ...SQLClause) *onConflictDoUpdateClause {
+	clause.clauses = append(clause.clauses, clauses...)
+	return clause
 }
 
 func OnConflictKeyUpdate(columns ...string) *onConflictDoUpdateClause {
-	var c = &onConflictDoUpdateClause{}
-	c.columns = columns
-	return c
+	return &onConflictDoUpdateClause{columns: columns}
 }

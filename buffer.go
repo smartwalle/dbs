@@ -45,31 +45,31 @@ type Buffer struct {
 	vs []interface{}
 }
 
-func (this *Buffer) WriteArgs(args ...interface{}) {
-	for _, v := range args {
-		switch vt := v.(type) {
+func (buffer *Buffer) WriteArgs(args ...interface{}) {
+	for _, arg := range args {
+		switch argType := arg.(type) {
 		case driver.Valuer:
-			v, _ := vt.Value()
-			this.vs = append(this.vs, v)
+			v, _ := argType.Value()
+			buffer.vs = append(buffer.vs, v)
 		case SQLValue:
-			this.vs = append(this.vs, vt.SQLValue())
+			buffer.vs = append(buffer.vs, argType.SQLValue())
 		default:
-			this.vs = append(this.vs, v)
+			buffer.vs = append(buffer.vs, arg)
 		}
 	}
 }
 
-func (this *Buffer) Reset() {
-	this.vs = this.vs[:0]
-	this.Buffer.Reset()
+func (buffer *Buffer) Reset() {
+	buffer.vs = buffer.vs[:0]
+	buffer.Buffer.Reset()
 }
 
-func (this *Buffer) Values() []interface{} {
-	var vs = make([]interface{}, 0, len(this.vs))
-	vs = append(vs, this.vs...)
+func (buffer *Buffer) Values() []interface{} {
+	var vs = make([]interface{}, 0, len(buffer.vs))
+	vs = append(vs, buffer.vs...)
 	return vs
 }
 
-func (this *Buffer) Release() {
-	bPool.Put(this)
+func (buffer *Buffer) Release() {
+	bPool.Put(buffer)
 }

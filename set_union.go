@@ -17,97 +17,97 @@ type UnionBuilder struct {
 	offset   SQLClause
 }
 
-func (this *UnionBuilder) Type() string {
+func (ub *UnionBuilder) Type() string {
 	return kUnionBuilder
 }
 
-func (this *UnionBuilder) UsePlaceholder(p Placeholder) *UnionBuilder {
-	this.builder.UsePlaceholder(p)
-	return this
+func (ub *UnionBuilder) UsePlaceholder(p Placeholder) *UnionBuilder {
+	ub.builder.UsePlaceholder(p)
+	return ub
 }
 
-func (this *UnionBuilder) Union(clauses ...SQLClause) *UnionBuilder {
-	var first = len(this.clauses) == 0
+func (ub *UnionBuilder) Union(clauses ...SQLClause) *UnionBuilder {
+	var first = len(ub.clauses) == 0
 	for i, clause := range clauses {
 		if i == 0 && first {
-			this.clauses = append(this.clauses, NewClause("", clause))
+			ub.clauses = append(ub.clauses, NewClause("", clause))
 		} else {
-			this.clauses = append(this.clauses, NewClause(" UNION ", clause))
+			ub.clauses = append(ub.clauses, NewClause(" UNION ", clause))
 		}
 	}
-	return this
+	return ub
 }
 
-func (this *UnionBuilder) UnionAll(clauses ...SQLClause) *UnionBuilder {
-	var first = len(this.clauses) == 0
+func (ub *UnionBuilder) UnionAll(clauses ...SQLClause) *UnionBuilder {
+	var first = len(ub.clauses) == 0
 	for i, clause := range clauses {
 		if i == 0 && first {
-			this.clauses = append(this.clauses, NewClause("", clause))
+			ub.clauses = append(ub.clauses, NewClause("", clause))
 		} else {
-			this.clauses = append(this.clauses, NewClause(" UNION ALL ", clause))
+			ub.clauses = append(ub.clauses, NewClause(" UNION ALL ", clause))
 		}
 	}
-	return this
+	return ub
 }
 
-func (this *UnionBuilder) OrderBy(sql ...string) *UnionBuilder {
-	this.orderBys = append(this.orderBys, sql...)
-	return this
+func (ub *UnionBuilder) OrderBy(sql ...string) *UnionBuilder {
+	ub.orderBys = append(ub.orderBys, sql...)
+	return ub
 }
 
-func (this *UnionBuilder) Limit(limit int64) *UnionBuilder {
-	this.limit = NewClause(" LIMIT ?", limit)
-	return this
+func (ub *UnionBuilder) Limit(limit int64) *UnionBuilder {
+	ub.limit = NewClause(" LIMIT ?", limit)
+	return ub
 }
 
-func (this *UnionBuilder) Offset(offset int64) *UnionBuilder {
-	this.offset = NewClause(" OFFSET ?", offset)
-	return this
+func (ub *UnionBuilder) Offset(offset int64) *UnionBuilder {
+	ub.offset = NewClause(" OFFSET ?", offset)
+	return ub
 }
 
-func (this *UnionBuilder) SQL() (string, []interface{}, error) {
+func (ub *UnionBuilder) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	if err := this.Write(sqlBuf); err != nil {
+	if err := ub.Write(sqlBuf); err != nil {
 		return "", nil, err
 	}
 
-	sql, err := this.replace(sqlBuf.String())
+	sql, err := ub.replace(sqlBuf.String())
 	if err != nil {
 		return "", nil, err
 	}
 	return sql, sqlBuf.Values(), nil
 }
 
-func (this *UnionBuilder) Write(w Writer) (err error) {
-	if len(this.clauses) < 2 {
+func (ub *UnionBuilder) Write(w Writer) (err error) {
+	if len(ub.clauses) < 2 {
 		return errors.New("dbs: UNION clause must have at least two clause")
 	}
 
-	for _, clause := range this.clauses {
+	for _, clause := range ub.clauses {
 		if err = clause.Write(w); err != nil {
 			return err
 		}
 	}
 
-	if len(this.orderBys) > 0 {
+	if len(ub.orderBys) > 0 {
 		if _, err = w.WriteString(" ORDER BY "); err != nil {
 			return err
 		}
-		if _, err = w.WriteString(strings.Join(this.orderBys, ", ")); err != nil {
+		if _, err = w.WriteString(strings.Join(ub.orderBys, ", ")); err != nil {
 			return err
 		}
 	}
 
-	if this.limit != nil {
-		if err = this.limit.Write(w); err != nil {
+	if ub.limit != nil {
+		if err = ub.limit.Write(w); err != nil {
 			return err
 		}
 	}
 
-	if this.offset != nil {
-		if err = this.offset.Write(w); err != nil {
+	if ub.offset != nil {
+		if err = ub.offset.Write(w); err != nil {
 			return err
 		}
 	}

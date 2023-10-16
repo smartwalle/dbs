@@ -28,14 +28,14 @@ var (
 type question struct {
 }
 
-func (this question) Replace(sql string) (string, error) {
+func (q question) Replace(sql string) (string, error) {
 	return sql, nil
 }
 
 type dollar struct {
 }
 
-func (this dollar) Replace(sql string) (string, error) {
+func (d dollar) Replace(sql string) (string, error) {
 	var buf = &bytes.Buffer{}
 	var i = 0
 
@@ -54,7 +54,9 @@ func (this dollar) Replace(sql string) (string, error) {
 
 		i++
 		buf.WriteString(sql[:pos])
-		fmt.Fprintf(buf, "$%d", i)
+		if _, err := fmt.Fprintf(buf, "$%d", i); err != nil {
+			return "", err
+		}
 		sql = sql[pos+1:]
 	}
 	buf.WriteString(sql)

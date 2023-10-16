@@ -34,7 +34,7 @@ func NewMapper(tag string) *Mapper {
 	return m
 }
 
-func (this *Mapper) Bind(rows *sql.Rows, dst interface{}) error {
+func (mapper *Mapper) Bind(rows *sql.Rows, dst interface{}) error {
 	if rows == nil {
 		return sql.ErrNoRows
 	}
@@ -62,12 +62,12 @@ func (this *Mapper) Bind(rows *sql.Rows, dst interface{}) error {
 	}
 
 	if isSlice {
-		return this.bindSlice(rows, dstType, dstValue)
+		return mapper.bindSlice(rows, dstType, dstValue)
 	}
-	return this.bindOne(rows, dstType, dstValue)
+	return mapper.bindOne(rows, dstType, dstValue)
 }
 
-func (this *Mapper) bindOne(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
+func (mapper *Mapper) bindOne(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
 	if !rows.Next() {
 		return sql.ErrNoRows
 	}
@@ -79,9 +79,9 @@ func (this *Mapper) bindOne(rows *sql.Rows, dstType reflect.Type, dstValue refle
 
 	dstType, dstValue = base(dstType, dstValue)
 
-	var dStruct, ok = this.getStructDescriptor(dstType)
+	var dStruct, ok = mapper.getStructDescriptor(dstType)
 	if !ok {
-		dStruct = this.parseStructDescriptor(dstType)
+		dStruct = mapper.parseStructDescriptor(dstType)
 	}
 
 	var values = make([]interface{}, len(columns))
@@ -91,7 +91,7 @@ func (this *Mapper) bindOne(rows *sql.Rows, dstType reflect.Type, dstValue refle
 	return rows.Scan(values...)
 }
 
-func (this *Mapper) bindSlice(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
+func (mapper *Mapper) bindSlice(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
 	columns, err := rows.Columns()
 	if err != nil {
 		return err
@@ -109,9 +109,9 @@ func (this *Mapper) bindSlice(rows *sql.Rows, dstType reflect.Type, dstValue ref
 		dstType = dstType.Elem()
 	}
 
-	var dStruct, ok = this.getStructDescriptor(dstType)
+	var dStruct, ok = mapper.getStructDescriptor(dstType)
 	if !ok {
-		dStruct = this.parseStructDescriptor(dstType)
+		dStruct = mapper.parseStructDescriptor(dstType)
 	}
 
 	var nColumns = make([]interface{}, len(columns))
@@ -174,19 +174,19 @@ func fieldByIndex(parent reflect.Value, index []int) reflect.Value {
 	return parent
 }
 
-func (this *Mapper) getStructDescriptor(key reflect.Type) (structDescriptor, bool) {
-	var value, ok = this.structs.Load().(map[reflect.Type]structDescriptor)[key]
+func (mapper *Mapper) getStructDescriptor(key reflect.Type) (structDescriptor, bool) {
+	var value, ok = mapper.structs.Load().(map[reflect.Type]structDescriptor)[key]
 	return value, ok
 }
 
-func (this *Mapper) setStructDescriptor(key reflect.Type, value structDescriptor) {
-	var structs = this.structs.Load().(map[reflect.Type]structDescriptor)
+func (mapper *Mapper) setStructDescriptor(key reflect.Type, value structDescriptor) {
+	var structs = mapper.structs.Load().(map[reflect.Type]structDescriptor)
 	var nStructs = make(map[reflect.Type]structDescriptor, len(structs)+1)
 	for k, v := range structs {
 		nStructs[k] = v
 	}
 	nStructs[key] = value
-	this.structs.Store(nStructs)
+	mapper.structs.Store(nStructs)
 }
 
 type structQueueElement struct {
@@ -194,12 +194,12 @@ type structQueueElement struct {
 	Index []int
 }
 
-func (this *Mapper) parseStructDescriptor(dstType reflect.Type) structDescriptor {
-	this.mu.Lock()
+func (mapper *Mapper) parseStructDescriptor(dstType reflect.Type) structDescriptor {
+	mapper.mu.Lock()
 
-	var dStruct, ok = this.getStructDescriptor(dstType)
+	var dStruct, ok = mapper.getStructDescriptor(dstType)
 	if ok {
-		this.mu.Unlock()
+		mapper.mu.Unlock()
 		return dStruct
 	}
 
@@ -220,7 +220,7 @@ func (this *Mapper) parseStructDescriptor(dstType reflect.Type) structDescriptor
 		for i := 0; i < numField; i++ {
 			var fieldStruct = current.Type.Field(i)
 
-			var tag = fieldStruct.Tag.Get(this.tag)
+			var tag = fieldStruct.Tag.Get(mapper.tag)
 			if tag == kNoTag {
 				continue
 			}
@@ -257,8 +257,8 @@ func (this *Mapper) parseStructDescriptor(dstType reflect.Type) structDescriptor
 
 	dStruct.Fields = dFields
 
-	this.setStructDescriptor(dstType, dStruct)
-	this.mu.Unlock()
+	mapper.setStructDescriptor(dstType, dStruct)
+	mapper.mu.Unlock()
 
 	return dStruct
 }

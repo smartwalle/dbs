@@ -27,119 +27,119 @@ type DeleteBuilder struct {
 	suffixes Clauses
 }
 
-func (this *DeleteBuilder) Type() string {
+func (db *DeleteBuilder) Type() string {
 	return kDeleteBuilder
 }
 
-func (this *DeleteBuilder) UsePlaceholder(p Placeholder) *DeleteBuilder {
-	this.builder.UsePlaceholder(p)
-	return this
+func (db *DeleteBuilder) UsePlaceholder(p Placeholder) *DeleteBuilder {
+	db.builder.UsePlaceholder(p)
+	return db
 }
 
-func (this *DeleteBuilder) Prefix(sql string, args ...interface{}) *DeleteBuilder {
-	this.prefixes = append(this.prefixes, NewClause(sql, args...))
-	return this
+func (db *DeleteBuilder) Prefix(sql string, args ...interface{}) *DeleteBuilder {
+	db.prefixes = append(db.prefixes, NewClause(sql, args...))
+	return db
 }
 
-func (this *DeleteBuilder) Options(options ...string) *DeleteBuilder {
+func (db *DeleteBuilder) Options(options ...string) *DeleteBuilder {
 	for _, opt := range options {
-		this.options = append(this.options, NewClause(opt))
+		db.options = append(db.options, NewClause(opt))
 	}
-	return this
+	return db
 }
 
-func (this *DeleteBuilder) Alias(alias ...string) *DeleteBuilder {
-	this.alias = append(this.alias, alias...)
-	return this
+func (db *DeleteBuilder) Alias(alias ...string) *DeleteBuilder {
+	db.alias = append(db.alias, alias...)
+	return db
 }
 
-func (this *DeleteBuilder) Table(table string, args ...string) *DeleteBuilder {
+func (db *DeleteBuilder) Table(table string, args ...string) *DeleteBuilder {
 	var ts []string
-	ts = append(ts, this.quote(table))
+	ts = append(ts, db.quote(table))
 	ts = append(ts, args...)
-	this.tables = append(this.tables, NewClause(strings.Join(ts, " ")))
-	return this
+	db.tables = append(db.tables, NewClause(strings.Join(ts, " ")))
+	return db
 }
 
-func (this *DeleteBuilder) USING(sql string) *DeleteBuilder {
-	this.using = sql
-	return this
+func (db *DeleteBuilder) USING(sql string) *DeleteBuilder {
+	db.using = sql
+	return db
 }
 
-func (this *DeleteBuilder) Join(join, table, suffix string, args ...interface{}) *DeleteBuilder {
-	return this.join(join, table, suffix, args...)
+func (db *DeleteBuilder) Join(join, table, suffix string, args ...interface{}) *DeleteBuilder {
+	return db.join(join, table, suffix, args...)
 }
 
-func (this *DeleteBuilder) RightJoin(table, suffix string, args ...interface{}) *DeleteBuilder {
-	return this.join("RIGHT JOIN", table, suffix, args...)
+func (db *DeleteBuilder) RightJoin(table, suffix string, args ...interface{}) *DeleteBuilder {
+	return db.join("RIGHT JOIN", table, suffix, args...)
 }
 
-func (this *DeleteBuilder) LeftJoin(table, suffix string, args ...interface{}) *DeleteBuilder {
-	return this.join("LEFT JOIN", table, suffix, args...)
+func (db *DeleteBuilder) LeftJoin(table, suffix string, args ...interface{}) *DeleteBuilder {
+	return db.join("LEFT JOIN", table, suffix, args...)
 }
 
-func (this *DeleteBuilder) join(join, table, suffix string, args ...interface{}) *DeleteBuilder {
-	var sql = []string{join, this.quote(table), suffix}
-	this.joins = append(this.joins, NewClause(strings.Join(sql, " "), args...))
-	return this
+func (db *DeleteBuilder) join(join, table, suffix string, args ...interface{}) *DeleteBuilder {
+	var nSQL = []string{join, db.quote(table), suffix}
+	db.joins = append(db.joins, NewClause(strings.Join(nSQL, " "), args...))
+	return db
 }
 
-func (this *DeleteBuilder) Where(sql interface{}, args ...interface{}) *DeleteBuilder {
+func (db *DeleteBuilder) Where(sql interface{}, args ...interface{}) *DeleteBuilder {
 	var clause = parseClause(sql, args...)
 	if clause != nil {
-		this.wheres = append(this.wheres, clause)
+		db.wheres = append(db.wheres, clause)
 	}
-	return this
+	return db
 }
 
-func (this *DeleteBuilder) OrderBy(sql ...string) *DeleteBuilder {
-	this.orderBys = append(this.orderBys, sql...)
-	return this
+func (db *DeleteBuilder) OrderBy(sql ...string) *DeleteBuilder {
+	db.orderBys = append(db.orderBys, sql...)
+	return db
 }
 
-func (this *DeleteBuilder) Limit(limit int64) *DeleteBuilder {
-	this.limit = NewClause(" LIMIT ?", limit)
-	return this
+func (db *DeleteBuilder) Limit(limit int64) *DeleteBuilder {
+	db.limit = NewClause(" LIMIT ?", limit)
+	return db
 }
 
-func (this *DeleteBuilder) Offset(offset int64) *DeleteBuilder {
-	this.offset = NewClause(" OFFSET ?", offset)
-	return this
+func (db *DeleteBuilder) Offset(offset int64) *DeleteBuilder {
+	db.offset = NewClause(" OFFSET ?", offset)
+	return db
 }
 
-func (this *DeleteBuilder) Suffix(sql interface{}, args ...interface{}) *DeleteBuilder {
+func (db *DeleteBuilder) Suffix(sql interface{}, args ...interface{}) *DeleteBuilder {
 	var clause = parseClause(sql, args...)
 	if clause != nil {
-		this.suffixes = append(this.suffixes, clause)
+		db.suffixes = append(db.suffixes, clause)
 	}
-	return this
+	return db
 }
 
-func (this *DeleteBuilder) SQL() (string, []interface{}, error) {
+func (db *DeleteBuilder) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	if err := this.Write(sqlBuf); err != nil {
+	if err := db.Write(sqlBuf); err != nil {
 		return "", nil, err
 	}
 
-	sql, err := this.replace(sqlBuf.String())
+	nSQL, err := db.replace(sqlBuf.String())
 	if err != nil {
 		return "", nil, err
 	}
-	return sql, sqlBuf.Values(), nil
+	return nSQL, sqlBuf.Values(), nil
 }
 
-func (this *DeleteBuilder) Write(w Writer) (err error) {
-	if len(this.tables) == 0 {
+func (db *DeleteBuilder) Write(w Writer) (err error) {
+	if len(db.tables) == 0 {
 		return errors.New("dbs: DELETE clause must specify a table")
 	}
-	if len(this.wheres) == 0 {
+	if len(db.wheres) == 0 {
 		return errors.New("dbs: DELETE clause must have at least one where")
 	}
 
-	if len(this.prefixes) > 0 {
-		if err = this.prefixes.Write(w, " "); err != nil {
+	if len(db.prefixes) > 0 {
+		if err = db.prefixes.Write(w, " "); err != nil {
 			return err
 		}
 		if _, err = w.WriteString(" "); err != nil {
@@ -151,8 +151,8 @@ func (this *DeleteBuilder) Write(w Writer) (err error) {
 		return err
 	}
 
-	if len(this.options) > 0 {
-		if err = this.options.Write(w, " "); err != nil {
+	if len(db.options) > 0 {
+		if err = db.options.Write(w, " "); err != nil {
 			return err
 		}
 		if _, err = w.WriteString(" "); err != nil {
@@ -160,8 +160,8 @@ func (this *DeleteBuilder) Write(w Writer) (err error) {
 		}
 	}
 
-	if len(this.alias) > 0 {
-		if _, err = w.WriteString(strings.Join(this.alias, ", ")); err != nil {
+	if len(db.alias) > 0 {
+		if _, err = w.WriteString(strings.Join(db.alias, ", ")); err != nil {
 			return err
 		}
 		if _, err = w.WriteString(" "); err != nil {
@@ -173,74 +173,74 @@ func (this *DeleteBuilder) Write(w Writer) (err error) {
 		return err
 	}
 
-	if len(this.tables) > 0 {
-		if err = this.tables.Write(w, ", "); err != nil {
+	if len(db.tables) > 0 {
+		if err = db.tables.Write(w, ", "); err != nil {
 			return err
 		}
 	}
 
-	if len(this.using) > 0 {
-		if _, err = fmt.Fprintf(w, " USING %s", this.using); err != nil {
+	if len(db.using) > 0 {
+		if _, err = fmt.Fprintf(w, " USING %s", db.using); err != nil {
 			return err
 		}
 	}
 
-	if len(this.joins) > 0 {
+	if len(db.joins) > 0 {
 		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
-		if err = this.joins.Write(w, " "); err != nil {
+		if err = db.joins.Write(w, " "); err != nil {
 			return err
 		}
 	}
 
-	if len(this.wheres) > 0 {
+	if len(db.wheres) > 0 {
 		if _, err = w.WriteString(" WHERE "); err != nil {
 			return err
 		}
-		if err = this.wheres.Write(w, " AND "); err != nil {
+		if err = db.wheres.Write(w, " AND "); err != nil {
 			return err
 		}
 	}
 
-	if len(this.orderBys) > 0 {
+	if len(db.orderBys) > 0 {
 		if _, err = w.WriteString(" ORDER BY "); err != nil {
 			return err
 		}
-		if _, err = w.WriteString(strings.Join(this.orderBys, ", ")); err != nil {
+		if _, err = w.WriteString(strings.Join(db.orderBys, ", ")); err != nil {
 			return err
 		}
 	}
 
-	if this.limit != nil {
-		if err = this.limit.Write(w); err != nil {
+	if db.limit != nil {
+		if err = db.limit.Write(w); err != nil {
 			return err
 		}
 	}
 
-	if this.offset != nil {
-		if err = this.offset.Write(w); err != nil {
+	if db.offset != nil {
+		if err = db.offset.Write(w); err != nil {
 			return err
 		}
 	}
 
-	if len(this.suffixes) > 0 {
+	if len(db.suffixes) > 0 {
 		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
-		if err = this.suffixes.Write(w, " "); err != nil {
+		if err = db.suffixes.Write(w, " "); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (this *DeleteBuilder) Exec(s Session) (sql.Result, error) {
-	return execContext(context.Background(), s, this)
+func (db *DeleteBuilder) Exec(s Session) (sql.Result, error) {
+	return execContext(context.Background(), s, db)
 }
 
-func (this *DeleteBuilder) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
-	return execContext(ctx, s, this)
+func (db *DeleteBuilder) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
+	return execContext(ctx, s, db)
 }
 
 func NewDeleteBuilder() *DeleteBuilder {

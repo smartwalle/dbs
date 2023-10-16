@@ -32,141 +32,141 @@ type SelectBuilder struct {
 	suffixes Clauses
 }
 
-func (this *SelectBuilder) Type() string {
+func (sb *SelectBuilder) Type() string {
 	return kSelectBuilder
 }
 
-func (this *SelectBuilder) UsePlaceholder(p Placeholder) *SelectBuilder {
-	this.builder.UsePlaceholder(p)
-	return this
+func (sb *SelectBuilder) UsePlaceholder(p Placeholder) *SelectBuilder {
+	sb.builder.UsePlaceholder(p)
+	return sb
 }
 
-func (this *SelectBuilder) Prefix(sql string, args ...interface{}) *SelectBuilder {
-	this.prefixes = append(this.prefixes, NewClause(sql, args...))
-	return this
+func (sb *SelectBuilder) Prefix(sql string, args ...interface{}) *SelectBuilder {
+	sb.prefixes = append(sb.prefixes, NewClause(sql, args...))
+	return sb
 }
 
-func (this *SelectBuilder) Options(options ...string) *SelectBuilder {
+func (sb *SelectBuilder) Options(options ...string) *SelectBuilder {
 	for _, opt := range options {
-		this.options = append(this.options, NewClause(opt))
+		sb.options = append(sb.options, NewClause(opt))
 	}
-	return this
+	return sb
 }
 
-func (this *SelectBuilder) Selects(columns ...string) *SelectBuilder {
-	this.columns = append(this.columns, columns...)
-	return this
+func (sb *SelectBuilder) Selects(columns ...string) *SelectBuilder {
+	sb.columns = append(sb.columns, columns...)
+	return sb
 }
 
-func (this *SelectBuilder) Select(column interface{}, args ...interface{}) *SelectBuilder {
+func (sb *SelectBuilder) Select(column interface{}, args ...interface{}) *SelectBuilder {
 	var clause = parseClause(column, args...)
 
 	if clause != nil {
-		this.selects = append(this.selects, clause)
+		sb.selects = append(sb.selects, clause)
 	}
-	return this
+	return sb
 }
 
-func (this *SelectBuilder) From(table string, args ...string) *SelectBuilder {
+func (sb *SelectBuilder) From(table string, args ...string) *SelectBuilder {
 	var argsLen = len(args)
 	var ts = make([]string, 0, 1+argsLen)
-	ts = append(ts, this.quote(table))
+	ts = append(ts, sb.quote(table))
 	if argsLen > 0 {
 		ts = append(ts, args...)
 	}
-	this.from = append(this.from, NewClause(strings.Join(ts, " ")))
-	return this
+	sb.from = append(sb.from, NewClause(strings.Join(ts, " ")))
+	return sb
 }
 
-func (this *SelectBuilder) FromClause(clause SQLClause) *SelectBuilder {
-	this.from = append(this.from, clause)
-	return this
+func (sb *SelectBuilder) FromClause(clause SQLClause) *SelectBuilder {
+	sb.from = append(sb.from, clause)
+	return sb
 }
 
-func (this *SelectBuilder) Join(join, table, suffix string, args ...interface{}) *SelectBuilder {
-	return this.join(join, table, suffix, args...)
+func (sb *SelectBuilder) Join(join, table, suffix string, args ...interface{}) *SelectBuilder {
+	return sb.join(join, table, suffix, args...)
 }
 
-func (this *SelectBuilder) RightJoin(table, suffix string, args ...interface{}) *SelectBuilder {
-	return this.join("RIGHT JOIN", table, suffix, args...)
+func (sb *SelectBuilder) RightJoin(table, suffix string, args ...interface{}) *SelectBuilder {
+	return sb.join("RIGHT JOIN", table, suffix, args...)
 }
 
-func (this *SelectBuilder) LeftJoin(table, suffix string, args ...interface{}) *SelectBuilder {
-	return this.join("LEFT JOIN", table, suffix, args...)
+func (sb *SelectBuilder) LeftJoin(table, suffix string, args ...interface{}) *SelectBuilder {
+	return sb.join("LEFT JOIN", table, suffix, args...)
 }
 
-func (this *SelectBuilder) join(join, table, suffix string, args ...interface{}) *SelectBuilder {
-	var sql = []string{join, this.quote(table), suffix}
-	this.joins = append(this.joins, NewClause(strings.Join(sql, " "), args...))
-	return this
+func (sb *SelectBuilder) join(join, table, suffix string, args ...interface{}) *SelectBuilder {
+	var nSQL = []string{join, sb.quote(table), suffix}
+	sb.joins = append(sb.joins, NewClause(strings.Join(nSQL, " "), args...))
+	return sb
 }
 
-func (this *SelectBuilder) Where(sql interface{}, args ...interface{}) *SelectBuilder {
+func (sb *SelectBuilder) Where(sql interface{}, args ...interface{}) *SelectBuilder {
 	var clause = parseClause(sql, args...)
 	if clause != nil {
-		this.wheres = append(this.wheres, clause)
+		sb.wheres = append(sb.wheres, clause)
 	}
-	return this
+	return sb
 }
 
-func (this *SelectBuilder) GroupBy(groupBys ...string) *SelectBuilder {
-	this.groupBys = append(this.groupBys, groupBys...)
-	return this
+func (sb *SelectBuilder) GroupBy(groupBys ...string) *SelectBuilder {
+	sb.groupBys = append(sb.groupBys, groupBys...)
+	return sb
 }
 
-func (this *SelectBuilder) Having(sql interface{}, args ...interface{}) *SelectBuilder {
+func (sb *SelectBuilder) Having(sql interface{}, args ...interface{}) *SelectBuilder {
 	var clause = parseClause(sql, args...)
 	if clause != nil {
-		this.having = append(this.having, clause)
+		sb.having = append(sb.having, clause)
 	}
-	return this
+	return sb
 }
 
-func (this *SelectBuilder) OrderBy(sql ...string) *SelectBuilder {
-	this.orderBys = append(this.orderBys, sql...)
-	return this
+func (sb *SelectBuilder) OrderBy(sql ...string) *SelectBuilder {
+	sb.orderBys = append(sb.orderBys, sql...)
+	return sb
 }
 
-func (this *SelectBuilder) Limit(limit int64) *SelectBuilder {
-	this.limit = NewClause(" LIMIT ?", limit)
-	return this
+func (sb *SelectBuilder) Limit(limit int64) *SelectBuilder {
+	sb.limit = NewClause(" LIMIT ?", limit)
+	return sb
 }
 
-func (this *SelectBuilder) Offset(offset int64) *SelectBuilder {
-	this.offset = NewClause(" OFFSET ?", offset)
-	return this
+func (sb *SelectBuilder) Offset(offset int64) *SelectBuilder {
+	sb.offset = NewClause(" OFFSET ?", offset)
+	return sb
 }
 
-func (this *SelectBuilder) Suffix(sql interface{}, args ...interface{}) *SelectBuilder {
+func (sb *SelectBuilder) Suffix(sql interface{}, args ...interface{}) *SelectBuilder {
 	var clause = parseClause(sql, args...)
 	if clause != nil {
-		this.suffixes = append(this.suffixes, clause)
+		sb.suffixes = append(sb.suffixes, clause)
 	}
-	return this
+	return sb
 }
 
-func (this *SelectBuilder) SQL() (string, []interface{}, error) {
+func (sb *SelectBuilder) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	if err := this.Write(sqlBuf); err != nil {
+	if err := sb.Write(sqlBuf); err != nil {
 		return "", nil, err
 	}
 
-	sql, err := this.replace(sqlBuf.String())
+	nSQL, err := sb.replace(sqlBuf.String())
 	if err != nil {
 		return "", nil, err
 	}
-	return sql, sqlBuf.Values(), nil
+	return nSQL, sqlBuf.Values(), nil
 }
 
-func (this *SelectBuilder) Write(w Writer) (err error) {
-	if len(this.columns) == 0 && len(this.selects) == 0 {
+func (sb *SelectBuilder) Write(w Writer) (err error) {
+	if len(sb.columns) == 0 && len(sb.selects) == 0 {
 		return errors.New("dbs: SELECT clause must have at least one result column")
 	}
 
-	if len(this.prefixes) > 0 {
-		if err = this.prefixes.Write(w, " "); err != nil {
+	if len(sb.prefixes) > 0 {
+		if err = sb.prefixes.Write(w, " "); err != nil {
 			return err
 		}
 		if _, err = w.WriteString(" "); err != nil {
@@ -178,8 +178,8 @@ func (this *SelectBuilder) Write(w Writer) (err error) {
 		return err
 	}
 
-	if len(this.options) > 0 {
-		if err = this.options.Write(w, " "); err != nil {
+	if len(sb.options) > 0 {
+		if err = sb.options.Write(w, " "); err != nil {
 			return err
 		}
 		if _, err = w.WriteString(" "); err != nil {
@@ -187,94 +187,94 @@ func (this *SelectBuilder) Write(w Writer) (err error) {
 		}
 	}
 
-	if len(this.columns) > 0 {
-		if _, err = w.WriteString(strings.Join(this.columns, ", ")); err != nil {
+	if len(sb.columns) > 0 {
+		if _, err = w.WriteString(strings.Join(sb.columns, ", ")); err != nil {
 			return err
 		}
 	}
 
-	if len(this.selects) > 0 {
-		if len(this.columns) > 0 {
+	if len(sb.selects) > 0 {
+		if len(sb.columns) > 0 {
 			if _, err = w.WriteString(", "); err != nil {
 				return err
 			}
 		}
-		if err = this.selects.Write(w, ", "); err != nil {
+		if err = sb.selects.Write(w, ", "); err != nil {
 			return err
 		}
 	}
 
-	if len(this.from) > 0 {
+	if len(sb.from) > 0 {
 		if _, err = w.WriteString(" FROM "); err != nil {
 			return err
 		}
-		if err = this.from.Write(w, ", "); err != nil {
+		if err = sb.from.Write(w, ", "); err != nil {
 			return err
 		}
 	}
 
-	if len(this.joins) > 0 {
+	if len(sb.joins) > 0 {
 		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
-		if err = this.joins.Write(w, " "); err != nil {
+		if err = sb.joins.Write(w, " "); err != nil {
 			return err
 		}
 	}
 
-	if len(this.wheres) > 0 {
+	if len(sb.wheres) > 0 {
 		if _, err = w.WriteString(" WHERE "); err != nil {
 			return err
 		}
-		if err = this.wheres.Write(w, " AND "); err != nil {
+		if err = sb.wheres.Write(w, " AND "); err != nil {
 			return err
 		}
 	}
 
-	if len(this.groupBys) > 0 {
+	if len(sb.groupBys) > 0 {
 		if _, err = w.WriteString(" GROUP BY "); err != nil {
 			return err
 		}
-		if _, err = w.WriteString(strings.Join(this.groupBys, ", ")); err != nil {
+		if _, err = w.WriteString(strings.Join(sb.groupBys, ", ")); err != nil {
 			return err
 		}
 	}
 
-	if len(this.having) > 0 {
+	if len(sb.having) > 0 {
 		if _, err = w.WriteString(" HAVING "); err != nil {
 			return err
 		}
-		if err = this.having.Write(w, " AND "); err != nil {
+		if err = sb.having.Write(w, " AND "); err != nil {
 			return err
 		}
 	}
 
-	if len(this.orderBys) > 0 {
+	if len(sb.orderBys) > 0 {
 		if _, err = w.WriteString(" ORDER BY "); err != nil {
 			return err
 		}
-		if _, err = w.WriteString(strings.Join(this.orderBys, ", ")); err != nil {
+		if _, err = w.WriteString(strings.Join(sb.orderBys, ", ")); err != nil {
 			return err
 		}
 	}
 
-	if this.limit != nil {
-		if err = this.limit.Write(w); err != nil {
+	if sb.limit != nil {
+		if err = sb.limit.Write(w); err != nil {
 			return err
 		}
 	}
 
-	if this.offset != nil {
-		if err = this.offset.Write(w); err != nil {
+	if sb.offset != nil {
+		if err = sb.offset.Write(w); err != nil {
 			return err
 		}
 	}
 
-	if len(this.suffixes) > 0 {
+	if len(sb.suffixes) > 0 {
 		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
-		if err = this.suffixes.Write(w, " "); err != nil {
+		if err = sb.suffixes.Write(w, " "); err != nil {
 			return err
 		}
 	}
@@ -282,26 +282,27 @@ func (this *SelectBuilder) Write(w Writer) (err error) {
 	return nil
 }
 
-func (this *SelectBuilder) Count(alias string) *SelectBuilder {
+func (sb *SelectBuilder) Count(alias string) *SelectBuilder {
 	var columns = []string{strings.Join([]string{kCount, alias}, " ")}
 
-	var sb = NewSelectBuilder()
-	var tsb = *sb
-	var cb = &tsb
-	cb.columns = columns
-	cb.selects = nil
-	cb.limit = nil
-	cb.offset = nil
-	cb.orderBys = nil
+	var temp = *sb
+	var count = &temp
+	count.columns = columns
+	count.selects = nil
+	count.limit = nil
+	count.offset = nil
+	count.orderBys = nil
 
-	if len(cb.groupBys) > 0 {
-		sb.FromClause(Alias(cb, "c"))
-		sb.columns = columns
+	var nSelect *SelectBuilder
+	if len(count.groupBys) > 0 {
+		nSelect = NewSelectBuilder()
+		nSelect.FromClause(Alias(count, "c"))
+		nSelect.columns = columns
 	} else {
-		sb = cb
+		nSelect = count
 	}
 
-	return sb
+	return nSelect
 }
 
 // Scan 读取数据到一个结构体中。
@@ -311,8 +312,8 @@ func (this *SelectBuilder) Count(alias string) *SelectBuilder {
 // var sb = dbs.NewSelectBuilder()
 //
 // sb.Scan(db, &user)
-func (this *SelectBuilder) Scan(s Session, dst interface{}) (err error) {
-	return scanContext(context.Background(), s, this, dst)
+func (sb *SelectBuilder) Scan(s Session, dst interface{}) (err error) {
+	return scanContext(context.Background(), s, sb, dst)
 }
 
 // ScanContext 读取数据到一个结构体中。
@@ -322,8 +323,8 @@ func (this *SelectBuilder) Scan(s Session, dst interface{}) (err error) {
 // var sb = dbs.NewSelectBuilder()
 //
 // sb.ScanContext(ctx, db, &user)
-func (this *SelectBuilder) ScanContext(ctx context.Context, s Session, dst interface{}) (err error) {
-	return scanContext(ctx, s, this, dst)
+func (sb *SelectBuilder) ScanContext(ctx context.Context, s Session, dst interface{}) (err error) {
+	return scanContext(ctx, s, sb, dst)
 }
 
 // ScanRow 读取数据到基本数据类型的变量中，类似于 database/sql 包中结构体 Rows 的 Scan() 方法。
@@ -335,8 +336,8 @@ func (this *SelectBuilder) ScanContext(ctx context.Context, s Session, dst inter
 // var sb = dbs.NewSelectBuilder()
 //
 // sb.ScanRow(db, &name, &age)
-func (this *SelectBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
-	return scanRowContext(context.Background(), s, this, dst...)
+func (sb *SelectBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
+	return scanRowContext(context.Background(), s, sb, dst...)
 }
 
 // ScanRowContext 读取数据到基本数据类型的变量中，类似于 database/sql 包中结构体 Rows 的 Scan() 方法。
@@ -348,16 +349,16 @@ func (this *SelectBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
 // var sb = dbs.NewSelectBuilder()
 //
 // sb.ScanRowContext(ctx, db, &name, &age)
-func (this *SelectBuilder) ScanRowContext(ctx context.Context, s Session, dst ...interface{}) (err error) {
-	return scanRowContext(ctx, s, this, dst...)
+func (sb *SelectBuilder) ScanRowContext(ctx context.Context, s Session, dst ...interface{}) (err error) {
+	return scanRowContext(ctx, s, sb, dst...)
 }
 
-func (this *SelectBuilder) Query(s Session) (*sql.Rows, error) {
-	return queryContext(context.Background(), s, this)
+func (sb *SelectBuilder) Query(s Session) (*sql.Rows, error) {
+	return queryContext(context.Background(), s, sb)
 }
 
-func (this *SelectBuilder) QueryContext(ctx context.Context, s Session) (*sql.Rows, error) {
-	return queryContext(ctx, s, this)
+func (sb *SelectBuilder) QueryContext(ctx context.Context, s Session) (*sql.Rows, error) {
+	return queryContext(ctx, s, sb)
 }
 
 func NewSelectBuilder() *SelectBuilder {

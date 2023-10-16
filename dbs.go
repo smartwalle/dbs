@@ -75,93 +75,93 @@ type DB struct {
 	group singleflight.Group[string, *sql.Stmt]
 }
 
-func (this *DB) DB() *sql.DB {
-	return this.db
+func (db *DB) DB() *sql.DB {
+	return db.db
 }
 
-func (this *DB) Close() error {
-	this.cache.Close()
-	return this.db.Close()
+func (db *DB) Close() error {
+	db.cache.Close()
+	return db.db.Close()
 }
 
-func (this *DB) Ping() error {
-	return this.db.Ping()
+func (db *DB) Ping() error {
+	return db.db.Ping()
 }
 
-func (this *DB) PingContext(ctx context.Context) error {
-	return this.db.PingContext(ctx)
+func (db *DB) PingContext(ctx context.Context) error {
+	return db.db.PingContext(ctx)
 }
 
-func (this *DB) Prepare(query string) (*sql.Stmt, error) {
-	return this.PrepareContext(context.Background(), query)
+func (db *DB) Prepare(query string) (*sql.Stmt, error) {
+	return db.PrepareContext(context.Background(), query)
 }
 
-func (this *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
-	return this.db.PrepareContext(ctx, query)
+func (db *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	return db.db.PrepareContext(ctx, query)
 }
 
-func (this *DB) PreparedStatement(ctx context.Context, query string) (*sql.Stmt, error) {
-	if stmt, found := this.cache.Get(query); found {
+func (db *DB) PreparedStatement(ctx context.Context, query string) (*sql.Stmt, error) {
+	if stmt, found := db.cache.Get(query); found {
 		return stmt, nil
 	}
-	return this.group.Do(query, func(key string) (*sql.Stmt, error) {
-		stmt, err := this.db.PrepareContext(ctx, key)
+	return db.group.Do(query, func(key string) (*sql.Stmt, error) {
+		stmt, err := db.db.PrepareContext(ctx, key)
 		if err != nil {
 			return nil, err
 		}
-		this.cache.SetEx(key, stmt, time.Now().Add(time.Minute*30).Unix())
+		db.cache.SetEx(key, stmt, time.Now().Add(time.Minute*30).Unix())
 		return stmt, nil
 	})
 }
 
-func (this *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
-	return this.ExecContext(context.Background(), query, args...)
+func (db *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
+	return db.ExecContext(context.Background(), query, args...)
 }
 
-func (this *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	stmt, err := this.PreparedStatement(ctx, query)
+func (db *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	stmt, err := db.PreparedStatement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
 	return stmt.ExecContext(ctx, args...)
 }
 
-func (this *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	return this.QueryContext(context.Background(), query, args...)
+func (db *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
+	return db.QueryContext(context.Background(), query, args...)
 }
 
-func (this *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	stmt, err := this.PreparedStatement(ctx, query)
+func (db *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	stmt, err := db.PreparedStatement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
 	return stmt.QueryContext(ctx, args...)
 }
 
-func (this *DB) QueryRow(query string, args ...any) *sql.Row {
-	return this.QueryRowContext(context.Background(), query, args...)
+func (db *DB) QueryRow(query string, args ...any) *sql.Row {
+	return db.QueryRowContext(context.Background(), query, args...)
 }
 
-func (this *DB) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
-	stmt, err := this.PreparedStatement(ctx, query)
+func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+	stmt, err := db.PreparedStatement(ctx, query)
 	if err != nil {
 		return nil
 	}
 	return stmt.QueryRowContext(ctx, args...)
 }
 
-func (this *DB) Begin() (*Tx, error) {
-	return this.BeginTx(context.Background(), nil)
+func (db *DB) Begin() (*Tx, error) {
+	return db.BeginTx(context.Background(), nil)
 }
 
-func (this *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
-	tx, err := this.db.BeginTx(ctx, opts)
+func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
+	tx, err := db.db.BeginTx(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 	var nTx = &Tx{}
 	nTx.tx = tx
-	nTx.preparer = this
+	nTx.preparer = db
 	return nTx, nil
 }
 
@@ -174,75 +174,75 @@ type Tx struct {
 	preparer Preparer
 }
 
-func (this *Tx) Tx() *sql.Tx {
-	return this.tx
+func (tx *Tx) Tx() *sql.Tx {
+	return tx.tx
 }
 
-func (this *Tx) stmt(ctx context.Context, query string) (*sql.Stmt, error) {
-	var stmt, err = this.preparer.PreparedStatement(ctx, query)
+func (tx *Tx) stmt(ctx context.Context, query string) (*sql.Stmt, error) {
+	var stmt, err = tx.preparer.PreparedStatement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
-	return this.tx.StmtContext(ctx, stmt), nil
+	return tx.tx.StmtContext(ctx, stmt), nil
 }
 
-func (this *Tx) Prepare(query string) (*sql.Stmt, error) {
-	return this.PrepareContext(context.Background(), query)
+func (tx *Tx) Prepare(query string) (*sql.Stmt, error) {
+	return tx.PrepareContext(context.Background(), query)
 }
 
-func (this *Tx) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
-	return this.tx.PrepareContext(ctx, query)
+func (tx *Tx) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	return tx.tx.PrepareContext(ctx, query)
 }
 
-func (this *Tx) Exec(query string, args ...interface{}) (sql.Result, error) {
-	return this.ExecContext(context.Background(), query, args...)
+func (tx *Tx) Exec(query string, args ...interface{}) (sql.Result, error) {
+	return tx.ExecContext(context.Background(), query, args...)
 }
 
-func (this *Tx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	if this.preparer != nil {
-		stmt, err := this.stmt(ctx, query)
+func (tx *Tx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	if tx.preparer != nil {
+		stmt, err := tx.stmt(ctx, query)
 		if err != nil {
 			return nil, err
 		}
 		return stmt.ExecContext(ctx, args...)
 	}
-	return this.tx.ExecContext(ctx, query, args...)
+	return tx.tx.ExecContext(ctx, query, args...)
 }
 
-func (this *Tx) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	return this.QueryContext(context.Background(), query, args...)
+func (tx *Tx) Query(query string, args ...interface{}) (*sql.Rows, error) {
+	return tx.QueryContext(context.Background(), query, args...)
 }
 
-func (this *Tx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	if this.preparer != nil {
-		stmt, err := this.stmt(ctx, query)
+func (tx *Tx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	if tx.preparer != nil {
+		stmt, err := tx.stmt(ctx, query)
 		if err != nil {
 			return nil, err
 		}
 		return stmt.QueryContext(ctx, args...)
 	}
-	return this.tx.QueryContext(ctx, query, args...)
+	return tx.tx.QueryContext(ctx, query, args...)
 }
 
-func (this *Tx) QueryRow(query string, args ...any) *sql.Row {
-	return this.QueryRowContext(context.Background(), query, args...)
+func (tx *Tx) QueryRow(query string, args ...any) *sql.Row {
+	return tx.QueryRowContext(context.Background(), query, args...)
 }
 
-func (this *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
-	if this.preparer != nil {
-		stmt, err := this.stmt(ctx, query)
+func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+	if tx.preparer != nil {
+		stmt, err := tx.stmt(ctx, query)
 		if err != nil {
 			return nil
 		}
 		return stmt.QueryRowContext(ctx, args...)
 	}
-	return this.tx.QueryRowContext(ctx, query, args...)
+	return tx.tx.QueryRowContext(ctx, query, args...)
 }
 
-func (this *Tx) Commit() error {
-	return this.tx.Commit()
+func (tx *Tx) Commit() error {
+	return tx.tx.Commit()
 }
 
-func (this *Tx) Rollback() error {
-	return this.tx.Rollback()
+func (tx *Tx) Rollback() error {
+	return tx.tx.Rollback()
 }

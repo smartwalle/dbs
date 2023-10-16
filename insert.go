@@ -23,102 +23,102 @@ type InsertBuilder struct {
 	sb       *SelectBuilder
 }
 
-func (this *InsertBuilder) Type() string {
+func (ib *InsertBuilder) Type() string {
 	return kInsertBuilder
 }
 
-func (this *InsertBuilder) UsePlaceholder(p Placeholder) *InsertBuilder {
-	this.builder.UsePlaceholder(p)
-	if this.sb != nil {
-		this.sb.UsePlaceholder(this.placeholder)
+func (ib *InsertBuilder) UsePlaceholder(p Placeholder) *InsertBuilder {
+	ib.builder.UsePlaceholder(p)
+	if ib.sb != nil {
+		ib.sb.UsePlaceholder(ib.placeholder)
 	}
-	return this
+	return ib
 }
 
-func (this *InsertBuilder) Prefix(sql string, args ...interface{}) *InsertBuilder {
-	this.prefixes = append(this.prefixes, NewClause(sql, args...))
-	return this
+func (ib *InsertBuilder) Prefix(sql string, args ...interface{}) *InsertBuilder {
+	ib.prefixes = append(ib.prefixes, NewClause(sql, args...))
+	return ib
 }
 
-func (this *InsertBuilder) Options(options ...string) *InsertBuilder {
+func (ib *InsertBuilder) Options(options ...string) *InsertBuilder {
 	for _, opt := range options {
-		this.options = append(this.options, NewClause(opt))
+		ib.options = append(ib.options, NewClause(opt))
 	}
-	return this
+	return ib
 }
 
-func (this *InsertBuilder) Columns(columns ...string) *InsertBuilder {
-	this.columns = append(this.columns, columns...)
-	return this
+func (ib *InsertBuilder) Columns(columns ...string) *InsertBuilder {
+	ib.columns = append(ib.columns, columns...)
+	return ib
 }
 
-func (this *InsertBuilder) Column(column string) *InsertBuilder {
-	this.columns = append(this.columns, column)
-	return this
+func (ib *InsertBuilder) Column(column string) *InsertBuilder {
+	ib.columns = append(ib.columns, column)
+	return ib
 }
 
-func (this *InsertBuilder) Table(table string) *InsertBuilder {
-	this.table = table
-	return this
+func (ib *InsertBuilder) Table(table string) *InsertBuilder {
+	ib.table = table
+	return ib
 }
 
-func (this *InsertBuilder) Values(values ...interface{}) *InsertBuilder {
-	this.values = append(this.values, values)
-	return this
+func (ib *InsertBuilder) Values(values ...interface{}) *InsertBuilder {
+	ib.values = append(ib.values, values)
+	return ib
 }
 
-func (this *InsertBuilder) Suffix(sql interface{}, args ...interface{}) *InsertBuilder {
+func (ib *InsertBuilder) Suffix(sql interface{}, args ...interface{}) *InsertBuilder {
 	var clause = parseClause(sql, args...)
 	if clause != nil {
-		this.suffixes = append(this.suffixes, clause)
+		ib.suffixes = append(ib.suffixes, clause)
 	}
-	return this
+	return ib
 }
 
-func (this *InsertBuilder) SET(column string, value interface{}) *InsertBuilder {
-	this.columns = append(this.columns, column)
-	if len(this.values) == 0 {
-		this.values = append(this.values, make([]interface{}, 0, 0))
+func (ib *InsertBuilder) SET(column string, value interface{}) *InsertBuilder {
+	ib.columns = append(ib.columns, column)
+	if len(ib.values) == 0 {
+		ib.values = append(ib.values, make([]interface{}, 0))
 	}
-	var vList = this.values[0]
+	var vList = ib.values[0]
 	vList = append(vList, value)
-	this.values[0] = vList
-	return this
+	ib.values[0] = vList
+	return ib
 }
 
-func (this *InsertBuilder) Select(sb *SelectBuilder) *InsertBuilder {
-	this.sb = sb
-	if this.sb != nil {
-		this.sb.UsePlaceholder(this.placeholder)
+func (ib *InsertBuilder) Select(sb *SelectBuilder) *InsertBuilder {
+	ib.sb = sb
+	if ib.sb != nil {
+		ib.sb.UsePlaceholder(ib.placeholder)
 	}
-	return this
+	return ib
 }
 
-func (this *InsertBuilder) SQL() (string, []interface{}, error) {
+func (ib *InsertBuilder) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	if err := this.Write(sqlBuf); err != nil {
+	if err := ib.Write(sqlBuf); err != nil {
 		return "", nil, err
 	}
 
-	sql, err := this.replace(sqlBuf.String())
+	nSQL, err := ib.replace(sqlBuf.String())
 	if err != nil {
 		return "", nil, err
 	}
-	return sql, sqlBuf.Values(), nil
+	return nSQL, sqlBuf.Values(), nil
 }
 
-func (this *InsertBuilder) Write(w Writer) (err error) {
-	if len(this.table) == 0 {
+func (ib *InsertBuilder) Write(w Writer) (err error) {
+	if len(ib.table) == 0 {
 		return errors.New("dbs: Insert clause must specify a table")
 	}
-	if len(this.values) == 0 && this.sb == nil {
+	if len(ib.values) == 0 && ib.sb == nil {
 		return errors.New("dbs: Insert clause must have at least one set of values")
 	}
 
-	if len(this.prefixes) > 0 {
-		if err = this.prefixes.Write(w, " "); err != nil {
+	if len(ib.prefixes) > 0 {
+		if err = ib.prefixes.Write(w, " "); err != nil {
 			return err
 		}
 		if _, err = w.WriteString(" "); err != nil {
@@ -130,8 +130,8 @@ func (this *InsertBuilder) Write(w Writer) (err error) {
 		return err
 	}
 
-	if len(this.options) > 0 {
-		if err = this.options.Write(w, " "); err != nil {
+	if len(ib.options) > 0 {
+		if err = ib.options.Write(w, " "); err != nil {
 			return err
 		}
 		if _, err = w.WriteString(" "); err != nil {
@@ -139,17 +139,17 @@ func (this *InsertBuilder) Write(w Writer) (err error) {
 		}
 	}
 
-	if _, err = fmt.Fprintf(w, "INTO %s ", this.quote(this.table)); err != nil {
+	if _, err = fmt.Fprintf(w, "INTO %s ", ib.quote(ib.table)); err != nil {
 		return err
 	}
 
-	if len(this.columns) > 0 {
+	if len(ib.columns) > 0 {
 		if _, err = w.WriteString("("); err != nil {
 			return err
 		}
-		var ncs = make([]string, 0, len(this.columns))
-		for _, c := range this.columns {
-			ncs = append(ncs, this.quote(c))
+		var ncs = make([]string, 0, len(ib.columns))
+		for _, c := range ib.columns {
+			ncs = append(ncs, ib.quote(c))
 		}
 		if _, err = w.WriteString(strings.Join(ncs, ", ")); err != nil {
 			return err
@@ -159,13 +159,13 @@ func (this *InsertBuilder) Write(w Writer) (err error) {
 		}
 	}
 
-	if len(this.values) > 0 {
+	if len(ib.values) > 0 {
 		if _, err = w.WriteString(" VALUES "); err != nil {
 			return err
 		}
 
-		var valuesPlaceholder = make([]string, len(this.values))
-		for index, value := range this.values {
+		var valuesPlaceholder = make([]string, len(ib.values))
+		for index, value := range ib.values {
 			var valuePlaceholder = make([]string, len(value))
 			for i, v := range value {
 				switch vt := v.(type) {
@@ -183,11 +183,11 @@ func (this *InsertBuilder) Write(w Writer) (err error) {
 		if _, err = w.WriteString(strings.Join(valuesPlaceholder, ", ")); err != nil {
 			return err
 		}
-	} else if this.sb != nil {
+	} else if ib.sb != nil {
 		if _, err = w.WriteString(" ("); err != nil {
 			return err
 		}
-		if err = this.sb.Write(w); err != nil {
+		if err = ib.sb.Write(w); err != nil {
 			return err
 		}
 		if _, err = w.WriteString(")"); err != nil {
@@ -195,27 +195,27 @@ func (this *InsertBuilder) Write(w Writer) (err error) {
 		}
 	}
 
-	if len(this.suffixes) > 0 {
+	if len(ib.suffixes) > 0 {
 		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
-		if err = this.suffixes.Write(w, " "); err != nil {
+		if err = ib.suffixes.Write(w, " "); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (this *InsertBuilder) reset() {
-	this.values = this.values[:0]
+func (ib *InsertBuilder) reset() {
+	ib.values = ib.values[:0]
 }
 
-func (this *InsertBuilder) Exec(s Session) (sql.Result, error) {
-	return execContext(context.Background(), s, this)
+func (ib *InsertBuilder) Exec(s Session) (sql.Result, error) {
+	return execContext(context.Background(), s, ib)
 }
 
-func (this *InsertBuilder) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
-	return execContext(ctx, s, this)
+func (ib *InsertBuilder) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
+	return execContext(ctx, s, ib)
 }
 
 func NewInsertBuilder() *InsertBuilder {

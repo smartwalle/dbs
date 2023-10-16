@@ -17,97 +17,97 @@ type ExceptBuilder struct {
 	offset   SQLClause
 }
 
-func (this *ExceptBuilder) Type() string {
+func (eb *ExceptBuilder) Type() string {
 	return kExceptBuilder
 }
 
-func (this *ExceptBuilder) UsePlaceholder(p Placeholder) *ExceptBuilder {
-	this.builder.UsePlaceholder(p)
-	return this
+func (eb *ExceptBuilder) UsePlaceholder(p Placeholder) *ExceptBuilder {
+	eb.builder.UsePlaceholder(p)
+	return eb
 }
 
-func (this *ExceptBuilder) Except(clauses ...SQLClause) *ExceptBuilder {
-	var first = len(this.clauses) == 0
+func (eb *ExceptBuilder) Except(clauses ...SQLClause) *ExceptBuilder {
+	var first = len(eb.clauses) == 0
 	for i, clause := range clauses {
 		if i == 0 && first {
-			this.clauses = append(this.clauses, NewClause("", clause))
+			eb.clauses = append(eb.clauses, NewClause("", clause))
 		} else {
-			this.clauses = append(this.clauses, NewClause(" EXCEPT ", clause))
+			eb.clauses = append(eb.clauses, NewClause(" EXCEPT ", clause))
 		}
 	}
-	return this
+	return eb
 }
 
-func (this *ExceptBuilder) ExceptAll(clauses ...SQLClause) *ExceptBuilder {
-	var first = len(this.clauses) == 0
+func (eb *ExceptBuilder) ExceptAll(clauses ...SQLClause) *ExceptBuilder {
+	var first = len(eb.clauses) == 0
 	for i, clause := range clauses {
 		if i == 0 && first {
-			this.clauses = append(this.clauses, NewClause("", clause))
+			eb.clauses = append(eb.clauses, NewClause("", clause))
 		} else {
-			this.clauses = append(this.clauses, NewClause(" EXCEPT ALL ", clause))
+			eb.clauses = append(eb.clauses, NewClause(" EXCEPT ALL ", clause))
 		}
 	}
-	return this
+	return eb
 }
 
-func (this *ExceptBuilder) OrderBy(sql ...string) *ExceptBuilder {
-	this.orderBys = append(this.orderBys, sql...)
-	return this
+func (eb *ExceptBuilder) OrderBy(sql ...string) *ExceptBuilder {
+	eb.orderBys = append(eb.orderBys, sql...)
+	return eb
 }
 
-func (this *ExceptBuilder) Limit(limit int64) *ExceptBuilder {
-	this.limit = NewClause(" LIMIT ?", limit)
-	return this
+func (eb *ExceptBuilder) Limit(limit int64) *ExceptBuilder {
+	eb.limit = NewClause(" LIMIT ?", limit)
+	return eb
 }
 
-func (this *ExceptBuilder) Offset(offset int64) *ExceptBuilder {
-	this.offset = NewClause(" OFFSET ?", offset)
-	return this
+func (eb *ExceptBuilder) Offset(offset int64) *ExceptBuilder {
+	eb.offset = NewClause(" OFFSET ?", offset)
+	return eb
 }
 
-func (this *ExceptBuilder) SQL() (string, []interface{}, error) {
+func (eb *ExceptBuilder) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	if err := this.Write(sqlBuf); err != nil {
+	if err := eb.Write(sqlBuf); err != nil {
 		return "", nil, err
 	}
 
-	sql, err := this.replace(sqlBuf.String())
+	sql, err := eb.replace(sqlBuf.String())
 	if err != nil {
 		return "", nil, err
 	}
 	return sql, sqlBuf.Values(), nil
 }
 
-func (this *ExceptBuilder) Write(w Writer) (err error) {
-	if len(this.clauses) < 2 {
+func (eb *ExceptBuilder) Write(w Writer) (err error) {
+	if len(eb.clauses) < 2 {
 		return errors.New("dbs: EXCEPT clause must have at least two clause")
 	}
 
-	for _, clause := range this.clauses {
+	for _, clause := range eb.clauses {
 		if err = clause.Write(w); err != nil {
 			return err
 		}
 	}
 
-	if len(this.orderBys) > 0 {
+	if len(eb.orderBys) > 0 {
 		if _, err = w.WriteString(" ORDER BY "); err != nil {
 			return err
 		}
-		if _, err = w.WriteString(strings.Join(this.orderBys, ", ")); err != nil {
+		if _, err = w.WriteString(strings.Join(eb.orderBys, ", ")); err != nil {
 			return err
 		}
 	}
 
-	if this.limit != nil {
-		if err = this.limit.Write(w); err != nil {
+	if eb.limit != nil {
+		if err = eb.limit.Write(w); err != nil {
 			return err
 		}
 	}
 
-	if this.offset != nil {
-		if err = this.offset.Write(w); err != nil {
+	if eb.offset != nil {
+		if err = eb.offset.Write(w); err != nil {
 			return err
 		}
 	}

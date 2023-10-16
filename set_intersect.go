@@ -17,97 +17,97 @@ type IntersectBuilder struct {
 	offset   SQLClause
 }
 
-func (this *IntersectBuilder) Type() string {
+func (ib *IntersectBuilder) Type() string {
 	return kIntersectBuilder
 }
 
-func (this *IntersectBuilder) UsePlaceholder(p Placeholder) *IntersectBuilder {
-	this.builder.UsePlaceholder(p)
-	return this
+func (ib *IntersectBuilder) UsePlaceholder(p Placeholder) *IntersectBuilder {
+	ib.builder.UsePlaceholder(p)
+	return ib
 }
 
-func (this *IntersectBuilder) Intersect(clauses ...SQLClause) *IntersectBuilder {
-	var first = len(this.clauses) == 0
+func (ib *IntersectBuilder) Intersect(clauses ...SQLClause) *IntersectBuilder {
+	var first = len(ib.clauses) == 0
 	for i, clause := range clauses {
 		if i == 0 && first {
-			this.clauses = append(this.clauses, NewClause("", clause))
+			ib.clauses = append(ib.clauses, NewClause("", clause))
 		} else {
-			this.clauses = append(this.clauses, NewClause(" INTERSECT ", clause))
+			ib.clauses = append(ib.clauses, NewClause(" INTERSECT ", clause))
 		}
 	}
-	return this
+	return ib
 }
 
-func (this *IntersectBuilder) IntersectAll(clauses ...SQLClause) *IntersectBuilder {
-	var first = len(this.clauses) == 0
+func (ib *IntersectBuilder) IntersectAll(clauses ...SQLClause) *IntersectBuilder {
+	var first = len(ib.clauses) == 0
 	for i, clause := range clauses {
 		if i == 0 && first {
-			this.clauses = append(this.clauses, NewClause("", clause))
+			ib.clauses = append(ib.clauses, NewClause("", clause))
 		} else {
-			this.clauses = append(this.clauses, NewClause(" INTERSECT ALL ", clause))
+			ib.clauses = append(ib.clauses, NewClause(" INTERSECT ALL ", clause))
 		}
 	}
-	return this
+	return ib
 }
 
-func (this *IntersectBuilder) OrderBy(sql ...string) *IntersectBuilder {
-	this.orderBys = append(this.orderBys, sql...)
-	return this
+func (ib *IntersectBuilder) OrderBy(sql ...string) *IntersectBuilder {
+	ib.orderBys = append(ib.orderBys, sql...)
+	return ib
 }
 
-func (this *IntersectBuilder) Limit(limit int64) *IntersectBuilder {
-	this.limit = NewClause(" LIMIT ?", limit)
-	return this
+func (ib *IntersectBuilder) Limit(limit int64) *IntersectBuilder {
+	ib.limit = NewClause(" LIMIT ?", limit)
+	return ib
 }
 
-func (this *IntersectBuilder) Offset(offset int64) *IntersectBuilder {
-	this.offset = NewClause(" OFFSET ?", offset)
-	return this
+func (ib *IntersectBuilder) Offset(offset int64) *IntersectBuilder {
+	ib.offset = NewClause(" OFFSET ?", offset)
+	return ib
 }
 
-func (this *IntersectBuilder) SQL() (string, []interface{}, error) {
+func (ib *IntersectBuilder) SQL() (string, []interface{}, error) {
 	var sqlBuf = getBuffer()
 	defer sqlBuf.Release()
 
-	if err := this.Write(sqlBuf); err != nil {
+	if err := ib.Write(sqlBuf); err != nil {
 		return "", nil, err
 	}
 
-	sql, err := this.replace(sqlBuf.String())
+	sql, err := ib.replace(sqlBuf.String())
 	if err != nil {
 		return "", nil, err
 	}
 	return sql, sqlBuf.Values(), nil
 }
 
-func (this *IntersectBuilder) Write(w Writer) (err error) {
-	if len(this.clauses) < 2 {
+func (ib *IntersectBuilder) Write(w Writer) (err error) {
+	if len(ib.clauses) < 2 {
 		return errors.New("dbs: INTERSECT clause must have at least two clause")
 	}
 
-	for _, clause := range this.clauses {
+	for _, clause := range ib.clauses {
 		if err = clause.Write(w); err != nil {
 			return err
 		}
 	}
 
-	if len(this.orderBys) > 0 {
+	if len(ib.orderBys) > 0 {
 		if _, err = w.WriteString(" ORDER BY "); err != nil {
 			return err
 		}
-		if _, err = w.WriteString(strings.Join(this.orderBys, ", ")); err != nil {
+		if _, err = w.WriteString(strings.Join(ib.orderBys, ", ")); err != nil {
 			return err
 		}
 	}
 
-	if this.limit != nil {
-		if err = this.limit.Write(w); err != nil {
+	if ib.limit != nil {
+		if err = ib.limit.Write(w); err != nil {
 			return err
 		}
 	}
 
-	if this.offset != nil {
-		if err = this.offset.Write(w); err != nil {
+	if ib.offset != nil {
+		if err = ib.offset.Write(w); err != nil {
 			return err
 		}
 	}
