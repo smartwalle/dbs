@@ -27,27 +27,24 @@ func (ub *UnionBuilder) UsePlaceholder(p Placeholder) *UnionBuilder {
 }
 
 func (ub *UnionBuilder) Union(clauses ...SQLClause) *UnionBuilder {
-	var first = len(ub.clauses) == 0
-	for i, clause := range clauses {
-		if i == 0 && first {
-			ub.clauses = append(ub.clauses, NewClause("", clause))
-		} else {
-			ub.clauses = append(ub.clauses, NewClause(" UNION ", clause))
-		}
-	}
+	ub.addClauses(" UNION ", clauses...)
 	return ub
 }
 
 func (ub *UnionBuilder) UnionAll(clauses ...SQLClause) *UnionBuilder {
+	ub.addClauses(" UNION ALL ", clauses...)
+	return ub
+}
+
+func (ub *UnionBuilder) addClauses(prefix string, clauses ...SQLClause) {
 	var first = len(ub.clauses) == 0
 	for i, clause := range clauses {
 		if i == 0 && first {
 			ub.clauses = append(ub.clauses, NewClause("", clause))
 		} else {
-			ub.clauses = append(ub.clauses, NewClause(" UNION ALL ", clause))
+			ub.clauses = append(ub.clauses, NewClause(prefix, clause))
 		}
 	}
-	return ub
 }
 
 func (ub *UnionBuilder) OrderBy(sql ...string) *UnionBuilder {

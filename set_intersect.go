@@ -27,27 +27,24 @@ func (ib *IntersectBuilder) UsePlaceholder(p Placeholder) *IntersectBuilder {
 }
 
 func (ib *IntersectBuilder) Intersect(clauses ...SQLClause) *IntersectBuilder {
-	var first = len(ib.clauses) == 0
-	for i, clause := range clauses {
-		if i == 0 && first {
-			ib.clauses = append(ib.clauses, NewClause("", clause))
-		} else {
-			ib.clauses = append(ib.clauses, NewClause(" INTERSECT ", clause))
-		}
-	}
+	ib.addClauses(" INTERSECT ", clauses...)
 	return ib
 }
 
 func (ib *IntersectBuilder) IntersectAll(clauses ...SQLClause) *IntersectBuilder {
+	ib.addClauses(" INTERSECT ALL ", clauses...)
+	return ib
+}
+
+func (ib *IntersectBuilder) addClauses(prefix string, clauses ...SQLClause) {
 	var first = len(ib.clauses) == 0
 	for i, clause := range clauses {
 		if i == 0 && first {
 			ib.clauses = append(ib.clauses, NewClause("", clause))
 		} else {
-			ib.clauses = append(ib.clauses, NewClause(" INTERSECT ALL ", clause))
+			ib.clauses = append(ib.clauses, NewClause(prefix, clause))
 		}
 	}
-	return ib
 }
 
 func (ib *IntersectBuilder) OrderBy(sql ...string) *IntersectBuilder {

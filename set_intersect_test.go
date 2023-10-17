@@ -14,13 +14,13 @@ func TestIntersectBuilder(t *testing.T) {
 	s2.Selects("p2.id", "p2.name", "p2.price")
 	s2.From("products AS p2")
 
-	var ub = dbs.NewIntersectBuilder()
-	ub.Intersect(s1, s2)
-	ub.OrderBy("price")
+	var ib = dbs.NewIntersectBuilder()
+	ib.Intersect(s1, s2)
+	ib.OrderBy("price")
 
 	check(
 		t,
-		ub,
+		ib,
 		"(SELECT p1.id, p1.name, p1.price FROM products AS p1) INTERSECT (SELECT p2.id, p2.name, p2.price FROM products AS p2) ORDER BY price",
 		[]interface{}{},
 	)

@@ -27,27 +27,24 @@ func (eb *ExceptBuilder) UsePlaceholder(p Placeholder) *ExceptBuilder {
 }
 
 func (eb *ExceptBuilder) Except(clauses ...SQLClause) *ExceptBuilder {
-	var first = len(eb.clauses) == 0
-	for i, clause := range clauses {
-		if i == 0 && first {
-			eb.clauses = append(eb.clauses, NewClause("", clause))
-		} else {
-			eb.clauses = append(eb.clauses, NewClause(" EXCEPT ", clause))
-		}
-	}
+	eb.addClauses(" EXCEPT ", clauses...)
 	return eb
 }
 
 func (eb *ExceptBuilder) ExceptAll(clauses ...SQLClause) *ExceptBuilder {
+	eb.addClauses(" EXCEPT ALL ", clauses...)
+	return eb
+}
+
+func (eb *ExceptBuilder) addClauses(prefix string, clauses ...SQLClause) {
 	var first = len(eb.clauses) == 0
 	for i, clause := range clauses {
 		if i == 0 && first {
 			eb.clauses = append(eb.clauses, NewClause("", clause))
 		} else {
-			eb.clauses = append(eb.clauses, NewClause(" EXCEPT ALL ", clause))
+			eb.clauses = append(eb.clauses, NewClause(prefix, clause))
 		}
 	}
-	return eb
 }
 
 func (eb *ExceptBuilder) OrderBy(sql ...string) *ExceptBuilder {
