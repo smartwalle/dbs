@@ -22,12 +22,12 @@ func postgresql() {
 		fmt.Println("连接数据库出错：", err)
 		return
 	}
+	dbs.UsePlaceholder(dbs.DollarPlaceholder)
 
 	var ndb = dbs.New(db)
 	defer ndb.Close()
 
 	var sb = dbs.NewSelectBuilder()
-	sb.UsePlaceholder(dbs.DollarPlaceholder)
 	sb.Selects("id", "email", "status", "created_at", "updated_at")
 	sb.From("mail")
 	sb.Limit(10)

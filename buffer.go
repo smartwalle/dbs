@@ -49,8 +49,8 @@ func (buffer *Buffer) WriteArgs(args ...interface{}) {
 	for _, arg := range args {
 		switch argType := arg.(type) {
 		case driver.Valuer:
-			v, _ := argType.Value()
-			buffer.vs = append(buffer.vs, v)
+			//v, _ := argType.Value()
+			buffer.vs = append(buffer.vs, argType)
 		case SQLValue:
 			buffer.vs = append(buffer.vs, argType.SQLValue())
 		default:
