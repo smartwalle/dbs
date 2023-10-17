@@ -22,62 +22,62 @@ func New(master *dbs.DB, slaves ...*dbs.DB) *DB {
 	return ndb
 }
 
-func (this *DB) Master() *dbs.DB {
-	return this.master
+func (db *DB) Master() *dbs.DB {
+	return db.master
 }
 
-func (this *DB) Close() error {
-	this.master.Close()
-	for _, slave := range this.slaves {
+func (db *DB) Close() error {
+	db.master.Close()
+	for _, slave := range db.slaves {
 		slave.Close()
 	}
 	return nil
 }
 
-func (this *DB) Prepare(query string) (*sql.Stmt, error) {
-	return this.PrepareContext(context.Background(), query)
+func (db *DB) Prepare(query string) (*sql.Stmt, error) {
+	return db.PrepareContext(context.Background(), query)
 }
 
-func (this *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
-	return this.master.PrepareContext(ctx, query)
+func (db *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	return db.master.PrepareContext(ctx, query)
 }
 
-func (this *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
-	return this.ExecContext(context.Background(), query, args...)
+func (db *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
+	return db.ExecContext(context.Background(), query, args...)
 }
 
-func (this *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	return this.master.ExecContext(ctx, query, args...)
+func (db *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	return db.master.ExecContext(ctx, query, args...)
 }
 
-func (this *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	return this.QueryContext(context.Background(), query, args...)
+func (db *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
+	return db.QueryContext(context.Background(), query, args...)
 }
 
-func (this *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	if this.size > 0 {
-		var slave = this.slaves[int(atomic.AddUint32(&this.offset, 1)-1)%this.size]
+func (db *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	if db.size > 0 {
+		var slave = db.slaves[int(atomic.AddUint32(&db.offset, 1)-1)%db.size]
 		return slave.QueryContext(ctx, query, args...)
 	}
-	return this.master.QueryContext(ctx, query, args...)
+	return db.master.QueryContext(ctx, query, args...)
 }
 
-func (this *DB) QueryRow(query string, args ...any) *sql.Row {
-	return this.QueryRowContext(context.Background(), query, args...)
+func (db *DB) QueryRow(query string, args ...any) *sql.Row {
+	return db.QueryRowContext(context.Background(), query, args...)
 }
 
-func (this *DB) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
-	if this.size > 0 {
-		var slave = this.slaves[int(atomic.AddUint32(&this.offset, 1)-1)%this.size]
+func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+	if db.size > 0 {
+		var slave = db.slaves[int(atomic.AddUint32(&db.offset, 1)-1)%db.size]
 		return slave.QueryRowContext(ctx, query, args...)
 	}
-	return this.master.QueryRowContext(ctx, query, args...)
+	return db.master.QueryRowContext(ctx, query, args...)
 }
 
-func (this *DB) Begin() (*dbs.Tx, error) {
-	return this.master.Begin()
+func (db *DB) Begin() (*dbs.Tx, error) {
+	return db.master.Begin()
 }
 
-func (this *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*dbs.Tx, error) {
-	return this.master.BeginTx(ctx, opts)
+func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*dbs.Tx, error) {
+	return db.master.BeginTx(ctx, opts)
 }
