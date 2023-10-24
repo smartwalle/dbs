@@ -448,53 +448,94 @@ func (clause Eq) write(eq bool, w Writer) error {
 			continue
 		}
 
-		var nClause = ""
+		if index != 0 {
+			if _, err := w.WriteString(" AND "); err != nil {
+				return err
+			}
+		}
+
+		if _, err := w.WriteString("("); err != nil {
+			return err
+		}
+
 		if value == nil {
-			nClause = fmt.Sprintf("%s %s NULL", key, isMap[eq])
+			if _, err := w.WriteString(key); err != nil {
+				return err
+			}
+			if _, err := w.WriteString(" "); err != nil {
+				return err
+			}
+			if _, err := w.WriteString(isMap[eq]); err != nil {
+				return err
+			}
+			if _, err := w.WriteString(" NULL"); err != nil {
+				return err
+			}
 		} else {
 			var pValue = reflect.ValueOf(value)
 			var pKind = pValue.Kind()
 			if pKind == reflect.Array || pKind == reflect.Slice {
-				if pValue.Len() > 0 {
-					for i := 0; i < pValue.Len(); i++ {
-						w.WriteArgs(pValue.Index(i).Interface())
-					}
+				for i := 0; i < pValue.Len(); i++ {
+					w.WriteArgs(pValue.Index(i).Interface())
 				}
-				nClause = fmt.Sprintf("%s %s (%s)", key, inMap[eq], placeholders(pValue.Len()))
+				if _, err := w.WriteString(key); err != nil {
+					return err
+				}
+				if _, err := w.WriteString(" "); err != nil {
+					return err
+				}
+				if _, err := w.WriteString(inMap[eq]); err != nil {
+					return err
+				}
+				if _, err := w.WriteString(" ("); err != nil {
+					return err
+				}
+				if _, err := w.WriteString(placeholders(pValue.Len())); err != nil {
+					return err
+				}
+				if _, err := w.WriteString(")"); err != nil {
+					return err
+				}
 			} else {
 				switch v := value.(type) {
 				case SQLClause:
-					sql, arg, err := v.SQL()
-					if err != nil {
+					if _, err := w.WriteString(key); err != nil {
 						return err
 					}
-					nClause = fmt.Sprintf("%s %s %s", key, eqMap[eq], sql)
-					w.WriteArgs(arg...)
+					if _, err := w.WriteString(" "); err != nil {
+						return err
+					}
+					if _, err := w.WriteString(eqMap[eq]); err != nil {
+						return err
+					}
+					if _, err := w.WriteString(" "); err != nil {
+						return err
+					}
+					if err := v.Write(w); err != nil {
+						return err
+					}
 				default:
-					nClause = fmt.Sprintf("%s %s ?", key, eqMap[eq])
+					if _, err := w.WriteString(key); err != nil {
+						return err
+					}
+					if _, err := w.WriteString(" "); err != nil {
+						return err
+					}
+					if _, err := w.WriteString(eqMap[eq]); err != nil {
+						return err
+					}
+					if _, err := w.WriteString(" ?"); err != nil {
+						return err
+					}
 					w.WriteArgs(value)
 				}
 			}
 		}
-
-		if nClause != "" {
-			if index != 0 {
-				if _, err := w.WriteString(" AND "); err != nil {
-					return err
-				}
-			}
-
-			if _, err := w.WriteString("("); err != nil {
-				return err
-			}
-			if _, err := w.WriteString(nClause); err != nil {
-				return err
-			}
-			if _, err := w.WriteString(")"); err != nil {
-				return err
-			}
-			index += 1
+		if _, err := w.WriteString(")"); err != nil {
+			return err
 		}
+
+		index += 1
 	}
 	return nil
 }
