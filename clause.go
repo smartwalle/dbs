@@ -391,7 +391,7 @@ func in(sql, exp string, args interface{}) SQLClause {
 
 	var nArgs []interface{}
 	if args == nil {
-		sql = fmt.Sprintf("%s %s (%s)", sql, exp, placeholders(len(nArgs)))
+		sql = sql + exp + "(" + placeholders(len(nArgs)) + ")"
 	} else {
 		var pValue = reflect.ValueOf(args)
 		var pKind = pValue.Kind()
@@ -402,11 +402,11 @@ func in(sql, exp string, args interface{}) SQLClause {
 			for i := 0; i < l; i++ {
 				nArgs[i] = pValue.Index(i).Interface()
 			}
-			sql = fmt.Sprintf("%s %s (%s)", sql, exp, placeholders(len(nArgs)))
+			sql = sql + exp + "(" + placeholders(len(nArgs)) + ")"
 		} else {
 			switch args.(type) {
 			case SQLClause:
-				sql = fmt.Sprintf("%s %s ", sql, exp)
+				sql = sql + exp
 				nArgs = append(nArgs, args)
 			}
 		}
@@ -416,11 +416,11 @@ func in(sql, exp string, args interface{}) SQLClause {
 }
 
 func IN(sql string, args interface{}) SQLClause {
-	return in(sql, "IN", args)
+	return in(sql, " IN ", args)
 }
 
 func NotIn(sql string, args interface{}) SQLClause {
-	return in(sql, "NOT IN", args)
+	return in(sql, " NOT IN ", args)
 }
 
 func parseClause(sql interface{}, args ...interface{}) SQLClause {
