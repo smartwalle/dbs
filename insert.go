@@ -80,9 +80,7 @@ func (ib *InsertBuilder) SET(column string, value interface{}) *InsertBuilder {
 	if len(ib.values) == 0 {
 		ib.values = append(ib.values, make([]interface{}, 0))
 	}
-	var vList = ib.values[0]
-	vList = append(vList, value)
-	ib.values[0] = vList
+	ib.values[0] = append(ib.values[0], value)
 	return ib
 }
 
@@ -164,24 +162,27 @@ func (ib *InsertBuilder) Write(w Writer) (err error) {
 			return err
 		}
 
-		var valuesPlaceholder = make([]string, len(ib.values))
-		for index, value := range ib.values {
-			var valuePlaceholder = make([]string, len(value))
-			for i, v := range value {
-				switch vt := v.(type) {
+		for index, elements := range ib.values {
+			w.WriteString("(")
+			for i, ele := range elements {
+				switch vt := ele.(type) {
 				case SQLClause:
-					vSQL, vArgs, _ := vt.SQL()
-					valuePlaceholder[i] = vSQL
-					w.WriteArgs(vArgs...)
+					if err = vt.Write(w); err != nil {
+						return err
+					}
 				default:
-					valuePlaceholder[i] = "?"
-					w.WriteArgs(v)
+					w.WriteString("?")
+					w.WriteArgs(ele)
+				}
+				if i < len(elements)-1 {
+					w.WriteString(", ")
 				}
 			}
-			valuesPlaceholder[index] = fmt.Sprintf("(%s)", strings.Join(valuePlaceholder, ", "))
-		}
-		if _, err = w.WriteString(strings.Join(valuesPlaceholder, ", ")); err != nil {
-			return err
+			w.WriteString(")")
+
+			if index < len(ib.values)-1 {
+				w.WriteString(", ")
+			}
 		}
 	} else if ib.sb != nil {
 		if _, err = w.WriteString(" ("); err != nil {

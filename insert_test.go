@@ -41,6 +41,8 @@ func BenchmarkInsertBuilder(b *testing.B) {
 		ib.Table("user")
 		ib.Columns("id", "name", "status", "age")
 		ib.Values(4, "Sample", 2, 10)
+		ib.Values(5, "Sample", 2, 10)
+		ib.Values(6, "Sample", 2, 10)
 		_, _, _ = ib.SQL()
 	}
 }
