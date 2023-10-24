@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"strings"
 )
 
@@ -137,9 +136,13 @@ func (ib *InsertBuilder) Write(w Writer) (err error) {
 		}
 	}
 
-	if _, err = fmt.Fprintf(w, "INTO %s ", ib.quote(ib.table)); err != nil {
+	if _, err = w.WriteString("INTO "); err != nil {
 		return err
 	}
+	if _, err = w.WriteString(ib.quote(ib.table)); err != nil {
+		return err
+	}
+	w.WriteString(" ")
 
 	if len(ib.columns) > 0 {
 		if _, err = w.WriteString("("); err != nil {
