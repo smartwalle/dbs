@@ -566,20 +566,22 @@ func (clause NotEq) SQL() (string, []interface{}, error) {
 	return sqlBuf.String(), sqlBuf.Values(), err
 }
 
-func like(sql, exp string, a ...interface{}) SQLClause {
+func like(sql, exp string, args ...string) SQLClause {
 	var buf = &bytes.Buffer{}
-	fmt.Fprintf(buf, "%s %s ?", sql, exp)
+	buf.WriteString(sql)
+	buf.WriteString(exp)
+	buf.WriteString("?")
 
 	var clause = &Clause{}
 	clause.sql = buf.String()
-	clause.args = append(clause.args, fmt.Sprint(a...))
+	clause.args = append(clause.args, strings.Join(args, ""))
 	return clause
 }
 
-func Like(sql string, args ...interface{}) SQLClause {
-	return like(sql, "LIKE", args...)
+func Like(sql string, args ...string) SQLClause {
+	return like(sql, " LIKE ", args...)
 }
 
-func NotLike(sql string, args ...interface{}) SQLClause {
-	return like(sql, "NOT LIKE", args...)
+func NotLike(sql string, args ...string) SQLClause {
+	return like(sql, " NOT LIKE ", args...)
 }
