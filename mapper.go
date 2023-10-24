@@ -34,7 +34,7 @@ func NewMapper(tag string) *Mapper {
 	return m
 }
 
-func (mapper *Mapper) Bind(rows *sql.Rows, dst interface{}) error {
+func (mapper *Mapper) Decode(rows *sql.Rows, dst interface{}) error {
 	if rows == nil {
 		return sql.ErrNoRows
 	}
@@ -47,11 +47,11 @@ func (mapper *Mapper) Bind(rows *sql.Rows, dst interface{}) error {
 	var dstType = dstValue.Type()
 
 	if dstValue.Kind() != reflect.Ptr {
-		return errors.New("must pass a pointer to Bind")
+		return errors.New("must pass a pointer")
 	}
 
 	if dstValue.IsNil() {
-		return errors.New("nil pointer passed to Bind")
+		return errors.New("nil pointer passed")
 	}
 
 	var isSlice bool
@@ -62,12 +62,16 @@ func (mapper *Mapper) Bind(rows *sql.Rows, dst interface{}) error {
 	}
 
 	if isSlice {
-		return mapper.bindSlice(rows, dstType, dstValue)
+		return mapper.decodeSlice(rows, dstType, dstValue)
 	}
-	return mapper.bindOne(rows, dstType, dstValue)
+	return mapper.decodeOne(rows, dstType, dstValue)
 }
 
-func (mapper *Mapper) bindOne(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
+func (mapper *Mapper) Bind(rows *sql.Rows, dst interface{}) error {
+	return mapper.Decode(rows, dst)
+}
+
+func (mapper *Mapper) decodeOne(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
 	if !rows.Next() {
 		return sql.ErrNoRows
 	}
@@ -91,7 +95,7 @@ func (mapper *Mapper) bindOne(rows *sql.Rows, dstType reflect.Type, dstValue ref
 	return rows.Scan(values...)
 }
 
-func (mapper *Mapper) bindSlice(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
+func (mapper *Mapper) decodeSlice(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
 	columns, err := rows.Columns()
 	if err != nil {
 		return err
