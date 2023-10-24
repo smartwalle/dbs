@@ -5,6 +5,12 @@ import (
 	"database/sql"
 )
 
+var mapper = NewMapper(kTag)
+
+func Scan(rows *sql.Rows, dst interface{}) (err error) {
+	return mapper.Decode(rows, dst)
+}
+
 func scanContext(ctx context.Context, s Session, b Builder, dst interface{}) (err error) {
 	//var tx Transaction
 	//var prefix string
@@ -35,7 +41,7 @@ func scanContext(ctx context.Context, s Session, b Builder, dst interface{}) (er
 	}
 	defer rows.Close()
 
-	if err = Scan(rows, dst); err != nil {
+	if err = mapper.Decode(rows, dst); err != nil {
 		//logger.Output(3, fmt.Sprintln(prefix, "Scan Failed:", err))
 		return err
 	}
