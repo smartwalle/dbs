@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"strings"
 )
 
@@ -180,7 +179,10 @@ func (db *DeleteBuilder) Write(w Writer) (err error) {
 	}
 
 	if len(db.using) > 0 {
-		if _, err = fmt.Fprintf(w, " USING %s", db.using); err != nil {
+		if _, err = w.WriteString(" USING "); err != nil {
+			return err
+		}
+		if _, err = w.WriteString(db.using); err != nil {
 			return err
 		}
 	}
