@@ -17,3 +17,14 @@ func TestPostgresQL(t *testing.T) {
 
 	dbs.UsePlaceholder(dbs.QuestionPlaceholder)
 }
+
+func Benchmark_DollarPlaceholder(b *testing.B) {
+	dbs.UsePlaceholder(dbs.DollarPlaceholder)
+	for i := 0; i < b.N; i++ {
+		var sb = dbs.NewSelectBuilder()
+		sb.Selects("u.id")
+		sb.From("user", "AS u")
+		sb.Where("u.id = ? OR u.id = ? OR u.id = ?", 10, 20, 30)
+		_, _, _ = sb.SQL()
+	}
+}

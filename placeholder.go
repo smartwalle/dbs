@@ -2,7 +2,7 @@ package dbs
 
 import (
 	"bytes"
-	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -54,9 +54,10 @@ func (d dollar) Replace(sql string) (string, error) {
 
 		i++
 		buf.WriteString(sql[:pos])
-		if _, err := fmt.Fprintf(buf, "$%d", i); err != nil {
-			return "", err
-		}
+
+		buf.WriteString("$")
+		buf.WriteString(strconv.Itoa(i))
+
 		sql = sql[pos+1:]
 	}
 	buf.WriteString(sql)
