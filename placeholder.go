@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 var gPlaceholder Placeholder = QuestionPlaceholder
@@ -21,22 +22,28 @@ type Placeholder interface {
 }
 
 var (
-	QuestionPlaceholder = question{}
-	DollarPlaceholder   = dollar{}
+	QuestionPlaceholder = &question{}
+	DollarPlaceholder   = &dollar{
+		pool: sync.Pool{New: func() interface{} {
+			return &bytes.Buffer{}
+		}},
+	}
 )
 
 type question struct {
 }
 
-func (q question) Replace(sql string) (string, error) {
+func (q *question) Replace(sql string) (string, error) {
 	return sql, nil
 }
 
 type dollar struct {
+	pool sync.Pool
 }
 
-func (d dollar) Replace(sql string) (string, error) {
-	var buf = &bytes.Buffer{}
+func (d *dollar) Replace(sql string) (string, error) {
+	var buf = d.pool.Get().(*bytes.Buffer)
+	buf.Reset()
 	var i = 0
 
 	for {
@@ -61,5 +68,7 @@ func (d dollar) Replace(sql string) (string, error) {
 		sql = sql[pos+1:]
 	}
 	buf.WriteString(sql)
-	return buf.String(), nil
+	var s = buf.String()
+	d.pool.Put(buf)
+	return s, nil
 }
