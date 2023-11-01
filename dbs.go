@@ -100,7 +100,7 @@ func (db *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, erro
 	return db.db.PrepareContext(ctx, query)
 }
 
-func (db *DB) PreparedStatement(ctx context.Context, query string) (*sql.Stmt, error) {
+func (db *DB) PrepareStatement(ctx context.Context, query string) (*sql.Stmt, error) {
 	if stmt, found := db.cache.Get(query); found {
 		return stmt, nil
 	}
@@ -119,7 +119,7 @@ func (db *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
 }
 
 func (db *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	stmt, err := db.PreparedStatement(ctx, query)
+	stmt, err := db.PrepareStatement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func (db *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
 }
 
 func (db *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	stmt, err := db.PreparedStatement(ctx, query)
+	stmt, err := db.PrepareStatement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +143,7 @@ func (db *DB) QueryRow(query string, args ...any) *sql.Row {
 }
 
 func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
-	stmt, err := db.PreparedStatement(ctx, query)
+	stmt, err := db.PrepareStatement(ctx, query)
 	if err != nil {
 		return nil
 	}
@@ -166,7 +166,7 @@ func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
 }
 
 type Preparer interface {
-	PreparedStatement(ctx context.Context, query string) (*sql.Stmt, error)
+	PrepareStatement(ctx context.Context, query string) (*sql.Stmt, error)
 }
 
 type Tx struct {
@@ -179,7 +179,7 @@ func (tx *Tx) Tx() *sql.Tx {
 }
 
 func (tx *Tx) stmt(ctx context.Context, query string) (*sql.Stmt, error) {
-	var stmt, err = tx.preparer.PreparedStatement(ctx, query)
+	var stmt, err = tx.preparer.PrepareStatement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
