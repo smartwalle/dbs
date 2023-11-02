@@ -199,14 +199,11 @@ func (tx *Tx) Exec(query string, args ...interface{}) (sql.Result, error) {
 }
 
 func (tx *Tx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	if tx.preparer != nil {
-		stmt, err := tx.stmt(ctx, query)
-		if err != nil {
-			return nil, err
-		}
-		return stmt.ExecContext(ctx, args...)
+	stmt, err := tx.stmt(ctx, query)
+	if err != nil {
+		return nil, err
 	}
-	return tx.tx.ExecContext(ctx, query, args...)
+	return stmt.ExecContext(ctx, args...)
 }
 
 func (tx *Tx) Query(query string, args ...interface{}) (*sql.Rows, error) {
@@ -214,14 +211,11 @@ func (tx *Tx) Query(query string, args ...interface{}) (*sql.Rows, error) {
 }
 
 func (tx *Tx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	if tx.preparer != nil {
-		stmt, err := tx.stmt(ctx, query)
-		if err != nil {
-			return nil, err
-		}
-		return stmt.QueryContext(ctx, args...)
+	stmt, err := tx.stmt(ctx, query)
+	if err != nil {
+		return nil, err
 	}
-	return tx.tx.QueryContext(ctx, query, args...)
+	return stmt.QueryContext(ctx, args...)
 }
 
 func (tx *Tx) QueryRow(query string, args ...any) *sql.Row {
@@ -229,14 +223,11 @@ func (tx *Tx) QueryRow(query string, args ...any) *sql.Row {
 }
 
 func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
-	if tx.preparer != nil {
-		stmt, err := tx.stmt(ctx, query)
-		if err != nil {
-			return nil
-		}
-		return stmt.QueryRowContext(ctx, args...)
+	stmt, err := tx.stmt(ctx, query)
+	if err != nil {
+		return nil
 	}
-	return tx.tx.QueryRowContext(ctx, query, args...)
+	return stmt.QueryRowContext(ctx, args...)
 }
 
 func (tx *Tx) Commit() error {
