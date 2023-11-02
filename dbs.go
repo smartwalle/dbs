@@ -100,7 +100,7 @@ func (db *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, erro
 	return db.db.PrepareContext(ctx, query)
 }
 
-func (db *DB) PrepareStatement(ctx context.Context, query string) (*sql.Stmt, error) {
+func (db *DB) Statement(ctx context.Context, query string) (*sql.Stmt, error) {
 	if stmt, found := db.cache.Get(query); found {
 		return stmt, nil
 	}
@@ -114,12 +114,27 @@ func (db *DB) PrepareStatement(ctx context.Context, query string) (*sql.Stmt, er
 	})
 }
 
+func (db *DB) PrepareStatement(ctx context.Context, key, query string) error {
+	if found := db.cache.Exists(key); found {
+		return nil
+	}
+	var _, err = db.group.Do(key, func(key string) (*sql.Stmt, error) {
+		stmt, err := db.db.PrepareContext(ctx, query)
+		if err != nil {
+			return nil, err
+		}
+		db.cache.Set(key, stmt)
+		return stmt, nil
+	})
+	return err
+}
+
 func (db *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
 	return db.ExecContext(context.Background(), query, args...)
 }
 
 func (db *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	stmt, err := db.PrepareStatement(ctx, query)
+	stmt, err := db.Statement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +146,7 @@ func (db *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
 }
 
 func (db *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	stmt, err := db.PrepareStatement(ctx, query)
+	stmt, err := db.Statement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +158,7 @@ func (db *DB) QueryRow(query string, args ...any) *sql.Row {
 }
 
 func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
-	stmt, err := db.PrepareStatement(ctx, query)
+	stmt, err := db.Statement(ctx, query)
 	if err != nil {
 		return nil
 	}
@@ -161,25 +176,25 @@ func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
 	}
 	var nTx = &Tx{}
 	nTx.tx = tx
-	nTx.preparer = db
+	nTx.stmtProvider = db
 	return nTx, nil
 }
 
-type Preparer interface {
-	PrepareStatement(ctx context.Context, query string) (*sql.Stmt, error)
+type StmtProvider interface {
+	Statement(ctx context.Context, query string) (*sql.Stmt, error)
 }
 
 type Tx struct {
-	tx       *sql.Tx
-	preparer Preparer
+	tx           *sql.Tx
+	stmtProvider StmtProvider
 }
 
 func (tx *Tx) Tx() *sql.Tx {
 	return tx.tx
 }
 
-func (tx *Tx) stmt(ctx context.Context, query string) (*sql.Stmt, error) {
-	var stmt, err = tx.preparer.PrepareStatement(ctx, query)
+func (tx *Tx) Statement(ctx context.Context, query string) (*sql.Stmt, error) {
+	var stmt, err = tx.stmtProvider.Statement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +214,7 @@ func (tx *Tx) Exec(query string, args ...interface{}) (sql.Result, error) {
 }
 
 func (tx *Tx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	stmt, err := tx.stmt(ctx, query)
+	stmt, err := tx.Statement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +226,7 @@ func (tx *Tx) Query(query string, args ...interface{}) (*sql.Rows, error) {
 }
 
 func (tx *Tx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	stmt, err := tx.stmt(ctx, query)
+	stmt, err := tx.Statement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +238,7 @@ func (tx *Tx) QueryRow(query string, args ...any) *sql.Row {
 }
 
 func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
-	stmt, err := tx.stmt(ctx, query)
+	stmt, err := tx.Statement(ctx, query)
 	if err != nil {
 		return nil
 	}

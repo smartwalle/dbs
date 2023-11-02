@@ -11,6 +11,19 @@ func Scan(rows *sql.Rows, dst interface{}) (err error) {
 	return mapper.Decode(rows, dst)
 }
 
+func Query(ctx context.Context, session Session, query string, dst interface{}, args ...interface{}) (err error) {
+	rows, err := session.QueryContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	return mapper.Decode(rows, dst)
+}
+
+func Exec(ctx context.Context, session Session, query string, args ...interface{}) (result sql.Result, err error) {
+	return session.ExecContext(ctx, query, args...)
+}
+
 func scanContext(ctx context.Context, s Session, b Builder, dst interface{}) (err error) {
 	//var tx Transaction
 	//var prefix string
