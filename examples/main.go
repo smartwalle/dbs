@@ -54,8 +54,8 @@ func m1(db *dbs.DB) {
 
 func m2(db *dbs.DB) {
 	fmt.Println("------m2")
-	if err := db.PrepareStatement(context.Background(), "get_mail_list", "SELECT id, email, status, created_at, updated_at FROM mail ORDER BY id LIMIT $1"); err != nil {
-		fmt.Println("PrepareStatement 发生错误:", err)
+	if err := db.RegisterStatement(context.Background(), "get_mail_list", "SELECT id, email, status, created_at, updated_at FROM mail ORDER BY id LIMIT $1"); err != nil {
+		fmt.Println("RegisterStatement 发生错误:", err)
 		os.Exit(-1)
 	}
 
