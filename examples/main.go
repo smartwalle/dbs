@@ -29,7 +29,7 @@ func postgresql() {
 	var ndb = dbs.New(db)
 	defer ndb.Close()
 
-	m1(ndb)
+	//m1(ndb)
 	m2(ndb)
 }
 
@@ -59,8 +59,8 @@ func m2(db *dbs.DB) {
 		os.Exit(-1)
 	}
 
-	var mails []Mail
-	if err := dbs.Query(context.Background(), db, "get_mail_list", &mails, 10); err != nil {
+	mails, err := dbs.Query[[]Mail](context.Background(), db, "get_mail_list", 10)
+	if err != nil {
 		fmt.Println("查询发生错误:", err)
 		os.Exit(-1)
 	}

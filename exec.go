@@ -7,17 +7,20 @@ import (
 
 var mapper = NewMapper(kTag)
 
-func Scan(rows *sql.Rows, dst interface{}) (err error) {
-	return mapper.Decode(rows, dst)
+func Scan[T any](rows *sql.Rows) (dst T, err error) {
+	err = mapper.Decode(rows, &dst)
+	return dst, err
 }
 
-func Query(ctx context.Context, session Session, query string, dst interface{}, args ...interface{}) error {
+func Query[T any](ctx context.Context, session Session, query string, args ...interface{}) (dst T, err error) {
 	rows, err := session.QueryContext(ctx, query, args...)
 	if err != nil {
-		return err
+		return dst, err
 	}
 	defer rows.Close()
-	return mapper.Decode(rows, dst)
+
+	err = mapper.Decode(rows, &dst)
+	return dst, err
 }
 
 func scan(ctx context.Context, session Session, builder Builder, dst interface{}) error {
