@@ -23,6 +23,10 @@ func Query[T any](ctx context.Context, session Session, query string, args ...in
 	return dst, err
 }
 
+func Exec(ctx context.Context, session Session, query string, args ...interface{}) (result sql.Result, err error) {
+	return session.ExecContext(ctx, query, args...)
+}
+
 func scan(ctx context.Context, session Session, builder Builder, dst interface{}) error {
 	q, args, err := builder.SQL()
 	if err != nil {
