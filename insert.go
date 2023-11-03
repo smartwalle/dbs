@@ -16,6 +16,7 @@ type InsertBuilder struct {
 	prefixes Clauses
 	options  Clauses
 	columns  []string
+	returns  []string
 	table    string
 	values   [][]interface{}
 	suffixes Clauses
@@ -88,6 +89,11 @@ func (ib *InsertBuilder) Select(sb *SelectBuilder) *InsertBuilder {
 	if ib.sb != nil {
 		ib.sb.UsePlaceholder(ib.placeholder)
 	}
+	return ib
+}
+
+func (ib *InsertBuilder) Returning(columns ...string) *InsertBuilder {
+	ib.returns = append(ib.returns, columns...)
 	return ib
 }
 
@@ -199,6 +205,15 @@ func (ib *InsertBuilder) Write(w Writer) (err error) {
 		}
 	}
 
+	if len(ib.returns) > 0 {
+		if _, err = w.WriteString(" RETURNING "); err != nil {
+			return err
+		}
+		if _, err = w.WriteString(strings.Join(ib.returns, ", ")); err != nil {
+			return err
+		}
+	}
+
 	if len(ib.suffixes) > 0 {
 		if _, err = w.WriteString(" "); err != nil {
 			return err
@@ -220,6 +235,14 @@ func (ib *InsertBuilder) Exec(s Session) (sql.Result, error) {
 
 func (ib *InsertBuilder) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
 	return execContext(ctx, s, ib)
+}
+
+func (ib *InsertBuilder) Scan(s Session, dst interface{}) (err error) {
+	return scanContext(context.Background(), s, ib, dst)
+}
+
+func (ib *InsertBuilder) ScanContext(ctx context.Context, s Session, dst interface{}) (err error) {
+	return scanContext(ctx, s, ib, dst)
 }
 
 func NewInsertBuilder() *InsertBuilder {
