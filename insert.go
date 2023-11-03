@@ -245,6 +245,14 @@ func (ib *InsertBuilder) ScanContext(ctx context.Context, s Session, dst interfa
 	return scanContext(ctx, s, ib, dst)
 }
 
+func (ib *InsertBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
+	return scanRowContext(context.Background(), s, ib, dst...)
+}
+
+func (ib *InsertBuilder) ScanRowContext(ctx context.Context, s Session, dst ...interface{}) (err error) {
+	return scanRowContext(ctx, s, ib, dst...)
+}
+
 func NewInsertBuilder() *InsertBuilder {
 	var ib = &InsertBuilder{}
 	ib.placeholder = gPlaceholder

@@ -46,30 +46,16 @@ func scanRowContext(ctx context.Context, session Session, builder Builder, dst .
 	if err != nil {
 		return err
 	}
-	rows, err := session.QueryContext(ctx, query, args...)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	if !rows.Next() {
-		if err = rows.Err(); err != nil {
-			return err
-		}
-		return sql.ErrNoRows
-	}
-	if err = rows.Scan(dst...); err != nil {
-		return err
-	}
-	return nil
+	row := session.QueryRowContext(ctx, query, args...)
+	return row.Scan(dst...)
 }
 
-func queryContext(ctx context.Context, s Session, b Builder) (*sql.Rows, error) {
-	query, args, err := b.SQL()
+func queryContext(ctx context.Context, session Session, builder Builder) (*sql.Rows, error) {
+	query, args, err := builder.SQL()
 	if err != nil {
 		return nil, err
 	}
-	return s.QueryContext(ctx, query, args...)
+	return session.QueryContext(ctx, query, args...)
 }
 
 func execContext(ctx context.Context, session Session, builder Builder) (sql.Result, error) {
