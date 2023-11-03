@@ -35,8 +35,8 @@ func (ib *InsertBuilder) UsePlaceholder(p Placeholder) *InsertBuilder {
 	return ib
 }
 
-func (ib *InsertBuilder) Prefix(sql string, args ...interface{}) *InsertBuilder {
-	ib.prefixes = append(ib.prefixes, NewClause(sql, args...))
+func (ib *InsertBuilder) Prefix(clause string, args ...interface{}) *InsertBuilder {
+	ib.prefixes = append(ib.prefixes, NewClause(clause, args...))
 	return ib
 }
 
@@ -67,10 +67,10 @@ func (ib *InsertBuilder) Values(values ...interface{}) *InsertBuilder {
 	return ib
 }
 
-func (ib *InsertBuilder) Suffix(sql interface{}, args ...interface{}) *InsertBuilder {
-	var clause = parseClause(sql, args...)
-	if clause != nil {
-		ib.suffixes = append(ib.suffixes, clause)
+func (ib *InsertBuilder) Suffix(clause interface{}, args ...interface{}) *InsertBuilder {
+	var nClause = parseClause(clause, args...)
+	if nClause != nil {
+		ib.suffixes = append(ib.suffixes, nClause)
 	}
 	return ib
 }
@@ -98,18 +98,18 @@ func (ib *InsertBuilder) Returning(columns ...string) *InsertBuilder {
 }
 
 func (ib *InsertBuilder) SQL() (string, []interface{}, error) {
-	var sqlBuf = getBuffer()
-	defer sqlBuf.Release()
+	var buf = getBuffer()
+	defer buf.Release()
 
-	if err := ib.Write(sqlBuf); err != nil {
+	if err := ib.Write(buf); err != nil {
 		return "", nil, err
 	}
 
-	nSQL, err := ib.replace(sqlBuf.String())
+	clause, err := ib.replace(buf.String())
 	if err != nil {
 		return "", nil, err
 	}
-	return nSQL, sqlBuf.Values(), nil
+	return clause, buf.Values(), nil
 }
 
 func (ib *InsertBuilder) Write(w Writer) (err error) {
@@ -230,27 +230,27 @@ func (ib *InsertBuilder) reset() {
 }
 
 func (ib *InsertBuilder) Exec(s Session) (sql.Result, error) {
-	return execContext(context.Background(), s, ib)
+	return exec(context.Background(), s, ib)
 }
 
 func (ib *InsertBuilder) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
-	return execContext(ctx, s, ib)
+	return exec(ctx, s, ib)
 }
 
 func (ib *InsertBuilder) Scan(s Session, dst interface{}) (err error) {
-	return scanContext(context.Background(), s, ib, dst)
+	return scan(context.Background(), s, ib, dst)
 }
 
 func (ib *InsertBuilder) ScanContext(ctx context.Context, s Session, dst interface{}) (err error) {
-	return scanContext(ctx, s, ib, dst)
+	return scan(ctx, s, ib, dst)
 }
 
 func (ib *InsertBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
-	return scanRowContext(context.Background(), s, ib, dst...)
+	return scanRow(context.Background(), s, ib, dst...)
 }
 
 func (ib *InsertBuilder) ScanRowContext(ctx context.Context, s Session, dst ...interface{}) (err error) {
-	return scanRowContext(ctx, s, ib, dst...)
+	return scanRow(ctx, s, ib, dst...)
 }
 
 func NewInsertBuilder() *InsertBuilder {

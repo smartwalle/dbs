@@ -7,8 +7,8 @@ type onConflictDoUpdateClause struct {
 	clauses Clauses
 }
 
-func (clause *onConflictDoUpdateClause) Write(w Writer) error {
-	if len(clause.clauses) == 0 || len(clause.columns) == 0 {
+func (conflict *onConflictDoUpdateClause) Write(w Writer) error {
+	if len(conflict.clauses) == 0 || len(conflict.columns) == 0 {
 		return nil
 	}
 
@@ -16,7 +16,7 @@ func (clause *onConflictDoUpdateClause) Write(w Writer) error {
 		return err
 	}
 
-	if _, err := w.WriteString(strings.Join(clause.columns, ", ")); err != nil {
+	if _, err := w.WriteString(strings.Join(conflict.columns, ", ")); err != nil {
 		return err
 	}
 
@@ -24,25 +24,25 @@ func (clause *onConflictDoUpdateClause) Write(w Writer) error {
 		return err
 	}
 
-	return clause.clauses.Write(w, ", ")
+	return conflict.clauses.Write(w, ", ")
 }
 
-func (clause *onConflictDoUpdateClause) SQL() (string, []interface{}, error) {
-	var sqlBuf = getBuffer()
-	defer sqlBuf.Release()
+func (conflict *onConflictDoUpdateClause) SQL() (string, []interface{}, error) {
+	var buf = getBuffer()
+	defer buf.Release()
 
-	err := clause.Write(sqlBuf)
-	return sqlBuf.String(), sqlBuf.Values(), err
+	err := conflict.Write(buf)
+	return buf.String(), buf.Values(), err
 }
 
-func (clause *onConflictDoUpdateClause) Append(sql interface{}, args ...interface{}) *onConflictDoUpdateClause {
-	clause.clauses = append(clause.clauses, NewClause(sql, args...))
-	return clause
+func (conflict *onConflictDoUpdateClause) Append(clause interface{}, args ...interface{}) *onConflictDoUpdateClause {
+	conflict.clauses = append(conflict.clauses, NewClause(clause, args...))
+	return conflict
 }
 
-func (clause *onConflictDoUpdateClause) Appends(clauses ...SQLClause) *onConflictDoUpdateClause {
-	clause.clauses = append(clause.clauses, clauses...)
-	return clause
+func (conflict *onConflictDoUpdateClause) Appends(clauses ...SQLClause) *onConflictDoUpdateClause {
+	conflict.clauses = append(conflict.clauses, clauses...)
+	return conflict
 }
 
 func OnConflictKeyUpdate(columns ...string) *onConflictDoUpdateClause {

@@ -59,11 +59,11 @@ func TestLike(t *testing.T) {
 	check(t, dbs.NotLike("a", "hehe", ""), "a NOT LIKE ?", []interface{}{"hehe"})
 }
 
-func check(t *testing.T, clause testClause, expectSQL string, expectArgs []interface{}) {
+func check(t *testing.T, clause testClause, expectClause string, expectArgs []interface{}) {
 	sql, args, _ := clause.SQL()
 
-	if sql != expectSQL {
-		t.Fatalf("期望 SQL: %s, 实际 SQL: %s", expectSQL, sql)
+	if sql != expectClause {
+		t.Fatalf("期望 SQL: %s, 实际 SQL: %s", expectClause, sql)
 	}
 
 	if len(args) != len(expectArgs) {

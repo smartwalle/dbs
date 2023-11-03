@@ -40,14 +40,14 @@ func (b *builder) quote(s string) string {
 	return s
 }
 
-func (b *builder) replace(sql string) (string, error) {
-	return b.placeholder.Replace(sql)
+func (b *builder) replace(clause string) (string, error) {
+	return b.placeholder.Replace(clause)
 }
 
 // RawBuilder 原始 SQL 语句构造器，不会自动添加任何的关键字，主要是为了便于 SQL 语句及参数的管理。
 type RawBuilder struct {
 	builder
-	sql  *bytes.Buffer
+	buf  *bytes.Buffer
 	args []interface{}
 }
 
@@ -60,12 +60,12 @@ func (rb *RawBuilder) UsePlaceholder(p Placeholder) *RawBuilder {
 	return rb
 }
 
-func (rb *RawBuilder) Append(sql string, args ...interface{}) *RawBuilder {
-	if sql != "" {
-		if rb.sql.Len() > 0 {
-			rb.sql.WriteString(" ")
+func (rb *RawBuilder) Append(clause string, args ...interface{}) *RawBuilder {
+	if clause != "" {
+		if rb.buf.Len() > 0 {
+			rb.buf.WriteString(" ")
 		}
-		rb.sql.WriteString(sql)
+		rb.buf.WriteString(clause)
 	}
 	if len(args) > 0 {
 		rb.args = append(rb.args, args...)
@@ -76,10 +76,10 @@ func (rb *RawBuilder) Append(sql string, args ...interface{}) *RawBuilder {
 func (rb *RawBuilder) Format(format string, args ...interface{}) *RawBuilder {
 	var v = fmt.Sprintf(format, args...)
 	if v != "" {
-		if rb.sql.Len() > 0 {
-			rb.sql.WriteString(" ")
+		if rb.buf.Len() > 0 {
+			rb.buf.WriteString(" ")
 		}
-		rb.sql.WriteString(v)
+		rb.buf.WriteString(v)
 	}
 	return rb
 }
@@ -92,62 +92,61 @@ func (rb *RawBuilder) Params(args ...interface{}) *RawBuilder {
 }
 
 func (rb *RawBuilder) SQL() (string, []interface{}, error) {
-	var sql = rb.sql.String()
-	sql, err := rb.replace(sql)
+	clause, err := rb.replace(rb.buf.String())
 	if err != nil {
 		return "", nil, err
 	}
-	return sql, rb.args, nil
+	return clause, rb.args, nil
 }
 
 func (rb *RawBuilder) Write(w Writer) error {
-	w.WriteString(rb.sql.String())
+	w.WriteString(rb.buf.String())
 	w.WriteArgs(rb.args...)
 	return nil
 }
 
 func (rb *RawBuilder) reset() {
-	rb.sql.Reset()
+	rb.buf.Reset()
 	rb.args = rb.args[:0]
 }
 
 func (rb *RawBuilder) Scan(s Session, dst interface{}) (err error) {
-	return scanContext(context.Background(), s, rb, dst)
+	return scan(context.Background(), s, rb, dst)
 }
 
 func (rb *RawBuilder) ScanContext(ctx context.Context, s Session, dst interface{}) (err error) {
-	return scanContext(ctx, s, rb, dst)
+	return scan(ctx, s, rb, dst)
 }
 
 func (rb *RawBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
-	return scanRowContext(context.Background(), s, rb, dst...)
+	return scanRow(context.Background(), s, rb, dst...)
 }
 
 func (rb *RawBuilder) ScanRowContext(ctx context.Context, s Session, dst ...interface{}) (err error) {
-	return scanRowContext(ctx, s, rb, dst...)
+	return scanRow(ctx, s, rb, dst...)
 }
 
 func (rb *RawBuilder) Query(s Session) (*sql.Rows, error) {
-	return queryContext(context.Background(), s, rb)
+	return query(context.Background(), s, rb)
 }
 
 func (rb *RawBuilder) QueryContext(ctx context.Context, s Session) (*sql.Rows, error) {
-	return queryContext(ctx, s, rb)
+	return query(ctx, s, rb)
 }
 
 func (rb *RawBuilder) Exec(s Session) (sql.Result, error) {
-	return execContext(context.Background(), s, rb)
+	return exec(context.Background(), s, rb)
 }
 
 func (rb *RawBuilder) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
-	return execContext(ctx, s, rb)
+	return exec(ctx, s, rb)
 }
 
-func NewBuilder(sql string, args ...interface{}) *RawBuilder {
+func NewBuilder(clause string, args ...interface{}) *RawBuilder {
 	var b = &RawBuilder{}
 	b.placeholder = gPlaceholder
-	b.sql = &bytes.Buffer{}
+	b.buf = &bytes.Buffer{}
 	b.args = make([]interface{}, 0, 8)
-	b.Append(sql, args...)
+	b.Append(clause, args...)
 	return b
 }

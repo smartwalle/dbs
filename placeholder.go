@@ -18,7 +18,7 @@ func GetPlaceholder() Placeholder {
 }
 
 type Placeholder interface {
-	Replace(sql string) (string, error)
+	Replace(clause string) (string, error)
 }
 
 var (
@@ -33,41 +33,41 @@ var (
 type question struct {
 }
 
-func (q *question) Replace(sql string) (string, error) {
-	return sql, nil
+func (q *question) Replace(clause string) (string, error) {
+	return clause, nil
 }
 
 type dollar struct {
 	pool sync.Pool
 }
 
-func (d *dollar) Replace(sql string) (string, error) {
+func (d *dollar) Replace(clause string) (string, error) {
 	var buf = d.pool.Get().(*bytes.Buffer)
 	buf.Reset()
 	var i = 0
 
 	for {
-		pos := strings.Index(sql, "?")
+		pos := strings.Index(clause, "?")
 		if pos == -1 {
 			break
 		}
 
-		if len(sql[pos:]) > 1 && sql[pos:pos+2] == "??" {
-			buf.WriteString(sql[:pos])
+		if len(clause[pos:]) > 1 && clause[pos:pos+2] == "??" {
+			buf.WriteString(clause[:pos])
 			buf.WriteString("?")
-			sql = sql[pos+2:]
+			clause = clause[pos+2:]
 			continue
 		}
 
 		i++
-		buf.WriteString(sql[:pos])
+		buf.WriteString(clause[:pos])
 
 		buf.WriteString("$")
 		buf.WriteString(strconv.Itoa(i))
 
-		sql = sql[pos+1:]
+		clause = clause[pos+1:]
 	}
-	buf.WriteString(sql)
+	buf.WriteString(clause)
 	var s = buf.String()
 	d.pool.Put(buf)
 	return s, nil

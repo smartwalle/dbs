@@ -8,8 +8,8 @@ type onDuplicateKeyUpdateClause struct {
 	clauses Clauses
 }
 
-func (clause *onDuplicateKeyUpdateClause) Write(w Writer) error {
-	if len(clause.clauses) == 0 {
+func (duplicate *onDuplicateKeyUpdateClause) Write(w Writer) error {
+	if len(duplicate.clauses) == 0 {
 		return nil
 	}
 
@@ -17,25 +17,25 @@ func (clause *onDuplicateKeyUpdateClause) Write(w Writer) error {
 		return err
 	}
 
-	return clause.clauses.Write(w, ", ")
+	return duplicate.clauses.Write(w, ", ")
 }
 
-func (clause *onDuplicateKeyUpdateClause) SQL() (string, []interface{}, error) {
-	var sqlBuf = getBuffer()
-	defer sqlBuf.Release()
+func (duplicate *onDuplicateKeyUpdateClause) SQL() (string, []interface{}, error) {
+	var buf = getBuffer()
+	defer buf.Release()
 
-	err := clause.Write(sqlBuf)
-	return sqlBuf.String(), sqlBuf.Values(), err
+	err := duplicate.Write(buf)
+	return buf.String(), buf.Values(), err
 }
 
-func (clause *onDuplicateKeyUpdateClause) Append(sql interface{}, args ...interface{}) *onDuplicateKeyUpdateClause {
-	clause.clauses = append(clause.clauses, NewClause(sql, args...))
-	return clause
+func (duplicate *onDuplicateKeyUpdateClause) Append(clause interface{}, args ...interface{}) *onDuplicateKeyUpdateClause {
+	duplicate.clauses = append(duplicate.clauses, NewClause(clause, args...))
+	return duplicate
 }
 
-func (clause *onDuplicateKeyUpdateClause) Appends(clauses ...SQLClause) *onDuplicateKeyUpdateClause {
-	clause.clauses = append(clause.clauses, clauses...)
-	return clause
+func (duplicate *onDuplicateKeyUpdateClause) Appends(clauses ...SQLClause) *onDuplicateKeyUpdateClause {
+	duplicate.clauses = append(duplicate.clauses, clauses...)
+	return duplicate
 }
 
 func OnDuplicateKeyUpdate() *onDuplicateKeyUpdateClause {

@@ -47,8 +47,8 @@ func (eb *ExceptBuilder) addClauses(prefix string, clauses ...SQLClause) {
 	}
 }
 
-func (eb *ExceptBuilder) OrderBy(sql ...string) *ExceptBuilder {
-	eb.orderBys = append(eb.orderBys, sql...)
+func (eb *ExceptBuilder) OrderBy(clause ...string) *ExceptBuilder {
+	eb.orderBys = append(eb.orderBys, clause...)
 	return eb
 }
 
@@ -63,18 +63,18 @@ func (eb *ExceptBuilder) Offset(offset int64) *ExceptBuilder {
 }
 
 func (eb *ExceptBuilder) SQL() (string, []interface{}, error) {
-	var sqlBuf = getBuffer()
-	defer sqlBuf.Release()
+	var buf = getBuffer()
+	defer buf.Release()
 
-	if err := eb.Write(sqlBuf); err != nil {
+	if err := eb.Write(buf); err != nil {
 		return "", nil, err
 	}
 
-	sql, err := eb.replace(sqlBuf.String())
+	clause, err := eb.replace(buf.String())
 	if err != nil {
 		return "", nil, err
 	}
-	return sql, sqlBuf.Values(), nil
+	return clause, buf.Values(), nil
 }
 
 func (eb *ExceptBuilder) Write(w Writer) (err error) {

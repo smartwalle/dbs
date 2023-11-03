@@ -34,8 +34,8 @@ func (ub *UpdateBuilder) UsePlaceholder(p Placeholder) *UpdateBuilder {
 	return ub
 }
 
-func (ub *UpdateBuilder) Prefix(sql string, args ...interface{}) *UpdateBuilder {
-	ub.prefixes = append(ub.prefixes, NewClause(sql, args...))
+func (ub *UpdateBuilder) Prefix(clause string, args ...interface{}) *UpdateBuilder {
+	ub.prefixes = append(ub.prefixes, NewClause(clause, args...))
 	return ub
 }
 
@@ -67,8 +67,8 @@ func (ub *UpdateBuilder) LeftJoin(table, suffix string, args ...interface{}) *Up
 }
 
 func (ub *UpdateBuilder) join(join, table, suffix string, args ...interface{}) *UpdateBuilder {
-	var nSQL = []string{join, ub.quote(table), suffix}
-	ub.joins = append(ub.joins, NewClause(strings.Join(nSQL, " "), args...))
+	var nClause = []string{join, ub.quote(table), suffix}
+	ub.joins = append(ub.joins, NewClause(strings.Join(nClause, " "), args...))
 	return ub
 }
 
@@ -101,16 +101,16 @@ func (ub *UpdateBuilder) SetMap(data map[string]interface{}) *UpdateBuilder {
 	return ub
 }
 
-func (ub *UpdateBuilder) Where(sql interface{}, args ...interface{}) *UpdateBuilder {
-	var clause = parseClause(sql, args...)
-	if clause != nil {
-		ub.wheres = append(ub.wheres, clause)
+func (ub *UpdateBuilder) Where(clause interface{}, args ...interface{}) *UpdateBuilder {
+	var nClause = parseClause(clause, args...)
+	if nClause != nil {
+		ub.wheres = append(ub.wheres, nClause)
 	}
 	return ub
 }
 
-func (ub *UpdateBuilder) OrderBy(sql ...string) *UpdateBuilder {
-	ub.orderBys = append(ub.orderBys, sql...)
+func (ub *UpdateBuilder) OrderBy(clause ...string) *UpdateBuilder {
+	ub.orderBys = append(ub.orderBys, clause...)
 	return ub
 }
 
@@ -124,27 +124,27 @@ func (ub *UpdateBuilder) Offset(offset int64) *UpdateBuilder {
 	return ub
 }
 
-func (ub *UpdateBuilder) Suffix(sql interface{}, args ...interface{}) *UpdateBuilder {
-	var clause = parseClause(sql, args...)
-	if clause != nil {
-		ub.suffixes = append(ub.suffixes, clause)
+func (ub *UpdateBuilder) Suffix(clause interface{}, args ...interface{}) *UpdateBuilder {
+	var nClause = parseClause(clause, args...)
+	if nClause != nil {
+		ub.suffixes = append(ub.suffixes, nClause)
 	}
 	return ub
 }
 
 func (ub *UpdateBuilder) SQL() (string, []interface{}, error) {
-	var sqlBuf = getBuffer()
-	defer sqlBuf.Release()
+	var buf = getBuffer()
+	defer buf.Release()
 
-	if err := ub.Write(sqlBuf); err != nil {
+	if err := ub.Write(buf); err != nil {
 		return "", nil, err
 	}
 
-	nSQL, err := ub.replace(sqlBuf.String())
+	clause, err := ub.replace(buf.String())
 	if err != nil {
 		return "", nil, err
 	}
-	return nSQL, sqlBuf.Values(), nil
+	return clause, buf.Values(), nil
 }
 
 func (ub *UpdateBuilder) Write(w Writer) (err error) {
@@ -248,11 +248,11 @@ func (ub *UpdateBuilder) Write(w Writer) (err error) {
 }
 
 func (ub *UpdateBuilder) Exec(s Session) (sql.Result, error) {
-	return execContext(context.Background(), s, ub)
+	return exec(context.Background(), s, ub)
 }
 
 func (ub *UpdateBuilder) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
-	return execContext(ctx, s, ub)
+	return exec(ctx, s, ub)
 }
 
 func NewUpdateBuilder() *UpdateBuilder {

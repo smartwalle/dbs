@@ -35,8 +35,8 @@ func (db *DeleteBuilder) UsePlaceholder(p Placeholder) *DeleteBuilder {
 	return db
 }
 
-func (db *DeleteBuilder) Prefix(sql string, args ...interface{}) *DeleteBuilder {
-	db.prefixes = append(db.prefixes, NewClause(sql, args...))
+func (db *DeleteBuilder) Prefix(clause string, args ...interface{}) *DeleteBuilder {
+	db.prefixes = append(db.prefixes, NewClause(clause, args...))
 	return db
 }
 
@@ -60,8 +60,8 @@ func (db *DeleteBuilder) Table(table string, args ...string) *DeleteBuilder {
 	return db
 }
 
-func (db *DeleteBuilder) USING(sql string) *DeleteBuilder {
-	db.using = sql
+func (db *DeleteBuilder) USING(clause string) *DeleteBuilder {
+	db.using = clause
 	return db
 }
 
@@ -78,21 +78,21 @@ func (db *DeleteBuilder) LeftJoin(table, suffix string, args ...interface{}) *De
 }
 
 func (db *DeleteBuilder) join(join, table, suffix string, args ...interface{}) *DeleteBuilder {
-	var nSQL = []string{join, db.quote(table), suffix}
-	db.joins = append(db.joins, NewClause(strings.Join(nSQL, " "), args...))
+	var nClause = []string{join, db.quote(table), suffix}
+	db.joins = append(db.joins, NewClause(strings.Join(nClause, " "), args...))
 	return db
 }
 
-func (db *DeleteBuilder) Where(sql interface{}, args ...interface{}) *DeleteBuilder {
-	var clause = parseClause(sql, args...)
-	if clause != nil {
-		db.wheres = append(db.wheres, clause)
+func (db *DeleteBuilder) Where(clause interface{}, args ...interface{}) *DeleteBuilder {
+	var nClause = parseClause(clause, args...)
+	if nClause != nil {
+		db.wheres = append(db.wheres, nClause)
 	}
 	return db
 }
 
-func (db *DeleteBuilder) OrderBy(sql ...string) *DeleteBuilder {
-	db.orderBys = append(db.orderBys, sql...)
+func (db *DeleteBuilder) OrderBy(clause ...string) *DeleteBuilder {
+	db.orderBys = append(db.orderBys, clause...)
 	return db
 }
 
@@ -106,27 +106,27 @@ func (db *DeleteBuilder) Offset(offset int64) *DeleteBuilder {
 	return db
 }
 
-func (db *DeleteBuilder) Suffix(sql interface{}, args ...interface{}) *DeleteBuilder {
-	var clause = parseClause(sql, args...)
-	if clause != nil {
-		db.suffixes = append(db.suffixes, clause)
+func (db *DeleteBuilder) Suffix(clause interface{}, args ...interface{}) *DeleteBuilder {
+	var nClause = parseClause(clause, args...)
+	if nClause != nil {
+		db.suffixes = append(db.suffixes, nClause)
 	}
 	return db
 }
 
 func (db *DeleteBuilder) SQL() (string, []interface{}, error) {
-	var sqlBuf = getBuffer()
-	defer sqlBuf.Release()
+	var buf = getBuffer()
+	defer buf.Release()
 
-	if err := db.Write(sqlBuf); err != nil {
+	if err := db.Write(buf); err != nil {
 		return "", nil, err
 	}
 
-	nSQL, err := db.replace(sqlBuf.String())
+	clause, err := db.replace(buf.String())
 	if err != nil {
 		return "", nil, err
 	}
-	return nSQL, sqlBuf.Values(), nil
+	return clause, buf.Values(), nil
 }
 
 func (db *DeleteBuilder) Write(w Writer) (err error) {
@@ -238,11 +238,11 @@ func (db *DeleteBuilder) Write(w Writer) (err error) {
 }
 
 func (db *DeleteBuilder) Exec(s Session) (sql.Result, error) {
-	return execContext(context.Background(), s, db)
+	return exec(context.Background(), s, db)
 }
 
 func (db *DeleteBuilder) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
-	return execContext(ctx, s, db)
+	return exec(ctx, s, db)
 }
 
 func NewDeleteBuilder() *DeleteBuilder {

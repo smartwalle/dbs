@@ -47,8 +47,8 @@ func (ib *IntersectBuilder) addClauses(prefix string, clauses ...SQLClause) {
 	}
 }
 
-func (ib *IntersectBuilder) OrderBy(sql ...string) *IntersectBuilder {
-	ib.orderBys = append(ib.orderBys, sql...)
+func (ib *IntersectBuilder) OrderBy(clause ...string) *IntersectBuilder {
+	ib.orderBys = append(ib.orderBys, clause...)
 	return ib
 }
 
@@ -63,18 +63,18 @@ func (ib *IntersectBuilder) Offset(offset int64) *IntersectBuilder {
 }
 
 func (ib *IntersectBuilder) SQL() (string, []interface{}, error) {
-	var sqlBuf = getBuffer()
-	defer sqlBuf.Release()
+	var buf = getBuffer()
+	defer buf.Release()
 
-	if err := ib.Write(sqlBuf); err != nil {
+	if err := ib.Write(buf); err != nil {
 		return "", nil, err
 	}
 
-	sql, err := ib.replace(sqlBuf.String())
+	clause, err := ib.replace(buf.String())
 	if err != nil {
 		return "", nil, err
 	}
-	return sql, sqlBuf.Values(), nil
+	return clause, buf.Values(), nil
 }
 
 func (ib *IntersectBuilder) Write(w Writer) (err error) {

@@ -47,8 +47,8 @@ func (ub *UnionBuilder) addClauses(prefix string, clauses ...SQLClause) {
 	}
 }
 
-func (ub *UnionBuilder) OrderBy(sql ...string) *UnionBuilder {
-	ub.orderBys = append(ub.orderBys, sql...)
+func (ub *UnionBuilder) OrderBy(clause ...string) *UnionBuilder {
+	ub.orderBys = append(ub.orderBys, clause...)
 	return ub
 }
 
@@ -63,18 +63,18 @@ func (ub *UnionBuilder) Offset(offset int64) *UnionBuilder {
 }
 
 func (ub *UnionBuilder) SQL() (string, []interface{}, error) {
-	var sqlBuf = getBuffer()
-	defer sqlBuf.Release()
+	var buf = getBuffer()
+	defer buf.Release()
 
-	if err := ub.Write(sqlBuf); err != nil {
+	if err := ub.Write(buf); err != nil {
 		return "", nil, err
 	}
 
-	sql, err := ub.replace(sqlBuf.String())
+	clause, err := ub.replace(buf.String())
 	if err != nil {
 		return "", nil, err
 	}
-	return sql, sqlBuf.Values(), nil
+	return clause, buf.Values(), nil
 }
 
 func (ub *UnionBuilder) Write(w Writer) (err error) {

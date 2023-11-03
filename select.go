@@ -41,8 +41,8 @@ func (sb *SelectBuilder) UsePlaceholder(p Placeholder) *SelectBuilder {
 	return sb
 }
 
-func (sb *SelectBuilder) Prefix(sql string, args ...interface{}) *SelectBuilder {
-	sb.prefixes = append(sb.prefixes, NewClause(sql, args...))
+func (sb *SelectBuilder) Prefix(clause string, args ...interface{}) *SelectBuilder {
+	sb.prefixes = append(sb.prefixes, NewClause(clause, args...))
 	return sb
 }
 
@@ -96,15 +96,15 @@ func (sb *SelectBuilder) LeftJoin(table, suffix string, args ...interface{}) *Se
 }
 
 func (sb *SelectBuilder) join(join, table, suffix string, args ...interface{}) *SelectBuilder {
-	var nSQL = []string{join, sb.quote(table), suffix}
-	sb.joins = append(sb.joins, NewClause(strings.Join(nSQL, " "), args...))
+	var nClause = []string{join, sb.quote(table), suffix}
+	sb.joins = append(sb.joins, NewClause(strings.Join(nClause, " "), args...))
 	return sb
 }
 
-func (sb *SelectBuilder) Where(sql interface{}, args ...interface{}) *SelectBuilder {
-	var clause = parseClause(sql, args...)
-	if clause != nil {
-		sb.wheres = append(sb.wheres, clause)
+func (sb *SelectBuilder) Where(clause interface{}, args ...interface{}) *SelectBuilder {
+	var nClause = parseClause(clause, args...)
+	if nClause != nil {
+		sb.wheres = append(sb.wheres, nClause)
 	}
 	return sb
 }
@@ -114,16 +114,16 @@ func (sb *SelectBuilder) GroupBy(groupBys ...string) *SelectBuilder {
 	return sb
 }
 
-func (sb *SelectBuilder) Having(sql interface{}, args ...interface{}) *SelectBuilder {
-	var clause = parseClause(sql, args...)
-	if clause != nil {
-		sb.having = append(sb.having, clause)
+func (sb *SelectBuilder) Having(clause interface{}, args ...interface{}) *SelectBuilder {
+	var nClause = parseClause(clause, args...)
+	if nClause != nil {
+		sb.having = append(sb.having, nClause)
 	}
 	return sb
 }
 
-func (sb *SelectBuilder) OrderBy(sql ...string) *SelectBuilder {
-	sb.orderBys = append(sb.orderBys, sql...)
+func (sb *SelectBuilder) OrderBy(clause ...string) *SelectBuilder {
+	sb.orderBys = append(sb.orderBys, clause...)
 	return sb
 }
 
@@ -137,27 +137,27 @@ func (sb *SelectBuilder) Offset(offset int64) *SelectBuilder {
 	return sb
 }
 
-func (sb *SelectBuilder) Suffix(sql interface{}, args ...interface{}) *SelectBuilder {
-	var clause = parseClause(sql, args...)
-	if clause != nil {
-		sb.suffixes = append(sb.suffixes, clause)
+func (sb *SelectBuilder) Suffix(clause interface{}, args ...interface{}) *SelectBuilder {
+	var nClause = parseClause(clause, args...)
+	if nClause != nil {
+		sb.suffixes = append(sb.suffixes, nClause)
 	}
 	return sb
 }
 
 func (sb *SelectBuilder) SQL() (string, []interface{}, error) {
-	var sqlBuf = getBuffer()
-	defer sqlBuf.Release()
+	var buf = getBuffer()
+	defer buf.Release()
 
-	if err := sb.Write(sqlBuf); err != nil {
+	if err := sb.Write(buf); err != nil {
 		return "", nil, err
 	}
 
-	nSQL, err := sb.replace(sqlBuf.String())
+	clause, err := sb.replace(buf.String())
 	if err != nil {
 		return "", nil, err
 	}
-	return nSQL, sqlBuf.Values(), nil
+	return clause, buf.Values(), nil
 }
 
 func (sb *SelectBuilder) Write(w Writer) (err error) {
@@ -313,7 +313,7 @@ func (sb *SelectBuilder) Count(alias string) *SelectBuilder {
 //
 // sb.Scan(db, &user)
 func (sb *SelectBuilder) Scan(s Session, dst interface{}) (err error) {
-	return scanContext(context.Background(), s, sb, dst)
+	return scan(context.Background(), s, sb, dst)
 }
 
 // ScanContext 读取数据到一个结构体中。
@@ -324,10 +324,10 @@ func (sb *SelectBuilder) Scan(s Session, dst interface{}) (err error) {
 //
 // sb.ScanContext(ctx, db, &user)
 func (sb *SelectBuilder) ScanContext(ctx context.Context, s Session, dst interface{}) (err error) {
-	return scanContext(ctx, s, sb, dst)
+	return scan(ctx, s, sb, dst)
 }
 
-// ScanRow 读取数据到基本数据类型的变量中，类似于 database/sql 包中结构体 Rows 的 Scan() 方法。
+// ScanRow 读取数据到基本数据类型的变量中，类似于 database/buf 包中结构体 Rows 的 Scan() 方法。
 //
 // var name string
 //
@@ -337,10 +337,10 @@ func (sb *SelectBuilder) ScanContext(ctx context.Context, s Session, dst interfa
 //
 // sb.ScanRow(db, &name, &age)
 func (sb *SelectBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
-	return scanRowContext(context.Background(), s, sb, dst...)
+	return scanRow(context.Background(), s, sb, dst...)
 }
 
-// ScanRowContext 读取数据到基本数据类型的变量中，类似于 database/sql 包中结构体 Rows 的 Scan() 方法。
+// ScanRowContext 读取数据到基本数据类型的变量中，类似于 database/buf 包中结构体 Rows 的 Scan() 方法。
 //
 // var name string
 //
@@ -350,15 +350,15 @@ func (sb *SelectBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
 //
 // sb.ScanRowContext(ctx, db, &name, &age)
 func (sb *SelectBuilder) ScanRowContext(ctx context.Context, s Session, dst ...interface{}) (err error) {
-	return scanRowContext(ctx, s, sb, dst...)
+	return scanRow(ctx, s, sb, dst...)
 }
 
 func (sb *SelectBuilder) Query(s Session) (*sql.Rows, error) {
-	return queryContext(context.Background(), s, sb)
+	return query(context.Background(), s, sb)
 }
 
 func (sb *SelectBuilder) QueryContext(ctx context.Context, s Session) (*sql.Rows, error) {
-	return queryContext(ctx, s, sb)
+	return query(ctx, s, sb)
 }
 
 func NewSelectBuilder() *SelectBuilder {
