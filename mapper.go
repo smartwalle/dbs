@@ -67,10 +67,6 @@ func (mapper *Mapper) Decode(rows *sql.Rows, dst interface{}) error {
 	return mapper.decodeOne(rows, dstType, dstValue)
 }
 
-func (mapper *Mapper) Bind(rows *sql.Rows, dst interface{}) error {
-	return mapper.Decode(rows, dst)
-}
-
 func (mapper *Mapper) decodeOne(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
 	if !rows.Next() {
 		return sql.ErrNoRows
