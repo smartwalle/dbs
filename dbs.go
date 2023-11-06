@@ -94,29 +94,34 @@ func (db *DB) PingContext(ctx context.Context) error {
 	return db.db.PingContext(ctx)
 }
 
+// Prepare 作用同 sql.DB 的 Prepare 方法。
+//
+// 本方法返回的 sql.Stmt 不会被缓存，不再使用之后需要调用其 Close 方法将其关闭。
 func (db *DB) Prepare(query string) (*sql.Stmt, error) {
-	return db.PrepareContext(context.Background(), query)
+	return db.db.PrepareContext(context.Background(), query)
 }
 
+// PrepareContext 作用同 sql.DB 的 PrepareContext 方法。
+//
+// 本方法返回的 sql.Stmt 不会被缓存，不再使用之后需要调用其 Close 方法将其关闭。
 func (db *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
 	return db.db.PrepareContext(ctx, query)
 }
 
-func (db *DB) PrepareStatement(ctx context.Context, query string) (*sql.Stmt, error) {
-	if stmt, found := db.cache.Get(query); found {
-		return stmt, nil
-	}
-	return db.group.Do(query, func(key string) (*sql.Stmt, error) {
-		stmt, err := db.db.PrepareContext(ctx, key)
-		if err != nil {
-			return nil, err
-		}
-		db.cache.SetEx(key, stmt, time.Now().Add(time.Minute*30).Unix())
-		return stmt, nil
-	})
-}
-
-func (db *DB) RegisterStatement(ctx context.Context, key, query string) error {
+// PrepareStatement 预先创建一个 sql.Stmt 并将其缓存，后续可以使用 key 获取该 sql.Stmt。
+//
+// var db = dbs.New(...)
+//
+// db.PrepareStatement(ctx, "key", "SELECT ...")
+//
+// var stmt, _ = db.Statement(ctx, "key")
+//
+// stmt.Query("参数1", "参数2")
+//
+// 或者
+//
+// db.Query("key", "参数1", "参数2")
+func (db *DB) PrepareStatement(ctx context.Context, key, query string) error {
 	if found := db.cache.Exists(key); found {
 		return ErrStmtExists
 	}
@@ -131,12 +136,36 @@ func (db *DB) RegisterStatement(ctx context.Context, key, query string) error {
 	return err
 }
 
+// Statement 根据 query 参数获取已经缓存的 sql.Stmt。
+//
+// 两种情况：
+//
+// 1、缓存中若存在，则直接返回；
+//
+// 2、缓存中不存在，则根据 query 参数创建一个 sql.Stmt 并将其缓存；
+//
+// 注意：一般不需要直接调用本方法获取 sql.Stmt, 本方法主要是供本结构体的 ExecContext 和 QueryContext 方法使用。
+// 如果有从本方法获取 sql.Stmt，不再使用之后不能调用其 Close 方法。
+func (db *DB) Statement(ctx context.Context, query string) (*sql.Stmt, error) {
+	if stmt, found := db.cache.Get(query); found {
+		return stmt, nil
+	}
+	return db.group.Do(query, func(key string) (*sql.Stmt, error) {
+		stmt, err := db.db.PrepareContext(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+		db.cache.SetEx(key, stmt, time.Now().Add(time.Minute*30).Unix())
+		return stmt, nil
+	})
+}
+
 func (db *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
 	return db.ExecContext(context.Background(), query, args...)
 }
 
 func (db *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	stmt, err := db.PrepareStatement(ctx, query)
+	stmt, err := db.Statement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +177,7 @@ func (db *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
 }
 
 func (db *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	stmt, err := db.PrepareStatement(ctx, query)
+	stmt, err := db.Statement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +189,7 @@ func (db *DB) QueryRow(query string, args ...any) *sql.Row {
 }
 
 func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
-	stmt, err := db.PrepareStatement(ctx, query)
+	stmt, err := db.Statement(ctx, query)
 	if err != nil {
 		return nil
 	}
@@ -183,7 +212,7 @@ func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
 }
 
 type Preparer interface {
-	PrepareStatement(ctx context.Context, query string) (*sql.Stmt, error)
+	Statement(ctx context.Context, query string) (*sql.Stmt, error)
 }
 
 type Tx struct {
@@ -195,20 +224,26 @@ func (tx *Tx) Tx() *sql.Tx {
 	return tx.tx
 }
 
-func (tx *Tx) PrepareStatement(ctx context.Context, query string) (*sql.Stmt, error) {
-	var stmt, err = tx.preparer.PrepareStatement(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-	return tx.tx.StmtContext(ctx, stmt), nil
-}
-
+// Prepare 作用同 sql.Tx 的 Prepare 方法。
+//
+// 本方法返回的 sql.Stmt 不会被缓存，不再使用之后需要调用其 Close 方法将其关闭。
 func (tx *Tx) Prepare(query string) (*sql.Stmt, error) {
 	return tx.PrepareContext(context.Background(), query)
 }
 
+// PrepareContext 作用同 sql.Tx 的 PrepareContext 方法。
+//
+// 本方法返回的 sql.Stmt 不会被缓存，不再使用之后需要调用其 Close 方法将其关闭。
 func (tx *Tx) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
 	return tx.tx.PrepareContext(ctx, query)
+}
+
+func (tx *Tx) Statement(ctx context.Context, query string) (*sql.Stmt, error) {
+	var stmt, err = tx.preparer.Statement(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	return tx.tx.StmtContext(ctx, stmt), nil
 }
 
 func (tx *Tx) Exec(query string, args ...interface{}) (sql.Result, error) {
@@ -216,7 +251,7 @@ func (tx *Tx) Exec(query string, args ...interface{}) (sql.Result, error) {
 }
 
 func (tx *Tx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	stmt, err := tx.PrepareStatement(ctx, query)
+	stmt, err := tx.Statement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +263,7 @@ func (tx *Tx) Query(query string, args ...interface{}) (*sql.Rows, error) {
 }
 
 func (tx *Tx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	stmt, err := tx.PrepareStatement(ctx, query)
+	stmt, err := tx.Statement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +275,7 @@ func (tx *Tx) QueryRow(query string, args ...any) *sql.Row {
 }
 
 func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
-	stmt, err := tx.PrepareStatement(ctx, query)
+	stmt, err := tx.Statement(ctx, query)
 	if err != nil {
 		return nil
 	}
