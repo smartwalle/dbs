@@ -108,19 +108,17 @@ func (db *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, erro
 	return db.db.PrepareContext(ctx, query)
 }
 
-// PrepareStatement 预先创建一个 sql.Stmt 并将其缓存，后续可以使用 key 获取该 sql.Stmt。
+// PrepareStatement 使用参数 query 创建一个预处理语句(sql.Stmt)并将其缓存，后续可以使用 key 获取该预处理语句。
 //
-// var db = dbs.New(...)
+//	var db = dbs.New(...)
+//	db.PrepareStatement(ctx, "key", "SELECT ...")
 //
-// db.PrepareStatement(ctx, "key", "SELECT ...")
-//
-// var stmt, _ = db.Statement(ctx, "key")
-//
-// stmt.Query("参数1", "参数2")
+//	var stmt, _ = db.Statement(ctx, "key")
+//	stmt.QueryContext(ctx, "参数1", "参数2")
 //
 // 或者
 //
-// db.Query("key", "参数1", "参数2")
+//	db.QueryContext(ctx, "key", "参数1", "参数2")
 func (db *DB) PrepareStatement(ctx context.Context, key, query string) error {
 	if found := db.cache.Exists(key); found {
 		return ErrStmtExists
@@ -136,16 +134,14 @@ func (db *DB) PrepareStatement(ctx context.Context, key, query string) error {
 	return err
 }
 
-// Statement 根据 query 参数获取已经缓存的 sql.Stmt。
+// Statement 使用参数 query 获取已经缓存的预处理语句(sql.Stmt)。
 //
 // 两种情况：
+//   - 缓存中若存在，则直接返回；
+//   - 缓存中不存在，则根据 query 参数创建一个预处理语句并将其缓存；
 //
-// 1、缓存中若存在，则直接返回；
-//
-// 2、缓存中不存在，则根据 query 参数创建一个 sql.Stmt 并将其缓存；
-//
-// 注意：一般不需要直接调用本方法获取 sql.Stmt, 本方法主要是供本结构体的 ExecContext 和 QueryContext 方法使用。
-// 如果有从本方法获取 sql.Stmt，不再使用之后不能调用其 Close 方法。
+// 注意：一般不需要直接调用本方法获取预处理语句, 本方法主要是供本结构体的 ExecContext 和 QueryContext 方法使用。
+// 如果有从本方法获取预处理语句，不再使用之后不能调用其 Close 方法。
 func (db *DB) Statement(ctx context.Context, query string) (*sql.Stmt, error) {
 	if stmt, found := db.cache.Get(query); found {
 		return stmt, nil

@@ -79,9 +79,8 @@ func (ub *UpdateBuilder) SET(column string, value interface{}) *UpdateBuilder {
 
 // SETS 批量设置需要更新的字段及其值
 //
-// var name = "my name"
-//
-// SETS("name", name, "age", 10)
+//	var name = "my name"
+//	SETS("name", name, "age", 10)
 func (ub *UpdateBuilder) SETS(kvs ...interface{}) *UpdateBuilder {
 	var column string
 	for i, value := range kvs {

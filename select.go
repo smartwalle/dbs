@@ -307,48 +307,38 @@ func (sb *SelectBuilder) Count(alias string) *SelectBuilder {
 
 // Scan 读取数据到一个结构体中。
 //
-// var user *User
-//
-// var sb = dbs.NewSelectBuilder()
-//
-// sb.Scan(db, &user)
+//	var user *User
+//	var sb = dbs.NewSelectBuilder()
+//	sb.Scan(db, &user)
 func (sb *SelectBuilder) Scan(s Session, dst interface{}) (err error) {
 	return scan(context.Background(), s, sb, dst)
 }
 
 // ScanContext 读取数据到一个结构体中。
 //
-// var user *User
-//
-// var sb = dbs.NewSelectBuilder()
-//
-// sb.ScanContext(ctx, db, &user)
+//	var user *User
+//	var sb = dbs.NewSelectBuilder()
+//	sb.ScanContext(ctx, db, &user)
 func (sb *SelectBuilder) ScanContext(ctx context.Context, s Session, dst interface{}) (err error) {
 	return scan(ctx, s, sb, dst)
 }
 
 // ScanRow 读取数据到基本数据类型的变量中，类似于 database/buf 包中结构体 Rows 的 Scan() 方法。
 //
-// var name string
-//
-// var age int
-//
-// var sb = dbs.NewSelectBuilder()
-//
-// sb.ScanRow(db, &name, &age)
+//	var name string
+//	var age int
+//	var sb = dbs.NewSelectBuilder()
+//	sb.ScanRow(db, &name, &age)
 func (sb *SelectBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
 	return scanRow(context.Background(), s, sb, dst...)
 }
 
 // ScanRowContext 读取数据到基本数据类型的变量中，类似于 database/buf 包中结构体 Rows 的 Scan() 方法。
 //
-// var name string
-//
-// var age int
-//
-// var sb = dbs.NewSelectBuilder()
-//
-// sb.ScanRowContext(ctx, db, &name, &age)
+//	var name string
+//	var age int
+//	var sb = dbs.NewSelectBuilder()
+//	sb.ScanRowContext(ctx, db, &name, &age)
 func (sb *SelectBuilder) ScanRowContext(ctx context.Context, s Session, dst ...interface{}) (err error) {
 	return scanRow(ctx, s, sb, dst...)
 }
