@@ -67,14 +67,14 @@ func New(db *sql.DB) *DB {
 			value.Close()
 		}
 	})
-	ndb.group = singleflight.NewGroup[string, *sql.Stmt]()
+	ndb.flight = singleflight.NewGroup[string, *sql.Stmt]()
 	return ndb
 }
 
 type DB struct {
-	db    *sql.DB
-	cache dbc.Cache[string, *sql.Stmt]
-	group singleflight.Group[string, *sql.Stmt]
+	db     *sql.DB
+	cache  dbc.Cache[string, *sql.Stmt]
+	flight singleflight.Group[string, *sql.Stmt]
 }
 
 func (db *DB) DB() *sql.DB {
@@ -123,7 +123,7 @@ func (db *DB) PrepareStatement(ctx context.Context, key, query string) error {
 	if found := db.cache.Exists(key); found {
 		return ErrStmtExists
 	}
-	var _, err = db.group.Do(key, func(key string) (*sql.Stmt, error) {
+	var _, err = db.flight.Do(key, func(key string) (*sql.Stmt, error) {
 		stmt, err := db.db.PrepareContext(ctx, query)
 		if err != nil {
 			return nil, err
@@ -146,7 +146,7 @@ func (db *DB) Statement(ctx context.Context, query string) (*sql.Stmt, error) {
 	if stmt, found := db.cache.Get(query); found {
 		return stmt, nil
 	}
-	return db.group.Do(query, func(key string) (*sql.Stmt, error) {
+	return db.flight.Do(query, func(key string) (*sql.Stmt, error) {
 		stmt, err := db.db.PrepareContext(ctx, key)
 		if err != nil {
 			return nil, err
