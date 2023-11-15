@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"fmt"
 )
 
 const (
@@ -73,13 +72,14 @@ func (rb *RawBuilder) Append(clause string, args ...interface{}) *RawBuilder {
 	return rb
 }
 
-func (rb *RawBuilder) Format(format string, args ...interface{}) *RawBuilder {
-	var v = fmt.Sprintf(format, args...)
-	if v != "" {
-		if rb.buf.Len() > 0 {
-			rb.buf.WriteString(" ")
+func (rb *RawBuilder) Appends(clauses ...string) *RawBuilder {
+	for _, clause := range clauses {
+		if clause != "" {
+			if rb.buf.Len() > 0 {
+				rb.buf.WriteString(" ")
+			}
+			rb.buf.WriteString(clause)
 		}
-		rb.buf.WriteString(v)
 	}
 	return rb
 }
