@@ -110,6 +110,14 @@ func (rb *RawBuilder) reset() {
 	rb.args = rb.args[:0]
 }
 
+func (rb *RawBuilder) Exec(s Session) (sql.Result, error) {
+	return exec(context.Background(), s, rb)
+}
+
+func (rb *RawBuilder) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
+	return exec(ctx, s, rb)
+}
+
 func (rb *RawBuilder) Scan(s Session, dst interface{}) (err error) {
 	return scan(context.Background(), s, rb, dst)
 }
@@ -132,14 +140,6 @@ func (rb *RawBuilder) Query(s Session) (*sql.Rows, error) {
 
 func (rb *RawBuilder) QueryContext(ctx context.Context, s Session) (*sql.Rows, error) {
 	return query(ctx, s, rb)
-}
-
-func (rb *RawBuilder) Exec(s Session) (sql.Result, error) {
-	return exec(context.Background(), s, rb)
-}
-
-func (rb *RawBuilder) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
-	return exec(ctx, s, rb)
 }
 
 func NewBuilder(clause string, args ...interface{}) *RawBuilder {
