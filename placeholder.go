@@ -9,8 +9,10 @@ import (
 
 var gPlaceholder Placeholder = QuestionPlaceholder
 
-func UsePlaceholder(d Placeholder) {
-	gPlaceholder = d
+func UsePlaceholder(placeholder Placeholder) {
+	if placeholder != nil {
+		gPlaceholder = placeholder
+	}
 }
 
 func GetPlaceholder() Placeholder {

@@ -1,6 +1,8 @@
 package dbs
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"strings"
 )
@@ -110,6 +112,30 @@ func (eb *ExceptBuilder) Write(w Writer) (err error) {
 	}
 
 	return nil
+}
+
+func (eb *ExceptBuilder) Scan(s Session, dst interface{}) (err error) {
+	return scan(context.Background(), s, eb, dst)
+}
+
+func (eb *ExceptBuilder) ScanContext(ctx context.Context, s Session, dst interface{}) (err error) {
+	return scan(ctx, s, eb, dst)
+}
+
+func (eb *ExceptBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
+	return scanRow(context.Background(), s, eb, dst...)
+}
+
+func (eb *ExceptBuilder) ScanRowContext(ctx context.Context, s Session, dst ...interface{}) (err error) {
+	return scanRow(ctx, s, eb, dst...)
+}
+
+func (eb *ExceptBuilder) Query(s Session) (*sql.Rows, error) {
+	return query(context.Background(), s, eb)
+}
+
+func (eb *ExceptBuilder) QueryContext(ctx context.Context, s Session) (*sql.Rows, error) {
+	return query(ctx, s, eb)
 }
 
 func NewExceptBuilder() *ExceptBuilder {

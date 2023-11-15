@@ -254,6 +254,30 @@ func (ub *UpdateBuilder) ExecContext(ctx context.Context, s Session) (result sql
 	return exec(ctx, s, ub)
 }
 
+func (ub *UpdateBuilder) Scan(s Session, dst interface{}) (err error) {
+	return scan(context.Background(), s, ub, dst)
+}
+
+func (ub *UpdateBuilder) ScanContext(ctx context.Context, s Session, dst interface{}) (err error) {
+	return scan(ctx, s, ub, dst)
+}
+
+func (ub *UpdateBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
+	return scanRow(context.Background(), s, ub, dst...)
+}
+
+func (ub *UpdateBuilder) ScanRowContext(ctx context.Context, s Session, dst ...interface{}) (err error) {
+	return scanRow(ctx, s, ub, dst...)
+}
+
+func (ub *UpdateBuilder) Query(s Session) (*sql.Rows, error) {
+	return query(context.Background(), s, ub)
+}
+
+func (ub *UpdateBuilder) QueryContext(ctx context.Context, s Session) (*sql.Rows, error) {
+	return query(ctx, s, ub)
+}
+
 func NewUpdateBuilder() *UpdateBuilder {
 	var ub = &UpdateBuilder{}
 	ub.placeholder = gPlaceholder

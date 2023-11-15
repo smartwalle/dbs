@@ -245,6 +245,30 @@ func (db *DeleteBuilder) ExecContext(ctx context.Context, s Session) (result sql
 	return exec(ctx, s, db)
 }
 
+func (db *DeleteBuilder) Scan(s Session, dst interface{}) (err error) {
+	return scan(context.Background(), s, db, dst)
+}
+
+func (db *DeleteBuilder) ScanContext(ctx context.Context, s Session, dst interface{}) (err error) {
+	return scan(ctx, s, db, dst)
+}
+
+func (db *DeleteBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
+	return scanRow(context.Background(), s, db, dst...)
+}
+
+func (db *DeleteBuilder) ScanRowContext(ctx context.Context, s Session, dst ...interface{}) (err error) {
+	return scanRow(ctx, s, db, dst...)
+}
+
+func (db *DeleteBuilder) Query(s Session) (*sql.Rows, error) {
+	return query(context.Background(), s, db)
+}
+
+func (db *DeleteBuilder) QueryContext(ctx context.Context, s Session) (*sql.Rows, error) {
+	return query(ctx, s, db)
+}
+
 func NewDeleteBuilder() *DeleteBuilder {
 	var db = &DeleteBuilder{}
 	db.placeholder = gPlaceholder
