@@ -98,12 +98,7 @@ func (ib *InsertBuilder) SQL() (string, []interface{}, error) {
 	if err := ib.Write(buf); err != nil {
 		return "", nil, err
 	}
-
-	clause, err := ib.replace(buf.String())
-	if err != nil {
-		return "", nil, err
-	}
-	return clause, buf.Values(), nil
+	return ib.replace(buf.String()), buf.Values(), nil
 }
 
 func (ib *InsertBuilder) Write(w Writer) (err error) {

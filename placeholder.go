@@ -20,7 +20,7 @@ func GetPlaceholder() Placeholder {
 }
 
 type Placeholder interface {
-	Replace(clause string) (string, error)
+	Replace(clause string) string
 }
 
 var (
@@ -35,16 +35,18 @@ var (
 type question struct {
 }
 
-func (q *question) Replace(clause string) (string, error) {
-	return clause, nil
+func (q *question) Replace(clause string) string {
+	return clause
 }
 
 type dollar struct {
 	pool sync.Pool
 }
 
-func (d *dollar) Replace(clause string) (string, error) {
+func (d *dollar) Replace(clause string) string {
 	var buf = d.pool.Get().(*bytes.Buffer)
+	defer d.pool.Put(buf)
+
 	buf.Reset()
 	var i = 0
 
@@ -70,7 +72,5 @@ func (d *dollar) Replace(clause string) (string, error) {
 		clause = clause[pos+1:]
 	}
 	buf.WriteString(clause)
-	var s = buf.String()
-	d.pool.Put(buf)
-	return s, nil
+	return buf.String()
 }

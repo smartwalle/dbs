@@ -39,7 +39,7 @@ func (b *builder) quote(s string) string {
 	return s
 }
 
-func (b *builder) replace(clause string) (string, error) {
+func (b *builder) replace(clause string) string {
 	return b.placeholder.Replace(clause)
 }
 
@@ -92,11 +92,7 @@ func (rb *RawBuilder) Params(args ...interface{}) *RawBuilder {
 }
 
 func (rb *RawBuilder) SQL() (string, []interface{}, error) {
-	clause, err := rb.replace(rb.buf.String())
-	if err != nil {
-		return "", nil, err
-	}
-	return clause, rb.args, nil
+	return rb.replace(rb.buf.String()), rb.args, nil
 }
 
 func (rb *RawBuilder) Write(w Writer) error {

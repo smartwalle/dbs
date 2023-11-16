@@ -71,12 +71,7 @@ func (eb *ExceptBuilder) SQL() (string, []interface{}, error) {
 	if err := eb.Write(buf); err != nil {
 		return "", nil, err
 	}
-
-	clause, err := eb.replace(buf.String())
-	if err != nil {
-		return "", nil, err
-	}
-	return clause, buf.Values(), nil
+	return eb.replace(buf.String()), buf.Values(), nil
 }
 
 func (eb *ExceptBuilder) Write(w Writer) (err error) {

@@ -71,12 +71,7 @@ func (ub *UnionBuilder) SQL() (string, []interface{}, error) {
 	if err := ub.Write(buf); err != nil {
 		return "", nil, err
 	}
-
-	clause, err := ub.replace(buf.String())
-	if err != nil {
-		return "", nil, err
-	}
-	return clause, buf.Values(), nil
+	return ub.replace(buf.String()), buf.Values(), nil
 }
 
 func (ub *UnionBuilder) Write(w Writer) (err error) {

@@ -152,12 +152,7 @@ func (sb *SelectBuilder) SQL() (string, []interface{}, error) {
 	if err := sb.Write(buf); err != nil {
 		return "", nil, err
 	}
-
-	clause, err := sb.replace(buf.String())
-	if err != nil {
-		return "", nil, err
-	}
-	return clause, buf.Values(), nil
+	return sb.replace(buf.String()), buf.Values(), nil
 }
 
 func (sb *SelectBuilder) Write(w Writer) (err error) {

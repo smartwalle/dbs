@@ -121,12 +121,7 @@ func (db *DeleteBuilder) SQL() (string, []interface{}, error) {
 	if err := db.Write(buf); err != nil {
 		return "", nil, err
 	}
-
-	clause, err := db.replace(buf.String())
-	if err != nil {
-		return "", nil, err
-	}
-	return clause, buf.Values(), nil
+	return db.replace(buf.String()), buf.Values(), nil
 }
 
 func (db *DeleteBuilder) Write(w Writer) (err error) {
