@@ -1,6 +1,8 @@
 package dbs
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"strings"
 )
@@ -69,12 +71,7 @@ func (ib *IntersectBuilder) SQL() (string, []interface{}, error) {
 	if err := ib.Write(buf); err != nil {
 		return "", nil, err
 	}
-
-	clause, err := ib.replace(buf.String())
-	if err != nil {
-		return "", nil, err
-	}
-	return clause, buf.Values(), nil
+	return ib.replace(buf.String()), buf.Values(), nil
 }
 
 func (ib *IntersectBuilder) Write(w Writer) (err error) {
@@ -110,6 +107,30 @@ func (ib *IntersectBuilder) Write(w Writer) (err error) {
 	}
 
 	return nil
+}
+
+func (ib *IntersectBuilder) Scan(s Session, dst interface{}) (err error) {
+	return scan(context.Background(), s, ib, dst)
+}
+
+func (ib *IntersectBuilder) ScanContext(ctx context.Context, s Session, dst interface{}) (err error) {
+	return scan(ctx, s, ib, dst)
+}
+
+func (ib *IntersectBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
+	return scanRow(context.Background(), s, ib, dst...)
+}
+
+func (ib *IntersectBuilder) ScanRowContext(ctx context.Context, s Session, dst ...interface{}) (err error) {
+	return scanRow(ctx, s, ib, dst...)
+}
+
+func (ib *IntersectBuilder) Query(s Session) (*sql.Rows, error) {
+	return query(context.Background(), s, ib)
+}
+
+func (ib *IntersectBuilder) QueryContext(ctx context.Context, s Session) (*sql.Rows, error) {
+	return query(ctx, s, ib)
 }
 
 func NewIntersectBuilder() *IntersectBuilder {

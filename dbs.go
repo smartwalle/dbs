@@ -62,9 +62,9 @@ func New(db *sql.DB) *DB {
 	var ndb = &DB{}
 	ndb.db = db
 	ndb.cache = dbc.New[*sql.Stmt](dbc.WithHitTTL(60))
-	ndb.cache.OnEvicted(func(key string, value *sql.Stmt) {
-		if value != nil {
-			value.Close()
+	ndb.cache.OnEvicted(func(key string, stmt *sql.Stmt) {
+		if stmt != nil {
+			stmt.Close()
 		}
 	})
 	ndb.flight = singleflight.NewGroup[string, *sql.Stmt]()
@@ -132,6 +132,11 @@ func (db *DB) PrepareStatement(ctx context.Context, key, query string) error {
 		return stmt, nil
 	})
 	return err
+}
+
+// RevokeStatement 废弃已缓存的预处理语句(sql.Stmt)。
+func (db *DB) RevokeStatement(key string) {
+	db.cache.Del(key)
 }
 
 // Statement 使用参数 query 获取已经缓存的预处理语句(sql.Stmt)。

@@ -5,10 +5,16 @@ import (
 	"database/sql"
 )
 
-var mapper = NewMapper(kTag)
+var gMapper = NewMapper(kTag)
+
+func UseMapper(mapper *Mapper) {
+	if mapper != nil {
+		gMapper = mapper
+	}
+}
 
 func Scan[T any](rows *sql.Rows) (dst T, err error) {
-	err = mapper.Decode(rows, &dst)
+	err = gMapper.Decode(rows, &dst)
 	return dst, err
 }
 
@@ -19,7 +25,7 @@ func Query[T any](ctx context.Context, session Session, query string, args ...in
 	}
 	defer rows.Close()
 
-	err = mapper.Decode(rows, &dst)
+	err = gMapper.Decode(rows, &dst)
 	return dst, err
 }
 
@@ -37,7 +43,7 @@ func scan(ctx context.Context, session Session, builder Builder, dst interface{}
 		return err
 	}
 	defer rows.Close()
-	return mapper.Decode(rows, dst)
+	return gMapper.Decode(rows, dst)
 }
 
 func scanRow(ctx context.Context, session Session, builder Builder, dst ...interface{}) error {

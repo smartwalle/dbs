@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"fmt"
 )
 
 const (
@@ -40,7 +39,7 @@ func (b *builder) quote(s string) string {
 	return s
 }
 
-func (b *builder) replace(clause string) (string, error) {
+func (b *builder) replace(clause string) string {
 	return b.placeholder.Replace(clause)
 }
 
@@ -73,13 +72,14 @@ func (rb *RawBuilder) Append(clause string, args ...interface{}) *RawBuilder {
 	return rb
 }
 
-func (rb *RawBuilder) Format(format string, args ...interface{}) *RawBuilder {
-	var v = fmt.Sprintf(format, args...)
-	if v != "" {
-		if rb.buf.Len() > 0 {
-			rb.buf.WriteString(" ")
+func (rb *RawBuilder) Appends(clauses ...string) *RawBuilder {
+	for _, clause := range clauses {
+		if clause != "" {
+			if rb.buf.Len() > 0 {
+				rb.buf.WriteString(" ")
+			}
+			rb.buf.WriteString(clause)
 		}
-		rb.buf.WriteString(v)
 	}
 	return rb
 }
@@ -92,11 +92,7 @@ func (rb *RawBuilder) Params(args ...interface{}) *RawBuilder {
 }
 
 func (rb *RawBuilder) SQL() (string, []interface{}, error) {
-	clause, err := rb.replace(rb.buf.String())
-	if err != nil {
-		return "", nil, err
-	}
-	return clause, rb.args, nil
+	return rb.replace(rb.buf.String()), rb.args, nil
 }
 
 func (rb *RawBuilder) Write(w Writer) error {
@@ -108,6 +104,14 @@ func (rb *RawBuilder) Write(w Writer) error {
 func (rb *RawBuilder) reset() {
 	rb.buf.Reset()
 	rb.args = rb.args[:0]
+}
+
+func (rb *RawBuilder) Exec(s Session) (sql.Result, error) {
+	return exec(context.Background(), s, rb)
+}
+
+func (rb *RawBuilder) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
+	return exec(ctx, s, rb)
 }
 
 func (rb *RawBuilder) Scan(s Session, dst interface{}) (err error) {
@@ -132,14 +136,6 @@ func (rb *RawBuilder) Query(s Session) (*sql.Rows, error) {
 
 func (rb *RawBuilder) QueryContext(ctx context.Context, s Session) (*sql.Rows, error) {
 	return query(ctx, s, rb)
-}
-
-func (rb *RawBuilder) Exec(s Session) (sql.Result, error) {
-	return exec(context.Background(), s, rb)
-}
-
-func (rb *RawBuilder) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
-	return exec(ctx, s, rb)
 }
 
 func NewBuilder(clause string, args ...interface{}) *RawBuilder {

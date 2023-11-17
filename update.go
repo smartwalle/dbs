@@ -138,12 +138,7 @@ func (ub *UpdateBuilder) SQL() (string, []interface{}, error) {
 	if err := ub.Write(buf); err != nil {
 		return "", nil, err
 	}
-
-	clause, err := ub.replace(buf.String())
-	if err != nil {
-		return "", nil, err
-	}
-	return clause, buf.Values(), nil
+	return ub.replace(buf.String()), buf.Values(), nil
 }
 
 func (ub *UpdateBuilder) Write(w Writer) (err error) {
@@ -252,6 +247,30 @@ func (ub *UpdateBuilder) Exec(s Session) (sql.Result, error) {
 
 func (ub *UpdateBuilder) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
 	return exec(ctx, s, ub)
+}
+
+func (ub *UpdateBuilder) Scan(s Session, dst interface{}) (err error) {
+	return scan(context.Background(), s, ub, dst)
+}
+
+func (ub *UpdateBuilder) ScanContext(ctx context.Context, s Session, dst interface{}) (err error) {
+	return scan(ctx, s, ub, dst)
+}
+
+func (ub *UpdateBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
+	return scanRow(context.Background(), s, ub, dst...)
+}
+
+func (ub *UpdateBuilder) ScanRowContext(ctx context.Context, s Session, dst ...interface{}) (err error) {
+	return scanRow(ctx, s, ub, dst...)
+}
+
+func (ub *UpdateBuilder) Query(s Session) (*sql.Rows, error) {
+	return query(context.Background(), s, ub)
+}
+
+func (ub *UpdateBuilder) QueryContext(ctx context.Context, s Session) (*sql.Rows, error) {
+	return query(ctx, s, ub)
 }
 
 func NewUpdateBuilder() *UpdateBuilder {

@@ -1,6 +1,8 @@
 package dbs
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"strings"
 )
@@ -69,12 +71,7 @@ func (ub *UnionBuilder) SQL() (string, []interface{}, error) {
 	if err := ub.Write(buf); err != nil {
 		return "", nil, err
 	}
-
-	clause, err := ub.replace(buf.String())
-	if err != nil {
-		return "", nil, err
-	}
-	return clause, buf.Values(), nil
+	return ub.replace(buf.String()), buf.Values(), nil
 }
 
 func (ub *UnionBuilder) Write(w Writer) (err error) {
@@ -110,6 +107,30 @@ func (ub *UnionBuilder) Write(w Writer) (err error) {
 	}
 
 	return nil
+}
+
+func (ub *UnionBuilder) Scan(s Session, dst interface{}) (err error) {
+	return scan(context.Background(), s, ub, dst)
+}
+
+func (ub *UnionBuilder) ScanContext(ctx context.Context, s Session, dst interface{}) (err error) {
+	return scan(ctx, s, ub, dst)
+}
+
+func (ub *UnionBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
+	return scanRow(context.Background(), s, ub, dst...)
+}
+
+func (ub *UnionBuilder) ScanRowContext(ctx context.Context, s Session, dst ...interface{}) (err error) {
+	return scanRow(ctx, s, ub, dst...)
+}
+
+func (ub *UnionBuilder) Query(s Session) (*sql.Rows, error) {
+	return query(context.Background(), s, ub)
+}
+
+func (ub *UnionBuilder) QueryContext(ctx context.Context, s Session) (*sql.Rows, error) {
+	return query(ctx, s, ub)
 }
 
 func NewUnionBuilder() *UnionBuilder {

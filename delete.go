@@ -121,12 +121,7 @@ func (db *DeleteBuilder) SQL() (string, []interface{}, error) {
 	if err := db.Write(buf); err != nil {
 		return "", nil, err
 	}
-
-	clause, err := db.replace(buf.String())
-	if err != nil {
-		return "", nil, err
-	}
-	return clause, buf.Values(), nil
+	return db.replace(buf.String()), buf.Values(), nil
 }
 
 func (db *DeleteBuilder) Write(w Writer) (err error) {
@@ -243,6 +238,30 @@ func (db *DeleteBuilder) Exec(s Session) (sql.Result, error) {
 
 func (db *DeleteBuilder) ExecContext(ctx context.Context, s Session) (result sql.Result, err error) {
 	return exec(ctx, s, db)
+}
+
+func (db *DeleteBuilder) Scan(s Session, dst interface{}) (err error) {
+	return scan(context.Background(), s, db, dst)
+}
+
+func (db *DeleteBuilder) ScanContext(ctx context.Context, s Session, dst interface{}) (err error) {
+	return scan(ctx, s, db, dst)
+}
+
+func (db *DeleteBuilder) ScanRow(s Session, dst ...interface{}) (err error) {
+	return scanRow(context.Background(), s, db, dst...)
+}
+
+func (db *DeleteBuilder) ScanRowContext(ctx context.Context, s Session, dst ...interface{}) (err error) {
+	return scanRow(ctx, s, db, dst...)
+}
+
+func (db *DeleteBuilder) Query(s Session) (*sql.Rows, error) {
+	return query(context.Background(), s, db)
+}
+
+func (db *DeleteBuilder) QueryContext(ctx context.Context, s Session) (*sql.Rows, error) {
+	return query(ctx, s, db)
 }
 
 func NewDeleteBuilder() *DeleteBuilder {
