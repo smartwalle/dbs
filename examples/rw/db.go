@@ -22,8 +22,12 @@ func New(master *dbs.DB, slaves ...*dbs.DB) *DB {
 	return ndb
 }
 
-func (db *DB) Master() *dbs.DB {
+func (db *DB) Master() dbs.Database {
 	return db.master
+}
+
+func (db *DB) Slave() dbs.Database {
+	return db.slaves[int(atomic.AddUint32(&db.offset, 1)-1)%db.size]
 }
 
 func (db *DB) Close() error {
