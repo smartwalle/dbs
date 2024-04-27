@@ -7,7 +7,7 @@ import (
 
 // Shard 维护一组数据库连接信息，用于客户端实现数据库层面的分片操作。
 type Shard struct {
-	sharding       func(value string) int
+	sharding       func(value interface{}) int
 	shards         []Database
 	numberOfShards int
 }
@@ -15,11 +15,11 @@ type Shard struct {
 type shardKey struct{}
 
 // WithShardValue 设定一个值，该值会传递到 sharding 函数中，用于分片节点选举计算。
-func WithShardValue(ctx context.Context, value string) context.Context {
+func WithShardValue(ctx context.Context, value interface{}) context.Context {
 	return context.WithValue(ctx, shardKey{}, value)
 }
 
-func NewShard(sharding func(value string) int, shards ...Database) *Shard {
+func NewShard(sharding func(value interface{}) int, shards ...Database) *Shard {
 	var ndb = &Shard{}
 	ndb.sharding = sharding
 	ndb.shards = shards
@@ -28,7 +28,7 @@ func NewShard(sharding func(value string) int, shards ...Database) *Shard {
 }
 
 func (s *Shard) shard(ctx context.Context) Database {
-	var value, _ = ctx.Value(shardKey{}).(string)
+	var value = ctx.Value(shardKey{})
 	var idx = s.sharding(value)
 	return s.shards[idx]
 }
