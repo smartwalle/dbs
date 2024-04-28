@@ -21,20 +21,24 @@ type structDescriptor struct {
 	Fields map[string]fieldDescriptor
 }
 
-type Mapper struct {
+type Scanner interface {
+	Scan(rows *sql.Rows, dst interface{}) error
+}
+
+type DefaultScanner struct {
 	tag     string
 	structs atomic.Value // map[reflect.Type]structDescriptor
 	mu      sync.Mutex
 }
 
-func NewMapper(tag string) *Mapper {
-	var m = &Mapper{}
+func NewDefaultScanner(tag string) *DefaultScanner {
+	var m = &DefaultScanner{}
 	m.tag = tag
 	m.structs.Store(make(map[reflect.Type]structDescriptor))
 	return m
 }
 
-func (mapper *Mapper) Decode(rows *sql.Rows, dst interface{}) error {
+func (s *DefaultScanner) Scan(rows *sql.Rows, dst interface{}) error {
 	if rows == nil {
 		return sql.ErrNoRows
 	}
@@ -62,12 +66,12 @@ func (mapper *Mapper) Decode(rows *sql.Rows, dst interface{}) error {
 	}
 
 	if isSlice {
-		return mapper.decodeSlice(rows, dstType, dstValue)
+		return s.scanSlice(rows, dstType, dstValue)
 	}
-	return mapper.decodeOne(rows, dstType, dstValue)
+	return s.scanOne(rows, dstType, dstValue)
 }
 
-func (mapper *Mapper) decodeOne(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
+func (s *DefaultScanner) scanOne(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
 	if !rows.Next() {
 		return sql.ErrNoRows
 	}
@@ -79,9 +83,9 @@ func (mapper *Mapper) decodeOne(rows *sql.Rows, dstType reflect.Type, dstValue r
 
 	dstType, dstValue = base(dstType, dstValue)
 
-	var dStruct, ok = mapper.getStructDescriptor(dstType)
+	var dStruct, ok = s.getStructDescriptor(dstType)
 	if !ok {
-		dStruct = mapper.parseStructDescriptor(dstType)
+		dStruct = s.parseStructDescriptor(dstType)
 	}
 
 	var values = make([]interface{}, len(columns))
@@ -91,7 +95,7 @@ func (mapper *Mapper) decodeOne(rows *sql.Rows, dstType reflect.Type, dstValue r
 	return rows.Scan(values...)
 }
 
-func (mapper *Mapper) decodeSlice(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
+func (s *DefaultScanner) scanSlice(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
 	columns, err := rows.Columns()
 	if err != nil {
 		return err
@@ -109,9 +113,9 @@ func (mapper *Mapper) decodeSlice(rows *sql.Rows, dstType reflect.Type, dstValue
 		dstType = dstType.Elem()
 	}
 
-	var dStruct, ok = mapper.getStructDescriptor(dstType)
+	var dStruct, ok = s.getStructDescriptor(dstType)
 	if !ok {
-		dStruct = mapper.parseStructDescriptor(dstType)
+		dStruct = s.parseStructDescriptor(dstType)
 	}
 
 	var nColumns = make([]interface{}, len(columns))
@@ -174,19 +178,19 @@ func fieldByIndex(parent reflect.Value, index []int) reflect.Value {
 	return parent
 }
 
-func (mapper *Mapper) getStructDescriptor(key reflect.Type) (structDescriptor, bool) {
-	var value, ok = mapper.structs.Load().(map[reflect.Type]structDescriptor)[key]
+func (s *DefaultScanner) getStructDescriptor(key reflect.Type) (structDescriptor, bool) {
+	var value, ok = s.structs.Load().(map[reflect.Type]structDescriptor)[key]
 	return value, ok
 }
 
-func (mapper *Mapper) setStructDescriptor(key reflect.Type, value structDescriptor) {
-	var structs = mapper.structs.Load().(map[reflect.Type]structDescriptor)
+func (s *DefaultScanner) setStructDescriptor(key reflect.Type, value structDescriptor) {
+	var structs = s.structs.Load().(map[reflect.Type]structDescriptor)
 	var nStructs = make(map[reflect.Type]structDescriptor, len(structs)+1)
 	for k, v := range structs {
 		nStructs[k] = v
 	}
 	nStructs[key] = value
-	mapper.structs.Store(nStructs)
+	s.structs.Store(nStructs)
 }
 
 type structQueueElement struct {
@@ -194,12 +198,12 @@ type structQueueElement struct {
 	Index []int
 }
 
-func (mapper *Mapper) parseStructDescriptor(dstType reflect.Type) structDescriptor {
-	mapper.mu.Lock()
+func (s *DefaultScanner) parseStructDescriptor(dstType reflect.Type) structDescriptor {
+	s.mu.Lock()
 
-	var dStruct, ok = mapper.getStructDescriptor(dstType)
+	var dStruct, ok = s.getStructDescriptor(dstType)
 	if ok {
-		mapper.mu.Unlock()
+		s.mu.Unlock()
 		return dStruct
 	}
 
@@ -220,7 +224,7 @@ func (mapper *Mapper) parseStructDescriptor(dstType reflect.Type) structDescript
 		for i := 0; i < numField; i++ {
 			var fieldStruct = current.Type.Field(i)
 
-			var tag = fieldStruct.Tag.Get(mapper.tag)
+			var tag = fieldStruct.Tag.Get(s.tag)
 			if tag == kNoTag {
 				continue
 			}
@@ -257,8 +261,8 @@ func (mapper *Mapper) parseStructDescriptor(dstType reflect.Type) structDescript
 
 	dStruct.Fields = dFields
 
-	mapper.setStructDescriptor(dstType, dStruct)
-	mapper.mu.Unlock()
+	s.setStructDescriptor(dstType, dStruct)
+	s.mu.Unlock()
 
 	return dStruct
 }
