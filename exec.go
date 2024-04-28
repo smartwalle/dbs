@@ -5,11 +5,11 @@ import (
 	"database/sql"
 )
 
-var gScanner Scanner = NewDefaultScanner(kTag)
+var gScanner Scanner = NewScanner(kTag)
 
-func UseScanner(scanner Scanner) {
-	if scanner != nil {
-		gScanner = scanner
+func UseScanner(s Scanner) {
+	if s != nil {
+		gScanner = s
 	}
 }
 

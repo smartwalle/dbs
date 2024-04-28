@@ -25,20 +25,20 @@ type Scanner interface {
 	Scan(rows *sql.Rows, dst interface{}) error
 }
 
-type DefaultScanner struct {
+type scanner struct {
 	tag     string
 	structs atomic.Value // map[reflect.Type]structDescriptor
 	mu      sync.Mutex
 }
 
-func NewDefaultScanner(tag string) *DefaultScanner {
-	var m = &DefaultScanner{}
+func NewScanner(tag string) *scanner {
+	var m = &scanner{}
 	m.tag = tag
 	m.structs.Store(make(map[reflect.Type]structDescriptor))
 	return m
 }
 
-func (s *DefaultScanner) Scan(rows *sql.Rows, dst interface{}) error {
+func (s *scanner) Scan(rows *sql.Rows, dst interface{}) error {
 	if rows == nil {
 		return sql.ErrNoRows
 	}
@@ -66,12 +66,12 @@ func (s *DefaultScanner) Scan(rows *sql.Rows, dst interface{}) error {
 	}
 
 	if isSlice {
-		return s.scanSlice(rows, dstType, dstValue)
+		return s.slice(rows, dstType, dstValue)
 	}
-	return s.scanOne(rows, dstType, dstValue)
+	return s.one(rows, dstType, dstValue)
 }
 
-func (s *DefaultScanner) scanOne(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
+func (s *scanner) one(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
 	if !rows.Next() {
 		return sql.ErrNoRows
 	}
@@ -95,7 +95,7 @@ func (s *DefaultScanner) scanOne(rows *sql.Rows, dstType reflect.Type, dstValue 
 	return rows.Scan(values...)
 }
 
-func (s *DefaultScanner) scanSlice(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
+func (s *scanner) slice(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
 	columns, err := rows.Columns()
 	if err != nil {
 		return err
@@ -178,12 +178,12 @@ func fieldByIndex(parent reflect.Value, index []int) reflect.Value {
 	return parent
 }
 
-func (s *DefaultScanner) getStructDescriptor(key reflect.Type) (structDescriptor, bool) {
+func (s *scanner) getStructDescriptor(key reflect.Type) (structDescriptor, bool) {
 	var value, ok = s.structs.Load().(map[reflect.Type]structDescriptor)[key]
 	return value, ok
 }
 
-func (s *DefaultScanner) setStructDescriptor(key reflect.Type, value structDescriptor) {
+func (s *scanner) setStructDescriptor(key reflect.Type, value structDescriptor) {
 	var structs = s.structs.Load().(map[reflect.Type]structDescriptor)
 	var nStructs = make(map[reflect.Type]structDescriptor, len(structs)+1)
 	for k, v := range structs {
@@ -198,7 +198,7 @@ type structQueueElement struct {
 	Index []int
 }
 
-func (s *DefaultScanner) parseStructDescriptor(dstType reflect.Type) structDescriptor {
+func (s *scanner) parseStructDescriptor(dstType reflect.Type) structDescriptor {
 	s.mu.Lock()
 
 	var dStruct, ok = s.getStructDescriptor(dstType)
