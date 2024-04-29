@@ -160,22 +160,22 @@ func base(dstType reflect.Type, dstValue reflect.Value) (reflect.Type, reflect.V
 	return dstType, dstValue
 }
 
-func fieldByIndex(parent reflect.Value, index []int) reflect.Value {
+func fieldByIndex(value reflect.Value, index []int) reflect.Value {
 	if len(index) == 1 {
-		return parent.Field(index[0])
+		return value.Field(index[0])
 	}
 	for i, x := range index {
 		if i > 0 {
-			if parent.Kind() == reflect.Pointer && parent.Type().Elem().Kind() == reflect.Struct {
-				if parent.IsNil() {
-					parent.Set(reflect.New(parent.Type().Elem()))
+			if value.Kind() == reflect.Pointer && value.Type().Elem().Kind() == reflect.Struct {
+				if value.IsNil() {
+					value.Set(reflect.New(value.Type().Elem()))
 				}
-				parent = parent.Elem()
+				value = value.Elem()
 			}
 		}
-		parent = parent.Field(x)
+		value = value.Field(x)
 	}
-	return parent
+	return value
 }
 
 func (s *scanner) getStructDescriptor(key reflect.Type) (structDescriptor, bool) {
