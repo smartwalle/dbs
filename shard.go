@@ -27,10 +27,14 @@ func NewShard(sharding func(value interface{}) int, shards ...Database) *Shard {
 	return ndb
 }
 
-func (s *Shard) shard(ctx context.Context) Database {
+func (s *Shard) Shard(ctx context.Context) Database {
 	var value = ctx.Value(shardKey{})
 	var idx = s.sharding(value)
 	return s.shards[idx]
+}
+
+func (s *Shard) Shards() []Database {
+	return s.shards
 }
 
 func (s *Shard) Prepare(query string) (*sql.Stmt, error) {
@@ -38,7 +42,7 @@ func (s *Shard) Prepare(query string) (*sql.Stmt, error) {
 }
 
 func (s *Shard) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
-	return s.shard(ctx).PrepareContext(ctx, query)
+	return s.Shard(ctx).PrepareContext(ctx, query)
 }
 
 func (s *Shard) Exec(query string, args ...interface{}) (sql.Result, error) {
@@ -46,7 +50,7 @@ func (s *Shard) Exec(query string, args ...interface{}) (sql.Result, error) {
 }
 
 func (s *Shard) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	return s.shard(ctx).ExecContext(ctx, query, args...)
+	return s.Shard(ctx).ExecContext(ctx, query, args...)
 }
 
 func (s *Shard) Query(query string, args ...interface{}) (*sql.Rows, error) {
@@ -54,7 +58,7 @@ func (s *Shard) Query(query string, args ...interface{}) (*sql.Rows, error) {
 }
 
 func (s *Shard) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	return s.shard(ctx).QueryContext(ctx, query, args...)
+	return s.Shard(ctx).QueryContext(ctx, query, args...)
 }
 
 func (s *Shard) QueryRow(query string, args ...any) *sql.Row {
@@ -62,7 +66,7 @@ func (s *Shard) QueryRow(query string, args ...any) *sql.Row {
 }
 
 func (s *Shard) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
-	return s.shard(ctx).QueryRowContext(ctx, query, args...)
+	return s.Shard(ctx).QueryRowContext(ctx, query, args...)
 }
 
 func (s *Shard) Close() error {
@@ -77,5 +81,5 @@ func (s *Shard) Begin() (*Tx, error) {
 }
 
 func (s *Shard) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
-	return s.shard(ctx).BeginTx(ctx, opts)
+	return s.Shard(ctx).BeginTx(ctx, opts)
 }

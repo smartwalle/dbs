@@ -45,6 +45,18 @@ func NewProxy(master Database, slaves ...Database) *Proxy {
 	return ndb
 }
 
+func (p *Proxy) Master() Database {
+	return p.master
+}
+
+func (p *Proxy) Slave() Database {
+	return p.slaves[int(atomic.AddUint32(&p.slaveOffset, 1)-1)%p.numberOfSlaves]
+}
+
+func (p *Proxy) Slaves() []Database {
+	return p.slaves
+}
+
 func (p *Proxy) Prepare(query string) (*sql.Stmt, error) {
 	return p.PrepareContext(context.Background(), query)
 }
@@ -52,8 +64,7 @@ func (p *Proxy) Prepare(query string) (*sql.Stmt, error) {
 func (p *Proxy) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
 	var slave, _ = ctx.Value(slaveKey{}).(bool)
 	if slave && p.numberOfSlaves > 0 {
-		var node = p.slaves[int(atomic.AddUint32(&p.slaveOffset, 1)-1)%p.numberOfSlaves]
-		return node.PrepareContext(ctx, query)
+		return p.Slave().PrepareContext(ctx, query)
 	}
 	return p.master.PrepareContext(ctx, query)
 }
@@ -73,8 +84,7 @@ func (p *Proxy) Query(query string, args ...interface{}) (*sql.Rows, error) {
 func (p *Proxy) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
 	var master, _ = ctx.Value(masterKey{}).(bool)
 	if !master && p.numberOfSlaves > 0 {
-		var node = p.slaves[int(atomic.AddUint32(&p.slaveOffset, 1)-1)%p.numberOfSlaves]
-		return node.QueryContext(ctx, query, args...)
+		return p.Slave().QueryContext(ctx, query, args...)
 	}
 	return p.master.QueryContext(ctx, query, args...)
 }
@@ -86,8 +96,7 @@ func (p *Proxy) QueryRow(query string, args ...any) *sql.Row {
 func (p *Proxy) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
 	var master, _ = ctx.Value(masterKey{}).(bool)
 	if !master && p.numberOfSlaves > 0 {
-		var node = p.slaves[int(atomic.AddUint32(&p.slaveOffset, 1)-1)%p.numberOfSlaves]
-		return node.QueryRowContext(ctx, query, args...)
+		return p.Slave().QueryRowContext(ctx, query, args...)
 	}
 	return p.master.QueryRowContext(ctx, query, args...)
 }
