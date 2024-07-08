@@ -76,7 +76,7 @@ func (s *scanner) one(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Val
 		return sql.ErrNoRows
 	}
 
-	columns, err := rows.Columns()
+	columnTypes, err := rows.ColumnTypes()
 	if err != nil {
 		return err
 	}
@@ -88,15 +88,15 @@ func (s *scanner) one(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Val
 		dStruct = s.parseStructDescriptor(dstType)
 	}
 
-	var values = make([]interface{}, len(columns))
-	for idx, column := range columns {
-		values[idx] = fieldByIndex(dstValue, dStruct.Fields[column].Index).Addr().Interface()
+	var values = make([]interface{}, len(columnTypes))
+	for idx, columnType := range columnTypes {
+		values[idx] = fieldByIndex(dstValue, dStruct.Fields[columnType.Name()].Index).Addr().Interface()
 	}
 	return rows.Scan(values...)
 }
 
 func (s *scanner) slice(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
-	columns, err := rows.Columns()
+	columnTypes, err := rows.ColumnTypes()
 	if err != nil {
 		return err
 	}
@@ -118,28 +118,28 @@ func (s *scanner) slice(rows *sql.Rows, dstType reflect.Type, dstValue reflect.V
 		dStruct = s.parseStructDescriptor(dstType)
 	}
 
-	var nColumns = make([]interface{}, len(columns))
-	var nValues = make([]reflect.Value, 0, 20)
+	var values = make([]interface{}, len(columnTypes))
+	var nList = make([]reflect.Value, 0, 20)
 	for rows.Next() {
 		var nPointer = reflect.New(dstType)
 		var nValue = reflect.Indirect(nPointer)
 
-		for idx, column := range columns {
-			nColumns[idx] = fieldByIndex(nValue, dStruct.Fields[column].Index).Addr().Interface()
+		for idx, columnType := range columnTypes {
+			values[idx] = fieldByIndex(nValue, dStruct.Fields[columnType.Name()].Index).Addr().Interface()
 		}
 
-		if err = rows.Scan(nColumns...); err != nil {
+		if err = rows.Scan(values...); err != nil {
 			return err
 		}
 
 		if isPointer {
-			nValues = append(nValues, nPointer)
+			nList = append(nList, nPointer)
 		} else {
-			nValues = append(nValues, nValue)
+			nList = append(nList, nValue)
 		}
 	}
-	if len(nValues) > 0 {
-		dstValue.Set(reflect.Append(dstValue, nValues...))
+	if len(nList) > 0 {
+		dstValue.Set(reflect.Append(dstValue, nList...))
 	}
 	return nil
 }
