@@ -18,7 +18,28 @@ type fieldDescriptor struct {
 }
 
 type structDescriptor struct {
-	Fields map[string]fieldDescriptor
+	mu            *sync.Mutex
+	Fields        map[string]fieldDescriptor
+	UnknownFields map[string]reflect.Value
+}
+
+func (s structDescriptor) Field(parent reflect.Value, columnType *sql.ColumnType) reflect.Value {
+	var columnName = columnType.Name()
+
+	field, exists := s.Fields[columnName]
+	if exists {
+		return fieldByIndex(parent, field.Index).Addr()
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	value, exists := s.UnknownFields[columnName]
+	if !exists {
+		value = reflect.New(columnType.ScanType())
+		s.UnknownFields[columnName] = value
+	}
+	return value
 }
 
 type Scanner interface {
@@ -90,7 +111,7 @@ func (s *scanner) one(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Val
 
 	var values = make([]interface{}, len(columnTypes))
 	for idx, columnType := range columnTypes {
-		values[idx] = fieldByIndex(dstValue, dStruct.Fields[columnType.Name()].Index).Addr().Interface()
+		values[idx] = dStruct.Field(dstValue, columnType).Interface()
 	}
 	return rows.Scan(values...)
 }
@@ -125,7 +146,7 @@ func (s *scanner) slice(rows *sql.Rows, dstType reflect.Type, dstValue reflect.V
 		var nValue = reflect.Indirect(nPointer)
 
 		for idx, columnType := range columnTypes {
-			values[idx] = fieldByIndex(nValue, dStruct.Fields[columnType.Name()].Index).Addr().Interface()
+			values[idx] = dStruct.Field(nValue, columnType).Interface()
 		}
 
 		if err = rows.Scan(values...); err != nil {
@@ -259,7 +280,9 @@ func (s *scanner) parseStructDescriptor(dstType reflect.Type) structDescriptor {
 		}
 	}
 
+	dStruct.mu = &sync.Mutex{}
 	dStruct.Fields = dFields
+	dStruct.UnknownFields = make(map[string]reflect.Value)
 
 	s.setStructDescriptor(dstType, dStruct)
 	s.mu.Unlock()

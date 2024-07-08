@@ -19,7 +19,7 @@ type Mail struct {
 }
 
 func postgresql() {
-	db, err := dbs.Open("postgres", "host=192.168.1.99 port=5432 user=postgres password=postgres dbname=test sslmode=disable", 10, 1)
+	db, err := dbs.Open("postgres", "host=127.0.0.1 port=5432 user=postgres password=postgres dbname=test sslmode=disable", 10, 1)
 	if err != nil {
 		fmt.Println("连接数据库出错：", err)
 		return
