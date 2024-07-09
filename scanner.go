@@ -104,14 +104,18 @@ func (s *scanner) one(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Val
 
 	dstType, dstValue = base(dstType, dstValue)
 
-	var dStruct, ok = s.getStructDescriptor(dstType)
-	if !ok {
-		dStruct = s.parseStructDescriptor(dstType)
-	}
-
 	var values = make([]interface{}, len(columnTypes))
-	for idx, columnType := range columnTypes {
-		values[idx] = dStruct.Field(dstValue, columnType).Interface()
+	switch dstType.Kind() {
+	case reflect.Struct:
+		var dStruct, ok = s.getStructDescriptor(dstType)
+		if !ok {
+			dStruct = s.parseStructDescriptor(dstType)
+		}
+		for idx, columnType := range columnTypes {
+			values[idx] = dStruct.Field(dstValue, columnType).Interface()
+		}
+	default:
+		values[0] = dstValue.Addr().Interface()
 	}
 	return rows.Scan(values...)
 }
@@ -134,31 +138,52 @@ func (s *scanner) slice(rows *sql.Rows, dstType reflect.Type, dstValue reflect.V
 		dstType = dstType.Elem()
 	}
 
-	var dStruct, ok = s.getStructDescriptor(dstType)
-	if !ok {
-		dStruct = s.parseStructDescriptor(dstType)
-	}
-
-	var values = make([]interface{}, len(columnTypes))
 	var nList = make([]reflect.Value, 0, 20)
-	for rows.Next() {
-		var nPointer = reflect.New(dstType)
-		var nValue = reflect.Indirect(nPointer)
-
-		for idx, columnType := range columnTypes {
-			values[idx] = dStruct.Field(nValue, columnType).Interface()
+	switch dstType.Kind() {
+	case reflect.Struct:
+		var dStruct, ok = s.getStructDescriptor(dstType)
+		if !ok {
+			dStruct = s.parseStructDescriptor(dstType)
 		}
+		var values = make([]interface{}, len(columnTypes))
+		for rows.Next() {
+			var nPointer = reflect.New(dstType)
+			var nValue = reflect.Indirect(nPointer)
 
-		if err = rows.Scan(values...); err != nil {
-			return err
+			for idx, columnType := range columnTypes {
+				values[idx] = dStruct.Field(nValue, columnType).Interface()
+			}
+
+			if err = rows.Scan(values...); err != nil {
+				return err
+			}
+
+			if isPointer {
+				nList = append(nList, nPointer)
+			} else {
+				nList = append(nList, nValue)
+			}
 		}
+	default:
+		var values = make([]interface{}, 1)
+		for rows.Next() {
+			var nPointer = reflect.New(dstType)
+			var nValue = reflect.Indirect(nPointer)
 
-		if isPointer {
-			nList = append(nList, nPointer)
-		} else {
-			nList = append(nList, nValue)
+			values[0] = nPointer.Interface()
+
+			if err = rows.Scan(values...); err != nil {
+				return err
+			}
+
+			if isPointer {
+				nList = append(nList, nPointer)
+			} else {
+				nList = append(nList, nValue)
+			}
 		}
 	}
+
 	if len(nList) > 0 {
 		dstValue.Set(reflect.Append(dstValue, nList...))
 	}
