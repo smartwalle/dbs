@@ -14,6 +14,8 @@ var ErrTxDone = sql.ErrTxDone
 var ErrStmtExists = errors.New("statement exists")
 
 type Session interface {
+	Session(ctx context.Context) Session
+
 	Prepare(query string) (*sql.Stmt, error)
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
 
@@ -26,6 +28,8 @@ type Session interface {
 	QueryRow(query string, args ...any) *sql.Row
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
+
+type sessionKey struct{}
 
 type Database interface {
 	Session
@@ -81,17 +85,20 @@ func (db *DB) DB() *sql.DB {
 	return db.db
 }
 
-func (db *DB) Close() error {
-	db.cache.Close()
-	return db.db.Close()
-}
-
 func (db *DB) Ping() error {
 	return db.db.Ping()
 }
 
 func (db *DB) PingContext(ctx context.Context) error {
 	return db.db.PingContext(ctx)
+}
+
+func (db *DB) Session(ctx context.Context) Session {
+	var session, found = ctx.Value(sessionKey{}).(Session)
+	if found && session != nil {
+		return session
+	}
+	return db
 }
 
 // Prepare 作用同 sql.DB 的 Prepare 方法。
@@ -197,6 +204,11 @@ func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *s
 	return stmt.QueryRowContext(ctx, args...)
 }
 
+func (db *DB) Close() error {
+	db.cache.Close()
+	return db.db.Close()
+}
+
 func (db *DB) Begin() (*Tx, error) {
 	return db.BeginTx(context.Background(), nil)
 }
@@ -223,6 +235,10 @@ type Tx struct {
 
 func (tx *Tx) Tx() *sql.Tx {
 	return tx.tx
+}
+
+func (tx *Tx) Session(ctx context.Context) Session {
+	return tx
 }
 
 // Prepare 作用同 sql.Tx 的 Prepare 方法。
@@ -281,6 +297,10 @@ func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *s
 		return nil
 	}
 	return stmt.QueryRowContext(ctx, args...)
+}
+
+func (tx *Tx) Context(ctx context.Context) context.Context {
+	return context.WithValue(ctx, sessionKey{}, tx)
 }
 
 func (tx *Tx) Commit() error {

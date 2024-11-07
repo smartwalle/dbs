@@ -57,6 +57,14 @@ func (p *Proxy) Slaves() []Database {
 	return p.slaves
 }
 
+func (p *Proxy) Session(ctx context.Context) Session {
+	var session, found = ctx.Value(sessionKey{}).(Session)
+	if found && session != nil {
+		return session
+	}
+	return p
+}
+
 func (p *Proxy) Prepare(query string) (*sql.Stmt, error) {
 	return p.PrepareContext(context.Background(), query)
 }
@@ -102,9 +110,13 @@ func (p *Proxy) QueryRowContext(ctx context.Context, query string, args ...any) 
 }
 
 func (p *Proxy) Close() error {
-	p.master.Close()
+	if err := p.master.Close(); err != nil {
+		return err
+	}
 	for _, slave := range p.slaves {
-		slave.Close()
+		if err := slave.Close(); err != nil {
+			return err
+		}
 	}
 	return nil
 }

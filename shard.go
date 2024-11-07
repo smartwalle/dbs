@@ -37,6 +37,14 @@ func (s *Shard) Shards() []Database {
 	return s.shards
 }
 
+func (s *Shard) Session(ctx context.Context) Session {
+	var session, found = ctx.Value(sessionKey{}).(Session)
+	if found && session != nil {
+		return session
+	}
+	return s
+}
+
 func (s *Shard) Prepare(query string) (*sql.Stmt, error) {
 	return s.PrepareContext(context.Background(), query)
 }
@@ -71,7 +79,9 @@ func (s *Shard) QueryRowContext(ctx context.Context, query string, args ...any) 
 
 func (s *Shard) Close() error {
 	for _, db := range s.shards {
-		db.Close()
+		if err := db.Close(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
