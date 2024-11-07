@@ -26,18 +26,20 @@ type structDescriptor struct {
 func (s structDescriptor) Field(parent reflect.Value, columnType *sql.ColumnType) reflect.Value {
 	var columnName = columnType.Name()
 
-	field, exists := s.Fields[columnName]
-	if exists {
+	field, found := s.Fields[columnName]
+	if found {
 		return fieldByIndex(parent, field.Index).Addr()
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	value, exists := s.UnknownFields[columnName]
-	if !exists {
-		value = reflect.New(columnType.ScanType())
-		s.UnknownFields[columnName] = value
+	value, found := s.UnknownFields[columnName]
+	if !found {
+		s.mu.Lock()
+		value, found = s.UnknownFields[columnName]
+		if !found {
+			value = reflect.New(columnType.ScanType())
+			s.UnknownFields[columnName] = value
+		}
+		s.mu.Unlock()
 	}
 	return value
 }
