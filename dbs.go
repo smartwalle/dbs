@@ -299,7 +299,7 @@ func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *s
 	return stmt.QueryRowContext(ctx, args...)
 }
 
-func (tx *Tx) Context(ctx context.Context) context.Context {
+func (tx *Tx) NewContext(ctx context.Context) context.Context {
 	return context.WithValue(ctx, sessionKey{}, tx)
 }
 
