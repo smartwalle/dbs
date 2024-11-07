@@ -24,32 +24,12 @@ func postgresql() {
 		fmt.Println("连接数据库出错：", err)
 		return
 	}
-	dbs.UsePlaceholder(dbs.DollarPlaceholder)
 
 	var ndb = dbs.New(db)
 	defer ndb.Close()
 
 	//m1(ndb)
 	m2(ndb)
-}
-
-func m1(db *dbs.DB) {
-	fmt.Println("------m1")
-	var sb = dbs.NewSelectBuilder()
-	sb.Selects("id", "email", "status", "created_at", "updated_at")
-	sb.From("mail")
-	sb.Limit(10)
-	sb.OrderBy("id")
-
-	var mails []Mail
-	if err := sb.Scan(db, &mails); err != nil {
-		fmt.Println("查询发生错误:", err)
-		os.Exit(-1)
-	}
-
-	for _, mail := range mails {
-		fmt.Println(mail.Id, mail.Email, mail.Status, mail.CreatedAt, mail.UpdatedAt)
-	}
 }
 
 func m2(db *dbs.DB) {
