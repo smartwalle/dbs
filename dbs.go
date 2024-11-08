@@ -14,7 +14,7 @@ var ErrTxDone = sql.ErrTxDone
 var ErrStmtExists = errors.New("statement exists")
 
 type Session interface {
-	Session(ctx context.Context) Session
+	FromContext(ctx context.Context) Session
 
 	Prepare(query string) (*sql.Stmt, error)
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
@@ -93,7 +93,7 @@ func (db *DB) PingContext(ctx context.Context) error {
 	return db.db.PingContext(ctx)
 }
 
-func (db *DB) Session(ctx context.Context) Session {
+func (db *DB) FromContext(ctx context.Context) Session {
 	var session, found = ctx.Value(sessionKey{}).(Session)
 	if found && session != nil {
 		return session
@@ -237,7 +237,7 @@ func (tx *Tx) Tx() *sql.Tx {
 	return tx.tx
 }
 
-func (tx *Tx) Session(ctx context.Context) Session {
+func (tx *Tx) FromContext(ctx context.Context) Session {
 	return tx
 }
 
@@ -299,7 +299,7 @@ func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *s
 	return stmt.QueryRowContext(ctx, args...)
 }
 
-func (tx *Tx) NewContext(ctx context.Context) context.Context {
+func (tx *Tx) ToContext(ctx context.Context) context.Context {
 	return context.WithValue(ctx, sessionKey{}, tx)
 }
 

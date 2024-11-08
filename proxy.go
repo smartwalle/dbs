@@ -57,7 +57,7 @@ func (p *Proxy) Slaves() []Database {
 	return p.slaves
 }
 
-func (p *Proxy) Session(ctx context.Context) Session {
+func (p *Proxy) FromContext(ctx context.Context) Session {
 	var session, found = ctx.Value(sessionKey{}).(Session)
 	if found && session != nil {
 		return session
