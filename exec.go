@@ -3,6 +3,7 @@ package dbs
 import (
 	"context"
 	"database/sql"
+	"errors"
 )
 
 var gScanner Scanner = NewScanner(kTag)
@@ -14,8 +15,10 @@ func UseScanner(s Scanner) {
 }
 
 func Scan[T any](rows *sql.Rows) (dst T, err error) {
-	err = gScanner.Scan(rows, &dst)
-	return dst, err
+	if err = gScanner.Scan(rows, &dst); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return dst, err
+	}
+	return dst, nil
 }
 
 func Query[T any](ctx context.Context, session Session, query string, args ...interface{}) (dst T, err error) {
@@ -25,8 +28,10 @@ func Query[T any](ctx context.Context, session Session, query string, args ...in
 	}
 	defer rows.Close()
 
-	err = gScanner.Scan(rows, &dst)
-	return dst, err
+	if err = gScanner.Scan(rows, &dst); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return dst, err
+	}
+	return dst, nil
 }
 
 func Exec(ctx context.Context, session Session, query string, args ...interface{}) (result sql.Result, err error) {
