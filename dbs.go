@@ -47,8 +47,8 @@ type Transaction interface {
 	Commit() error
 }
 
-func Open(driver, url string, maxOpen, maxIdle int) (db *sql.DB, err error) {
-	db, err = sql.Open(driver, url)
+func Open(driver, url string, maxOpen, maxIdle int) (*DB, error) {
+	db, err := sql.Open(driver, url)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func Open(driver, url string, maxOpen, maxIdle int) (db *sql.DB, err error) {
 
 	db.SetMaxIdleConns(maxIdle)
 	db.SetMaxOpenConns(maxOpen)
-	return db, err
+	return New(db), err
 }
 
 func New(db *sql.DB) *DB {

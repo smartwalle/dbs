@@ -122,7 +122,7 @@ func (s *scanner) scanOne(rows *sql.Rows, columnTypes []*sql.ColumnType, dstType
 		values[0] = dstValue.Addr().Interface()
 		return rows.Scan(values...)
 	default:
-		return fmt.Errorf("%s not support", dstType.Kind())
+		return fmt.Errorf("%s is unsupported", dstType.Kind())
 	}
 	return nil
 }
@@ -191,7 +191,7 @@ func (s *scanner) scanSlice(rows *sql.Rows, columnTypes []*sql.ColumnType, dstTy
 			dstValue.Set(reflect.Append(dstValue, nList...))
 		}
 	default:
-		return fmt.Errorf("%s not support", dstType.Kind())
+		return fmt.Errorf("%s is unsupported", dstType.Kind())
 	}
 	return nil
 }
