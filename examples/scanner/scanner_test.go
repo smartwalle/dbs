@@ -10,8 +10,12 @@ import (
 	"time"
 )
 
+type Base struct {
+	Id int32 `sql:"id"`
+}
+
 type Mail struct {
-	Id        int32      `sql:"id"`
+	Base
 	Email     string     `sql:"email"`
 	Status    string     `sql:"status"`
 	CreatedAt *time.Time `sql:"created_at"`

@@ -107,7 +107,6 @@ func (s *scanner) scanOne(rows *sql.Rows, columnTypes []*sql.ColumnType, dstType
 
 	dstType, dstValue = base(dstType, dstValue)
 
-	var values = make([]interface{}, len(columnTypes))
 	switch dstType.Kind() {
 	case reflect.Struct:
 		var dStruct, ok = s.getStructDescriptor(dstType)
@@ -119,8 +118,7 @@ func (s *scanner) scanOne(rows *sql.Rows, columnTypes []*sql.ColumnType, dstType
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 		reflect.Float32, reflect.Float64,
 		reflect.String:
-		values[0] = dstValue.Addr().Interface()
-		return rows.Scan(values...)
+		return rows.Scan(dstValue.Addr().Interface())
 	default:
 		return fmt.Errorf("%s is unsupported", dstType.Kind())
 	}
@@ -170,14 +168,11 @@ func (s *scanner) scanSlice(rows *sql.Rows, columnTypes []*sql.ColumnType, dstTy
 		reflect.Float32, reflect.Float64,
 		reflect.String:
 		var nList = make([]reflect.Value, 0, 20)
-		var values = make([]interface{}, 1)
 		for rows.Next() {
 			var nPointer = reflect.New(dstType)
 			var nValue = reflect.Indirect(nPointer)
 
-			values[0] = nPointer.Interface()
-
-			if err := rows.Scan(values...); err != nil {
+			if err := rows.Scan(nPointer.Interface()); err != nil {
 				return err
 			}
 
