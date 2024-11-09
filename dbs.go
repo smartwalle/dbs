@@ -106,15 +106,10 @@ func (db *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, erro
 	return db.db.PrepareContext(ctx, query)
 }
 
-// PrepareStatement 使用参数 query 创建一个预处理语句(sql.Stmt)并将其缓存，后续可以使用 key 获取该预处理语句。
+// PrepareStatement 使用参数 query 创建一个预处理语句(sql.Stmt)并将其缓存，后续可以使用 key 使用该预处理语句。
 //
 //	var db = dbs.New(...)
 //	db.PrepareStatement(ctx, "key", "SELECT ...")
-//
-//	var stmt, _ = db.Statement(ctx, "key")
-//	stmt.QueryContext(ctx, "参数1", "参数2")
-//
-// 或者
 //
 //	db.QueryContext(ctx, "key", "参数1", "参数2")
 func (db *DB) PrepareStatement(ctx context.Context, key, query string) error {
