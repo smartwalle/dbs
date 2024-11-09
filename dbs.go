@@ -3,15 +3,11 @@ package dbs
 import (
 	"context"
 	"database/sql"
-	"errors"
-	"github.com/smartwalle/dbc"
-	"github.com/smartwalle/nsync/singleflight"
-	"time"
+	"sync"
 )
 
 var ErrNoRows = sql.ErrNoRows
 var ErrTxDone = sql.ErrTxDone
-var ErrStmtExists = errors.New("statement exists")
 
 type Session interface {
 	FromContext(ctx context.Context) Session
@@ -65,20 +61,15 @@ func Open(driver, url string, maxOpen, maxIdle int) (*DB, error) {
 func New(db *sql.DB) *DB {
 	var ndb = &DB{}
 	ndb.db = db
-	ndb.cache = dbc.New[*sql.Stmt](dbc.WithHitTTL(60))
-	ndb.cache.OnEvicted(func(key string, stmt *sql.Stmt) {
-		if stmt != nil {
-			stmt.Close()
-		}
-	})
-	ndb.flight = singleflight.NewGroup[string, *sql.Stmt]()
+	ndb.mu = &sync.RWMutex{}
+	ndb.stmts = make(map[string]*Stmt)
 	return ndb
 }
 
 type DB struct {
-	db     *sql.DB
-	cache  dbc.Cache[string, *sql.Stmt]
-	flight singleflight.Group[string, *sql.Stmt]
+	db    *sql.DB
+	mu    *sync.RWMutex
+	stmts map[string]*Stmt
 }
 
 func (db *DB) DB() *sql.DB {
@@ -127,45 +118,80 @@ func (db *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, erro
 //
 //	db.QueryContext(ctx, "key", "参数1", "参数2")
 func (db *DB) PrepareStatement(ctx context.Context, key, query string) error {
-	if found := db.cache.Exists(key); found {
-		return ErrStmtExists
-	}
-	var _, err = db.flight.Do(key, func(key string) (*sql.Stmt, error) {
-		stmt, err := db.db.PrepareContext(ctx, query)
-		if err != nil {
-			return nil, err
-		}
-		db.cache.Set(key, stmt)
-		return stmt, nil
-	})
+	_, err := db.prepareStatement(ctx, key, query)
 	return err
+}
+
+func (db *DB) prepareStatement(ctx context.Context, key, query string) (*sql.Stmt, error) {
+	db.mu.RLock()
+	if stmt, found := db.stmts[key]; found {
+		db.mu.RUnlock()
+		<-stmt.done
+		if stmt.err != nil {
+			return nil, stmt.err
+		}
+		return stmt.stmt, nil
+	}
+	db.mu.RUnlock()
+
+	db.mu.Lock()
+	if stmt, found := db.stmts[key]; found {
+		db.mu.Unlock()
+		<-stmt.done
+		if stmt.err != nil {
+			return nil, stmt.err
+		}
+		return stmt.stmt, nil
+	}
+
+	var stmt = &Stmt{done: make(chan struct{})}
+	db.stmts[key] = stmt
+	db.mu.Unlock()
+
+	defer close(stmt.done)
+
+	nStmt, err := db.db.PrepareContext(ctx, query)
+	if err != nil {
+		stmt.err = err
+		db.mu.Lock()
+		delete(db.stmts, key)
+		db.mu.Unlock()
+		return nil, err
+	}
+	db.mu.Lock()
+	stmt.stmt = nStmt
+	db.mu.Unlock()
+	return nStmt, nil
 }
 
 // RevokeStatement 废弃已缓存的预处理语句(sql.Stmt)。
 func (db *DB) RevokeStatement(key string) {
-	db.cache.Del(key)
+	db.mu.RLock()
+	var stmt, found = db.stmts[key]
+	db.mu.RUnlock()
+
+	if found {
+		<-stmt.done
+		db.removeStatement(key, stmt.stmt)
+	}
 }
 
-// Statement 使用参数 query 获取已经缓存的预处理语句(sql.Stmt)。
+func (db *DB) removeStatement(key string, stmt *sql.Stmt) {
+	db.mu.Lock()
+	if stmt != nil {
+		go stmt.Close()
+	}
+	delete(db.stmts, key)
+	db.mu.Unlock()
+}
+
+// statement 使用参数 query 获取已经缓存的预处理语句(sql.Stmt)。
 //
 // 两种情况：
 //   - 缓存中若存在，则直接返回；
 //   - 缓存中不存在，则根据 query 参数创建一个预处理语句并将其缓存；
-//
-// 注意：一般不需要直接调用本方法获取预处理语句, 本方法主要是供本结构体的 ExecContext 和 QueryContext 方法使用。
-// 如果有从本方法获取预处理语句，不再使用之后不能调用其 Close 方法。
-func (db *DB) Statement(ctx context.Context, query string) (*sql.Stmt, error) {
-	if stmt, found := db.cache.Get(query); found {
-		return stmt, nil
-	}
-	return db.flight.Do(query, func(key string) (*sql.Stmt, error) {
-		stmt, err := db.db.PrepareContext(ctx, key)
-		if err != nil {
-			return nil, err
-		}
-		db.cache.SetEx(key, stmt, time.Now().Add(time.Minute*30).Unix())
-		return stmt, nil
-	})
+func (db *DB) statement(ctx context.Context, query string) (*sql.Stmt, error) {
+	return db.prepareStatement(ctx, query, query)
 }
 
 func (db *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
@@ -173,11 +199,15 @@ func (db *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
 }
 
 func (db *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	stmt, err := db.Statement(ctx, query)
+	stmt, err := db.statement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
-	return stmt.ExecContext(ctx, args...)
+	result, err := stmt.ExecContext(ctx, args...)
+	if err != nil {
+		db.removeStatement(query, stmt)
+	}
+	return result, err
 }
 
 func (db *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
@@ -185,11 +215,15 @@ func (db *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
 }
 
 func (db *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	stmt, err := db.Statement(ctx, query)
+	stmt, err := db.statement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
-	return stmt.QueryContext(ctx, args...)
+	rows, err := stmt.QueryContext(ctx, args...)
+	if err != nil {
+		db.removeStatement(query, stmt)
+	}
+	return rows, err
 }
 
 func (db *DB) QueryRow(query string, args ...any) *sql.Row {
@@ -197,15 +231,18 @@ func (db *DB) QueryRow(query string, args ...any) *sql.Row {
 }
 
 func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
-	stmt, err := db.Statement(ctx, query)
+	stmt, err := db.statement(ctx, query)
 	if err != nil {
 		return nil
 	}
-	return stmt.QueryRowContext(ctx, args...)
+	row := stmt.QueryRowContext(ctx, args...)
+	if row.Err() != nil {
+		db.removeStatement(query, stmt)
+	}
+	return row
 }
 
 func (db *DB) Close() error {
-	db.cache.Close()
 	return db.db.Close()
 }
 
@@ -220,17 +257,13 @@ func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
 	}
 	var nTx = &Tx{}
 	nTx.tx = tx
-	nTx.preparer = db
+	nTx.db = db
 	return nTx, nil
 }
 
-type Preparer interface {
-	Statement(ctx context.Context, query string) (*sql.Stmt, error)
-}
-
 type Tx struct {
-	tx       *sql.Tx
-	preparer Preparer
+	tx *sql.Tx
+	db *DB
 }
 
 func (tx *Tx) Tx() *sql.Tx {
@@ -256,7 +289,7 @@ func (tx *Tx) PrepareContext(ctx context.Context, query string) (*sql.Stmt, erro
 }
 
 func (tx *Tx) Statement(ctx context.Context, query string) (*sql.Stmt, error) {
-	var stmt, err = tx.preparer.Statement(ctx, query)
+	var stmt, err = tx.db.statement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +305,11 @@ func (tx *Tx) ExecContext(ctx context.Context, query string, args ...interface{}
 	if err != nil {
 		return nil, err
 	}
-	return stmt.ExecContext(ctx, args...)
+	result, err := stmt.ExecContext(ctx, args...)
+	if err != nil {
+		tx.db.removeStatement(query, stmt)
+	}
+	return result, err
 }
 
 func (tx *Tx) Query(query string, args ...interface{}) (*sql.Rows, error) {
@@ -284,7 +321,11 @@ func (tx *Tx) QueryContext(ctx context.Context, query string, args ...interface{
 	if err != nil {
 		return nil, err
 	}
-	return stmt.QueryContext(ctx, args...)
+	rows, err := stmt.QueryContext(ctx, args...)
+	if err != nil {
+		tx.db.removeStatement(query, stmt)
+	}
+	return rows, err
 }
 
 func (tx *Tx) QueryRow(query string, args ...any) *sql.Row {
@@ -296,7 +337,11 @@ func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *s
 	if err != nil {
 		return nil
 	}
-	return stmt.QueryRowContext(ctx, args...)
+	row := stmt.QueryRowContext(ctx, args...)
+	if row.Err() != nil {
+		tx.db.removeStatement(query, stmt)
+	}
+	return row
 }
 
 func (tx *Tx) ToContext(ctx context.Context) context.Context {
