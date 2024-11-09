@@ -3,6 +3,7 @@ package dbs
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -70,6 +71,11 @@ func (s *scanner) Scan(rows *sql.Rows, dst interface{}) error {
 		return err
 	}
 
+	columnTypes, err := rows.ColumnTypes()
+	if err != nil {
+		return err
+	}
+
 	var dstValue = reflect.ValueOf(dst)
 	var dstType = dstValue.Type()
 
@@ -89,19 +95,14 @@ func (s *scanner) Scan(rows *sql.Rows, dst interface{}) error {
 	}
 
 	if isSlice {
-		return s.slice(rows, dstType, dstValue)
+		return s.scanSlice(rows, columnTypes, dstType, dstValue)
 	}
-	return s.one(rows, dstType, dstValue)
+	return s.scanOne(rows, columnTypes, dstType, dstValue)
 }
 
-func (s *scanner) one(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
+func (s *scanner) scanOne(rows *sql.Rows, columnTypes []*sql.ColumnType, dstType reflect.Type, dstValue reflect.Value) error {
 	if !rows.Next() {
 		return sql.ErrNoRows
-	}
-
-	columnTypes, err := rows.ColumnTypes()
-	if err != nil {
-		return err
 	}
 
 	dstType, dstValue = base(dstType, dstValue)
@@ -113,21 +114,19 @@ func (s *scanner) one(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Val
 		if !ok {
 			dStruct = s.parseStructDescriptor(dstType)
 		}
-		for idx, columnType := range columnTypes {
-			values[idx] = dStruct.Field(dstValue, columnType).Interface()
-		}
-	default:
+		return s.scanIntoStruct(rows, columnTypes, dStruct, dstValue)
+	case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
+		reflect.Float32, reflect.Float64:
 		values[0] = dstValue.Addr().Interface()
+		return rows.Scan(values...)
+	default:
+		return fmt.Errorf("%s not support", dstType.Kind())
 	}
-	return rows.Scan(values...)
+	return nil
 }
 
-func (s *scanner) slice(rows *sql.Rows, dstType reflect.Type, dstValue reflect.Value) error {
-	columnTypes, err := rows.ColumnTypes()
-	if err != nil {
-		return err
-	}
-
+func (s *scanner) scanSlice(rows *sql.Rows, columnTypes []*sql.ColumnType, dstType reflect.Type, dstValue reflect.Value) error {
 	dstType, dstValue = base(dstType, dstValue)
 
 	// 获取 slice 元素类型
@@ -140,23 +139,19 @@ func (s *scanner) slice(rows *sql.Rows, dstType reflect.Type, dstValue reflect.V
 		dstType = dstType.Elem()
 	}
 
-	var nList = make([]reflect.Value, 0, 20)
 	switch dstType.Kind() {
 	case reflect.Struct:
 		var dStruct, ok = s.getStructDescriptor(dstType)
 		if !ok {
 			dStruct = s.parseStructDescriptor(dstType)
 		}
-		var values = make([]interface{}, len(columnTypes))
+
+		var nList = make([]reflect.Value, 0, 20)
 		for rows.Next() {
 			var nPointer = reflect.New(dstType)
 			var nValue = reflect.Indirect(nPointer)
 
-			for idx, columnType := range columnTypes {
-				values[idx] = dStruct.Field(nValue, columnType).Interface()
-			}
-
-			if err = rows.Scan(values...); err != nil {
+			if err := s.scanIntoStruct(rows, columnTypes, dStruct, nValue); err != nil {
 				return err
 			}
 
@@ -166,7 +161,13 @@ func (s *scanner) slice(rows *sql.Rows, dstType reflect.Type, dstValue reflect.V
 				nList = append(nList, nValue)
 			}
 		}
-	default:
+		if len(nList) > 0 {
+			dstValue.Set(reflect.Append(dstValue, nList...))
+		}
+	case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
+		reflect.Float32, reflect.Float64:
+		var nList = make([]reflect.Value, 0, 20)
 		var values = make([]interface{}, 1)
 		for rows.Next() {
 			var nPointer = reflect.New(dstType)
@@ -174,7 +175,7 @@ func (s *scanner) slice(rows *sql.Rows, dstType reflect.Type, dstValue reflect.V
 
 			values[0] = nPointer.Interface()
 
-			if err = rows.Scan(values...); err != nil {
+			if err := rows.Scan(values...); err != nil {
 				return err
 			}
 
@@ -184,10 +185,31 @@ func (s *scanner) slice(rows *sql.Rows, dstType reflect.Type, dstValue reflect.V
 				nList = append(nList, nValue)
 			}
 		}
+		if len(nList) > 0 {
+			dstValue.Set(reflect.Append(dstValue, nList...))
+		}
+	default:
+		return fmt.Errorf("%s not support", dstType.Kind())
+	}
+	return nil
+}
+
+func (s *scanner) scanIntoStruct(rows *sql.Rows, columnTypes []*sql.ColumnType, dStruct structDescriptor, dstValue reflect.Value) error {
+	var values = make([]interface{}, len(columnTypes))
+
+	for idx, columnType := range columnTypes {
+		values[idx] = reflect.New(dStruct.Field(dstValue, columnType).Type()).Interface()
 	}
 
-	if len(nList) > 0 {
-		dstValue.Set(reflect.Append(dstValue, nList...))
+	if err := rows.Scan(values...); err != nil {
+		return err
+	}
+
+	for idx, columnType := range columnTypes {
+		var value = reflect.ValueOf(values[idx]).Elem().Elem()
+		if value.IsValid() {
+			dStruct.Field(dstValue, columnType).Elem().Set(value)
+		}
 	}
 	return nil
 }
