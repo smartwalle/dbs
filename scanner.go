@@ -87,13 +87,12 @@ func (s *scanner) Scan(rows *sql.Rows, dst interface{}) error {
 		return errors.New("nil pointer passed")
 	}
 
-	var isSlice bool
-	if dstType.Kind() == reflect.Ptr {
-		isSlice = dstType.Elem().Kind() == reflect.Slice
-	} else {
-		isSlice = dstType.Kind() == reflect.Slice
+	var realType = dstType
+	for realType.Kind() == reflect.Ptr {
+		realType = realType.Elem()
 	}
 
+	var isSlice = realType.Kind() == reflect.Slice
 	if isSlice {
 		return s.scanSlice(rows, columnTypes, dstType, dstValue)
 	}

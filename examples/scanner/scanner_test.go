@@ -48,6 +48,18 @@ func Test_PointerSlice(t *testing.T) {
 	}
 }
 
+func Test_PointerSlicePointer(t *testing.T) {
+	t.Log("-----*[]*Mail-----")
+
+	mails, err := dbs.Query[*[]*Mail](context.Background(), db, "SELECT * FROM mail")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, mail := range *mails {
+		t.Logf("指针切片指针: %+v \n", mail)
+	}
+}
+
 func Test_StructSlice(t *testing.T) {
 	t.Log("-----[]Mial-----")
 
@@ -57,6 +69,18 @@ func Test_StructSlice(t *testing.T) {
 	}
 	for _, mail := range mails {
 		t.Logf("结构体切片: %+v \n", mail)
+	}
+}
+
+func Test_StructSlicePointer(t *testing.T) {
+	t.Log("-----*[]Mial-----")
+
+	mails, err := dbs.Query[*[]Mail](context.Background(), db, "SELECT * FROM mail")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, mail := range *mails {
+		t.Logf("结构体切片指针: %+v \n", mail)
 	}
 }
 
@@ -78,7 +102,7 @@ func Test_Struct(t *testing.T) {
 	t.Logf("结构体: %+v \n", mail)
 }
 
-func Test_int64(t *testing.T) {
+func Test_Int64(t *testing.T) {
 	t.Log("-----int64-----")
 	id, err := dbs.Query[int64](context.Background(), db, "SELECT id FROM mail WHERE email = $1", "qq@qq.com")
 	if err != nil {
@@ -87,8 +111,17 @@ func Test_int64(t *testing.T) {
 	t.Logf("int64: %+v \n", id)
 }
 
-func Test_int64Slice(t *testing.T) {
-	t.Log("-----int64 slice-----")
+func Test_Int64Pointer(t *testing.T) {
+	t.Log("-----*int64-----")
+	id, err := dbs.Query[*int64](context.Background(), db, "SELECT id FROM mail WHERE email = $1", "qq@qq.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("int64: %+v \n", *id)
+}
+
+func Test_Int64Slice(t *testing.T) {
+	t.Log("-----[]int64-----")
 	ids, err := dbs.Query[[]int64](context.Background(), db, "SELECT id FROM mail")
 	if err != nil {
 		t.Fatal(err)
@@ -96,7 +129,16 @@ func Test_int64Slice(t *testing.T) {
 	t.Logf("int64 slice: %+v \n", ids)
 }
 
-func Test_string(t *testing.T) {
+func Test_Int64SlicePointer(t *testing.T) {
+	t.Log("-----*[]int64-----")
+	ids, err := dbs.Query[*[]int64](context.Background(), db, "SELECT id FROM mail")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("int64 slice: %+v \n", ids)
+}
+
+func Test_String(t *testing.T) {
 	t.Log("-----string-----")
 	email, err := dbs.Query[string](context.Background(), db, "SELECT email FROM mail WHERE email = $1", "qq@qq.com")
 	if err != nil {
@@ -105,9 +147,27 @@ func Test_string(t *testing.T) {
 	t.Logf("string: %+v \n", email)
 }
 
-func Test_stringSlice(t *testing.T) {
-	t.Log("-----string slice-----")
-	emails, err := dbs.Query[[]string](context.Background(), db, "SELECT email FROM mail")
+func Test_StringPointer(t *testing.T) {
+	t.Log("-----*string-----")
+	email, err := dbs.Query[*string](context.Background(), db, "SELECT email FROM mail WHERE email = $1", "qq@qq.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("string: %+v \n", *email)
+}
+
+func Test_StringSlice(t *testing.T) {
+	t.Log("-----[]string-----")
+	emails, err := dbs.Query[[]string](context.Background(), db, "SELECT status FROM mail")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("string: %+v \n", emails)
+}
+
+func Test_StringSlicePointer(t *testing.T) {
+	t.Log("-----*[]string-----")
+	emails, err := dbs.Query[*[]string](context.Background(), db, "SELECT status FROM mail")
 	if err != nil {
 		t.Fatal(err)
 	}
