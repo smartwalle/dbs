@@ -118,7 +118,14 @@ func (s *scanner) scanOne(rows *sql.Rows, columnTypes []*sql.ColumnType, dstType
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 		reflect.Float32, reflect.Float64,
 		reflect.String:
-		return rows.Scan(dstValue.Addr().Interface())
+		var nPointer = reflect.New(reflect.PointerTo(dstType))
+		if err := rows.Scan(nPointer.Interface()); err != nil {
+			return err
+		}
+		var nValue = nPointer.Elem().Elem()
+		if nValue.IsValid() {
+			dstValue.Set(nValue)
+		}
 	default:
 		return fmt.Errorf("%s is unsupported", dstType.Kind())
 	}
@@ -169,17 +176,17 @@ func (s *scanner) scanSlice(rows *sql.Rows, columnTypes []*sql.ColumnType, dstTy
 		reflect.String:
 		var nList = make([]reflect.Value, 0, 20)
 		for rows.Next() {
-			var nPointer = reflect.New(dstType)
-			var nValue = reflect.Indirect(nPointer)
-
+			var nPointer = reflect.New(reflect.PointerTo(dstType))
 			if err := rows.Scan(nPointer.Interface()); err != nil {
 				return err
 			}
-
-			if isPointer {
-				nList = append(nList, nPointer)
-			} else {
-				nList = append(nList, nValue)
+			var nValue = nPointer.Elem().Elem()
+			if nValue.IsValid() {
+				if isPointer {
+					nList = append(nList, nPointer.Elem())
+				} else {
+					nList = append(nList, nValue)
+				}
 			}
 		}
 		if len(nList) > 0 {
