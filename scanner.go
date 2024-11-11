@@ -15,35 +15,62 @@ const (
 )
 
 type fieldDescriptor struct {
-	Index []int
+	Mock     bool
+	Index    []int
+	Type     reflect.Type
+	TypePool *sync.Pool
 }
 
 type structDescriptor struct {
-	mu            *sync.Mutex
-	Fields        map[string]fieldDescriptor
-	UnknownFields map[string]reflect.Value
+	mu     *sync.RWMutex
+	fields map[string]fieldDescriptor
 }
 
-func (s structDescriptor) Field(parent reflect.Value, columnType *sql.ColumnType) reflect.Value {
+func (s structDescriptor) Field(columnType *sql.ColumnType) fieldDescriptor {
 	var columnName = columnType.Name()
 
-	field, found := s.Fields[columnName]
+	s.mu.RLock()
+	field, found := s.fields[columnName]
 	if found {
-		return fieldByIndex(parent, field.Index).Addr()
+		s.mu.RUnlock()
+		return field
 	}
+	s.mu.RUnlock()
 
-	value, found := s.UnknownFields[columnName]
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	field, found = s.fields[columnName]
 	if !found {
-		s.mu.Lock()
-		value, found = s.UnknownFields[columnName]
-		if !found {
-			value = reflect.New(columnType.ScanType())
-			s.UnknownFields[columnName] = value
+		field = fieldDescriptor{
+			Mock:     true,
+			Type:     columnType.ScanType(),
+			TypePool: getTypePool(columnType.ScanType()),
 		}
-		s.mu.Unlock()
+		s.fields[columnName] = field
 	}
-	return value
+	return field
 }
+
+//func (s structDescriptor) Field(parent reflect.Value, columnType *sql.ColumnType) reflect.Value {
+//	var columnName = columnType.Name()
+//
+//	field, found := s.Fields[columnName]
+//	if found {
+//		return fieldByIndex(parent, field.Index).Addr()
+//	}
+//
+//	value, found := s.UnknownFields[columnName]
+//	if !found {
+//		s.mu.Lock()
+//		value, found = s.UnknownFields[columnName]
+//		if !found {
+//			value = reflect.New(columnType.ScanType())
+//			s.UnknownFields[columnName] = value
+//		}
+//		s.mu.Unlock()
+//	}
+//	return value
+//}
 
 type Scanner interface {
 	Scan(rows *sql.Rows, dst interface{}) error
@@ -112,7 +139,20 @@ func (s *scanner) scanOne(rows *sql.Rows, columnTypes []*sql.ColumnType, dstType
 		if !ok {
 			dStruct = s.parseStructDescriptor(dstType)
 		}
-		return s.scanIntoStruct(rows, columnTypes, dStruct, dstValue)
+		var fields = make([]fieldDescriptor, len(columnTypes))
+		var values = make([]interface{}, len(columnTypes))
+		for idx, columnType := range columnTypes {
+			var field = dStruct.Field(columnType)
+			fields[idx] = field
+			values[idx] = field.TypePool.Get()
+		}
+		defer func() {
+			for idx, value := range values {
+				fields[idx].TypePool.Put(value)
+			}
+		}()
+
+		return s.scanIntoStruct(rows, columnTypes, fields, values, dstValue)
 	case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 		reflect.Float32, reflect.Float64,
@@ -151,12 +191,25 @@ func (s *scanner) scanSlice(rows *sql.Rows, columnTypes []*sql.ColumnType, dstTy
 			dStruct = s.parseStructDescriptor(dstType)
 		}
 
+		var fields = make([]fieldDescriptor, len(columnTypes))
+		var values = make([]interface{}, len(columnTypes))
+		for idx, columnType := range columnTypes {
+			var field = dStruct.Field(columnType)
+			fields[idx] = field
+			values[idx] = field.TypePool.Get()
+		}
+		defer func() {
+			for idx, value := range values {
+				fields[idx].TypePool.Put(value)
+			}
+		}()
+
 		var nList = make([]reflect.Value, 0, 20)
 		for rows.Next() {
 			var nPointer = reflect.New(dstType)
 			var nValue = reflect.Indirect(nPointer)
 
-			if err := s.scanIntoStruct(rows, columnTypes, dStruct, nValue); err != nil {
+			if err := s.scanIntoStruct(rows, columnTypes, fields, values, nValue); err != nil {
 				return err
 			}
 
@@ -166,6 +219,7 @@ func (s *scanner) scanSlice(rows *sql.Rows, columnTypes []*sql.ColumnType, dstTy
 				nList = append(nList, nValue)
 			}
 		}
+
 		if len(nList) > 0 {
 			dstValue.Set(reflect.Append(dstValue, nList...))
 		}
@@ -197,21 +251,18 @@ func (s *scanner) scanSlice(rows *sql.Rows, columnTypes []*sql.ColumnType, dstTy
 	return nil
 }
 
-func (s *scanner) scanIntoStruct(rows *sql.Rows, columnTypes []*sql.ColumnType, dStruct structDescriptor, dstValue reflect.Value) error {
-	var values = make([]interface{}, len(columnTypes))
-
-	for idx, columnType := range columnTypes {
-		values[idx] = reflect.New(dStruct.Field(dstValue, columnType).Type()).Interface()
-	}
-
+func (s *scanner) scanIntoStruct(rows *sql.Rows, columnTypes []*sql.ColumnType, fields []fieldDescriptor, values []interface{}, dstValue reflect.Value) error {
 	if err := rows.Scan(values...); err != nil {
 		return err
 	}
 
-	for idx, columnType := range columnTypes {
-		var value = reflect.ValueOf(values[idx]).Elem().Elem()
-		if value.IsValid() {
-			dStruct.Field(dstValue, columnType).Elem().Set(value)
+	for idx := range columnTypes {
+		var field = fields[idx]
+		if !field.Mock {
+			var value = reflect.ValueOf(values[idx]).Elem().Elem()
+			if value.IsValid() {
+				fieldByIndex(dstValue, fields[idx].Index).Set(value)
+			}
 		}
 	}
 	return nil
@@ -280,7 +331,7 @@ func (s *scanner) parseStructDescriptor(dstType reflect.Type) structDescriptor {
 		return dStruct
 	}
 
-	var queue = make([]structQueueElement, 0, 3)
+	var queue = make([]structQueueElement, 0, 10)
 	queue = append(queue, structQueueElement{
 		Type:  dstType,
 		Index: nil,
@@ -327,17 +378,30 @@ func (s *scanner) parseStructDescriptor(dstType reflect.Type) structDescriptor {
 			}
 
 			var dField = fieldDescriptor{}
+			dField.Mock = false
 			dField.Index = append(current.Index, i)
+			dField.Type = fieldStruct.Type
+			dField.TypePool = getTypePool(dField.Type)
 			dFields[tag] = dField
 		}
 	}
 
-	dStruct.mu = &sync.Mutex{}
-	dStruct.Fields = dFields
-	dStruct.UnknownFields = make(map[string]reflect.Value)
+	dStruct.mu = &sync.RWMutex{}
+	dStruct.fields = dFields
 
 	s.setStructDescriptor(dstType, dStruct)
 	s.mu.Unlock()
 
 	return dStruct
+}
+
+var typePool = sync.Map{}
+
+func getTypePool(reflectType reflect.Type) *sync.Pool {
+	var pool, _ = typePool.LoadOrStore(reflectType, &sync.Pool{
+		New: func() interface{} {
+			return reflect.New(reflect.PointerTo(reflectType)).Interface()
+		},
+	})
+	return pool.(*sync.Pool)
 }
