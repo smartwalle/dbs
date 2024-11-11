@@ -15,62 +15,20 @@ const (
 )
 
 type fieldDescriptor struct {
-	Mock     bool
 	Index    []int
 	Type     reflect.Type
 	TypePool *sync.Pool
 }
 
 type structDescriptor struct {
-	mu     *sync.RWMutex
-	fields map[string]fieldDescriptor
+	fields map[string]*fieldDescriptor
 }
 
-func (s structDescriptor) Field(columnType *sql.ColumnType) fieldDescriptor {
+func (s structDescriptor) Field(columnType *sql.ColumnType) *fieldDescriptor {
 	var columnName = columnType.Name()
-
-	s.mu.RLock()
-	field, found := s.fields[columnName]
-	if found {
-		s.mu.RUnlock()
-		return field
-	}
-	s.mu.RUnlock()
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	field, found = s.fields[columnName]
-	if !found {
-		field = fieldDescriptor{
-			Mock:     true,
-			Type:     columnType.ScanType(),
-			TypePool: getTypePool(columnType.ScanType()),
-		}
-		s.fields[columnName] = field
-	}
+	var field = s.fields[columnName]
 	return field
 }
-
-//func (s structDescriptor) Field(parent reflect.Value, columnType *sql.ColumnType) reflect.Value {
-//	var columnName = columnType.Name()
-//
-//	field, found := s.Fields[columnName]
-//	if found {
-//		return fieldByIndex(parent, field.Index).Addr()
-//	}
-//
-//	value, found := s.UnknownFields[columnName]
-//	if !found {
-//		s.mu.Lock()
-//		value, found = s.UnknownFields[columnName]
-//		if !found {
-//			value = reflect.New(columnType.ScanType())
-//			s.UnknownFields[columnName] = value
-//		}
-//		s.mu.Unlock()
-//	}
-//	return value
-//}
 
 type Scanner interface {
 	Scan(rows *sql.Rows, dst interface{}) error
@@ -139,7 +97,7 @@ func (s *scanner) scanOne(rows *sql.Rows, columnTypes []*sql.ColumnType, dstType
 		if !ok {
 			dStruct = s.parseStructDescriptor(dstType)
 		}
-		var fields = make([]fieldDescriptor, len(columnTypes))
+		var fields = make([]*fieldDescriptor, len(columnTypes))
 		var values = make([]interface{}, len(columnTypes))
 		for idx, columnType := range columnTypes {
 			var field = dStruct.Field(columnType)
@@ -191,16 +149,24 @@ func (s *scanner) scanSlice(rows *sql.Rows, columnTypes []*sql.ColumnType, dstTy
 			dStruct = s.parseStructDescriptor(dstType)
 		}
 
-		var fields = make([]fieldDescriptor, len(columnTypes))
+		var fields = make([]*fieldDescriptor, len(columnTypes))
 		var values = make([]interface{}, len(columnTypes))
 		for idx, columnType := range columnTypes {
 			var field = dStruct.Field(columnType)
-			fields[idx] = field
-			values[idx] = field.TypePool.Get()
+			if field != nil {
+				fields[idx] = field
+				values[idx] = field.TypePool.Get()
+			} else {
+				var val interface{}
+				values[idx] = &val
+			}
 		}
 		defer func() {
 			for idx, value := range values {
-				fields[idx].TypePool.Put(value)
+				var field = fields[idx]
+				if field != nil {
+					fields[idx].TypePool.Put(value)
+				}
 			}
 		}()
 
@@ -251,14 +217,14 @@ func (s *scanner) scanSlice(rows *sql.Rows, columnTypes []*sql.ColumnType, dstTy
 	return nil
 }
 
-func (s *scanner) scanIntoStruct(rows *sql.Rows, columnTypes []*sql.ColumnType, fields []fieldDescriptor, values []interface{}, dstValue reflect.Value) error {
+func (s *scanner) scanIntoStruct(rows *sql.Rows, columnTypes []*sql.ColumnType, fields []*fieldDescriptor, values []interface{}, dstValue reflect.Value) error {
 	if err := rows.Scan(values...); err != nil {
 		return err
 	}
 
 	for idx := range columnTypes {
 		var field = fields[idx]
-		if !field.Mock {
+		if field != nil {
 			var value = reflect.ValueOf(values[idx]).Elem().Elem()
 			if value.IsValid() {
 				fieldByIndex(dstValue, fields[idx].Index).Set(value)
@@ -337,7 +303,7 @@ func (s *scanner) parseStructDescriptor(dstType reflect.Type) structDescriptor {
 		Index: nil,
 	})
 
-	var dFields = make(map[string]fieldDescriptor)
+	var dFields = make(map[string]*fieldDescriptor)
 
 	for len(queue) > 0 {
 		var current = queue[0]
@@ -377,16 +343,13 @@ func (s *scanner) parseStructDescriptor(dstType reflect.Type) structDescriptor {
 				continue
 			}
 
-			var dField = fieldDescriptor{}
-			dField.Mock = false
+			var dField = &fieldDescriptor{}
 			dField.Index = append(current.Index, i)
 			dField.Type = fieldStruct.Type
 			dField.TypePool = getTypePool(dField.Type)
 			dFields[tag] = dField
 		}
 	}
-
-	dStruct.mu = &sync.RWMutex{}
 	dStruct.fields = dFields
 
 	s.setStructDescriptor(dstType, dStruct)
