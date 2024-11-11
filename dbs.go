@@ -10,8 +10,6 @@ var ErrNoRows = sql.ErrNoRows
 var ErrTxDone = sql.ErrTxDone
 
 type Session interface {
-	FromContext(ctx context.Context) Session
-
 	Prepare(query string) (*sql.Stmt, error)
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
 
@@ -31,6 +29,8 @@ type Database interface {
 	Session
 
 	Close() error
+
+	Session(ctx context.Context) Session
 
 	Begin() (*Tx, error)
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error)
@@ -84,7 +84,7 @@ func (db *DB) PingContext(ctx context.Context) error {
 	return db.db.PingContext(ctx)
 }
 
-func (db *DB) FromContext(ctx context.Context) Session {
+func (db *DB) Session(ctx context.Context) Session {
 	var session, found = ctx.Value(sessionKey{}).(Session)
 	if found && session != nil {
 		return session
@@ -263,10 +263,6 @@ type Tx struct {
 
 func (tx *Tx) Tx() *sql.Tx {
 	return tx.tx
-}
-
-func (tx *Tx) FromContext(ctx context.Context) Session {
-	return tx
 }
 
 // Prepare 作用同 sql.Tx 的 Prepare 方法。

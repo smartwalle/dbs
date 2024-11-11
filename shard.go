@@ -37,7 +37,7 @@ func (s *Shard) Shards() []Database {
 	return s.shards
 }
 
-func (s *Shard) FromContext(ctx context.Context) Session {
+func (s *Shard) Session(ctx context.Context) Session {
 	var session, found = ctx.Value(sessionKey{}).(Session)
 	if found && session != nil {
 		return session
