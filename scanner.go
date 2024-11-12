@@ -14,36 +14,20 @@ const (
 	kTag   = "sql"
 )
 
-type fieldDescriptor struct {
-	Index    []int
-	Type     reflect.Type
-	TypePool *sync.Pool
-}
-
-type structDescriptor struct {
-	fields map[string]*fieldDescriptor
-}
-
-func (s structDescriptor) Field(columnType *sql.ColumnType) *fieldDescriptor {
-	var columnName = columnType.Name()
-	var field = s.fields[columnName]
-	return field
-}
-
 type Scanner interface {
 	Scan(rows *sql.Rows, dst interface{}) error
 }
 
 type scanner struct {
 	tag     string
-	structs atomic.Value // map[reflect.Type]structDescriptor
+	structs atomic.Value // map[reflect.Type]structMetadata
 	mu      sync.Mutex
 }
 
 func NewScanner(tag string) *scanner {
 	var m = &scanner{}
 	m.tag = tag
-	m.structs.Store(make(map[reflect.Type]structDescriptor))
+	m.structs.Store(make(map[reflect.Type]structMetadata))
 	return m
 }
 
@@ -93,14 +77,14 @@ func (s *scanner) scanOne(rows *sql.Rows, columnTypes []*sql.ColumnType, dstType
 
 	switch dstType.Kind() {
 	case reflect.Struct:
-		var dStruct, ok = s.getStructDescriptor(dstType)
+		var mStruct, ok = s.getStructMetadata(dstType)
 		if !ok {
-			dStruct = s.parseStructDescriptor(dstType)
+			mStruct = s.parseStruct(dstType)
 		}
-		var fields = make([]*fieldDescriptor, len(columnTypes))
+		var fields = make([]*fieldMetadata, len(columnTypes))
 		var values = make([]interface{}, len(columnTypes))
 		for idx, columnType := range columnTypes {
-			var field = dStruct.Field(columnType)
+			var field = mStruct.Field(columnType)
 			fields[idx] = field
 			values[idx] = field.TypePool.Get()
 		}
@@ -144,15 +128,15 @@ func (s *scanner) scanSlice(rows *sql.Rows, columnTypes []*sql.ColumnType, dstTy
 
 	switch dstType.Kind() {
 	case reflect.Struct:
-		var dStruct, ok = s.getStructDescriptor(dstType)
+		var mStruct, ok = s.getStructMetadata(dstType)
 		if !ok {
-			dStruct = s.parseStructDescriptor(dstType)
+			mStruct = s.parseStruct(dstType)
 		}
 
-		var fields = make([]*fieldDescriptor, len(columnTypes))
+		var fields = make([]*fieldMetadata, len(columnTypes))
 		var values = make([]interface{}, len(columnTypes))
 		for idx, columnType := range columnTypes {
-			var field = dStruct.Field(columnType)
+			var field = mStruct.Field(columnType)
 			if field != nil {
 				fields[idx] = field
 				values[idx] = field.TypePool.Get()
@@ -217,7 +201,7 @@ func (s *scanner) scanSlice(rows *sql.Rows, columnTypes []*sql.ColumnType, dstTy
 	return nil
 }
 
-func (s *scanner) scanIntoStruct(rows *sql.Rows, columnTypes []*sql.ColumnType, fields []*fieldDescriptor, values []interface{}, dstValue reflect.Value) error {
+func (s *scanner) scanIntoStruct(rows *sql.Rows, columnTypes []*sql.ColumnType, fields []*fieldMetadata, values []interface{}, dstValue reflect.Value) error {
 	if err := rows.Scan(values...); err != nil {
 		return err
 	}
@@ -268,14 +252,14 @@ func fieldByIndex(value reflect.Value, index []int) reflect.Value {
 	return value
 }
 
-func (s *scanner) getStructDescriptor(key reflect.Type) (structDescriptor, bool) {
-	var value, ok = s.structs.Load().(map[reflect.Type]structDescriptor)[key]
+func (s *scanner) getStructMetadata(key reflect.Type) (structMetadata, bool) {
+	var value, ok = s.structs.Load().(map[reflect.Type]structMetadata)[key]
 	return value, ok
 }
 
-func (s *scanner) setStructDescriptor(key reflect.Type, value structDescriptor) {
-	var structs = s.structs.Load().(map[reflect.Type]structDescriptor)
-	var nStructs = make(map[reflect.Type]structDescriptor, len(structs)+1)
+func (s *scanner) setStructMetadata(key reflect.Type, value structMetadata) {
+	var structs = s.structs.Load().(map[reflect.Type]structMetadata)
+	var nStructs = make(map[reflect.Type]structMetadata, len(structs)+1)
 	for k, v := range structs {
 		nStructs[k] = v
 	}
@@ -288,13 +272,13 @@ type structQueueElement struct {
 	Index []int
 }
 
-func (s *scanner) parseStructDescriptor(dstType reflect.Type) structDescriptor {
+func (s *scanner) parseStruct(dstType reflect.Type) structMetadata {
 	s.mu.Lock()
 
-	var dStruct, ok = s.getStructDescriptor(dstType)
+	var mStruct, ok = s.getStructMetadata(dstType)
 	if ok {
 		s.mu.Unlock()
-		return dStruct
+		return mStruct
 	}
 
 	var queue = make([]structQueueElement, 0, 10)
@@ -303,7 +287,7 @@ func (s *scanner) parseStructDescriptor(dstType reflect.Type) structDescriptor {
 		Index: nil,
 	})
 
-	var dFields = make(map[string]*fieldDescriptor)
+	var fields = make(map[string]*fieldMetadata)
 
 	for len(queue) > 0 {
 		var current = queue[0]
@@ -339,23 +323,39 @@ func (s *scanner) parseStructDescriptor(dstType reflect.Type) structDescriptor {
 				}
 			}
 
-			if _, exists := dFields[tag]; exists {
+			if _, found := fields[tag]; found {
 				continue
 			}
 
-			var dField = &fieldDescriptor{}
-			dField.Index = append(current.Index, i)
-			dField.Type = fieldStruct.Type
-			dField.TypePool = getTypePool(dField.Type)
-			dFields[tag] = dField
+			var field = &fieldMetadata{}
+			field.Index = append(current.Index, i)
+			field.Type = fieldStruct.Type
+			field.TypePool = getTypePool(field.Type)
+			fields[tag] = field
 		}
 	}
-	dStruct.fields = dFields
+	mStruct.fields = fields
 
-	s.setStructDescriptor(dstType, dStruct)
+	s.setStructMetadata(dstType, mStruct)
 	s.mu.Unlock()
 
-	return dStruct
+	return mStruct
+}
+
+type fieldMetadata struct {
+	Index    []int
+	Type     reflect.Type
+	TypePool *sync.Pool
+}
+
+type structMetadata struct {
+	fields map[string]*fieldMetadata
+}
+
+func (s structMetadata) Field(columnType *sql.ColumnType) *fieldMetadata {
+	var columnName = columnType.Name()
+	var field = s.fields[columnName]
+	return field
 }
 
 var typePool = sync.Map{}
