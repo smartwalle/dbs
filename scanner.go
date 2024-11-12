@@ -68,6 +68,26 @@ func (s *scanner) Scan(rows *sql.Rows, dst interface{}) error {
 	return s.scanOne(rows, columnTypes, dstType, dstValue)
 }
 
+func (s *scanner) prepare(dstType reflect.Type, columnTypes []*sql.ColumnType) (fields []*fieldMetadata, values []interface{}) {
+	var mStruct, ok = s.getStructMetadata(dstType)
+	if !ok {
+		mStruct = s.parseStruct(dstType)
+	}
+	fields = make([]*fieldMetadata, len(columnTypes))
+	values = make([]interface{}, len(columnTypes))
+	for idx, columnType := range columnTypes {
+		var field = mStruct.Field(columnType)
+		if field != nil {
+			fields[idx] = field
+			values[idx] = field.TypePool.Get()
+		} else {
+			var val interface{}
+			values[idx] = &val
+		}
+	}
+	return fields, values
+}
+
 func (s *scanner) scanOne(rows *sql.Rows, columnTypes []*sql.ColumnType, dstType reflect.Type, dstValue reflect.Value) error {
 	if !rows.Next() {
 		return sql.ErrNoRows
@@ -77,20 +97,13 @@ func (s *scanner) scanOne(rows *sql.Rows, columnTypes []*sql.ColumnType, dstType
 
 	switch dstType.Kind() {
 	case reflect.Struct:
-		var mStruct, ok = s.getStructMetadata(dstType)
-		if !ok {
-			mStruct = s.parseStruct(dstType)
-		}
-		var fields = make([]*fieldMetadata, len(columnTypes))
-		var values = make([]interface{}, len(columnTypes))
-		for idx, columnType := range columnTypes {
-			var field = mStruct.Field(columnType)
-			fields[idx] = field
-			values[idx] = field.TypePool.Get()
-		}
+		var fields, values = s.prepare(dstType, columnTypes)
 		defer func() {
 			for idx, value := range values {
-				fields[idx].TypePool.Put(value)
+				var field = fields[idx]
+				if field != nil {
+					fields[idx].TypePool.Put(value)
+				}
 			}
 		}()
 
@@ -128,23 +141,7 @@ func (s *scanner) scanSlice(rows *sql.Rows, columnTypes []*sql.ColumnType, dstTy
 
 	switch dstType.Kind() {
 	case reflect.Struct:
-		var mStruct, ok = s.getStructMetadata(dstType)
-		if !ok {
-			mStruct = s.parseStruct(dstType)
-		}
-
-		var fields = make([]*fieldMetadata, len(columnTypes))
-		var values = make([]interface{}, len(columnTypes))
-		for idx, columnType := range columnTypes {
-			var field = mStruct.Field(columnType)
-			if field != nil {
-				fields[idx] = field
-				values[idx] = field.TypePool.Get()
-			} else {
-				var val interface{}
-				values[idx] = &val
-			}
-		}
+		var fields, values = s.prepare(dstType, columnTypes)
 		defer func() {
 			for idx, value := range values {
 				var field = fields[idx]
@@ -253,8 +250,8 @@ func fieldByIndex(value reflect.Value, index []int) reflect.Value {
 }
 
 func (s *scanner) getStructMetadata(key reflect.Type) (structMetadata, bool) {
-	var value, ok = s.structs.Load().(map[reflect.Type]structMetadata)[key]
-	return value, ok
+	var value, exists = s.structs.Load().(map[reflect.Type]structMetadata)[key]
+	return value, exists
 }
 
 func (s *scanner) setStructMetadata(key reflect.Type, value structMetadata) {
@@ -267,7 +264,7 @@ func (s *scanner) setStructMetadata(key reflect.Type, value structMetadata) {
 	s.structs.Store(nStructs)
 }
 
-type structQueueElement struct {
+type element struct {
 	Type  reflect.Type
 	Index []int
 }
@@ -275,14 +272,14 @@ type structQueueElement struct {
 func (s *scanner) parseStruct(dstType reflect.Type) structMetadata {
 	s.mu.Lock()
 
-	var mStruct, ok = s.getStructMetadata(dstType)
-	if ok {
+	var mStruct, exists = s.getStructMetadata(dstType)
+	if exists {
 		s.mu.Unlock()
 		return mStruct
 	}
 
-	var queue = make([]structQueueElement, 0, 10)
-	queue = append(queue, structQueueElement{
+	var queue = make([]element, 0, 10)
+	queue = append(queue, element{
 		Type:  dstType,
 		Index: nil,
 	})
@@ -307,7 +304,7 @@ func (s *scanner) parseStruct(dstType reflect.Type) structMetadata {
 				tag = fieldStruct.Name
 
 				if fieldStruct.Type.Kind() == reflect.Ptr {
-					queue = append(queue, structQueueElement{
+					queue = append(queue, element{
 						Type:  fieldStruct.Type.Elem(),
 						Index: append(current.Index, i),
 					})
@@ -315,7 +312,7 @@ func (s *scanner) parseStruct(dstType reflect.Type) structMetadata {
 				}
 
 				if fieldStruct.Type.Kind() == reflect.Struct {
-					queue = append(queue, structQueueElement{
+					queue = append(queue, element{
 						Type:  fieldStruct.Type,
 						Index: append(current.Index, i),
 					})
@@ -323,7 +320,7 @@ func (s *scanner) parseStruct(dstType reflect.Type) structMetadata {
 				}
 			}
 
-			if _, found := fields[tag]; found {
+			if _, exists = fields[tag]; exists {
 				continue
 			}
 

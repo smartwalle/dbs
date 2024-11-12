@@ -85,8 +85,8 @@ func (db *DB) PingContext(ctx context.Context) error {
 }
 
 func (db *DB) Session(ctx context.Context) Session {
-	var session, found = ctx.Value(sessionKey{}).(Session)
-	if found && session != nil {
+	var session, exists = ctx.Value(sessionKey{}).(Session)
+	if exists && session != nil {
 		return session
 	}
 	return db
@@ -119,7 +119,7 @@ func (db *DB) PrepareStatement(ctx context.Context, key, query string) error {
 
 func (db *DB) prepareStatement(ctx context.Context, key, query string) (*sql.Stmt, error) {
 	db.mu.RLock()
-	if stmt, found := db.stmts[key]; found {
+	if stmt, exists := db.stmts[key]; exists {
 		db.mu.RUnlock()
 		<-stmt.done
 		if stmt.err != nil {
@@ -130,7 +130,7 @@ func (db *DB) prepareStatement(ctx context.Context, key, query string) (*sql.Stm
 	db.mu.RUnlock()
 
 	db.mu.Lock()
-	if stmt, found := db.stmts[key]; found {
+	if stmt, exists := db.stmts[key]; exists {
 		db.mu.Unlock()
 		<-stmt.done
 		if stmt.err != nil {
@@ -162,10 +162,10 @@ func (db *DB) prepareStatement(ctx context.Context, key, query string) (*sql.Stm
 // RevokeStatement 废弃已缓存的预处理语句(sql.Stmt)。
 func (db *DB) RevokeStatement(key string) {
 	db.mu.RLock()
-	var stmt, found = db.stmts[key]
+	var stmt, exists = db.stmts[key]
 	db.mu.RUnlock()
 
-	if found {
+	if exists {
 		<-stmt.done
 		db.removeStatement(key, stmt.stmt)
 	}
