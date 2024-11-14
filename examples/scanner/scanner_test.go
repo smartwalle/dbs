@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
 	_ "github.com/lib/pq"
 	"github.com/smartwalle/dbs"
 	"log"
@@ -20,6 +23,25 @@ type Mail struct {
 	Status    string     `sql:"status"`
 	CreatedAt *time.Time `sql:"created_at"`
 	UpdatedAt time.Time  `sql:"updated_at"`
+	Extra     Extra      `sql:"extra"`
+}
+
+type Extra struct {
+	Age  int    `json:"age"`
+	City string `json:"city"`
+	Name string `json:"name"`
+}
+
+func (a Extra) Value() (driver.Value, error) {
+	return json.Marshal(a)
+}
+
+func (a *Extra) Scan(value interface{}) error {
+	b, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed")
+	}
+	return json.Unmarshal(b, &a)
 }
 
 var db dbs.Database
