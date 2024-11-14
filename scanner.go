@@ -40,7 +40,7 @@ func (s *scanner) Scan(rows *sql.Rows, dst interface{}) error {
 		return err
 	}
 
-	columnTypes, err := rows.ColumnTypes()
+	columns, err := rows.ColumnTypes()
 	if err != nil {
 		return err
 	}
@@ -63,20 +63,20 @@ func (s *scanner) Scan(rows *sql.Rows, dst interface{}) error {
 
 	var isSlice = realType.Kind() == reflect.Slice
 	if isSlice {
-		return s.scanSlice(rows, columnTypes, dstType, dstValue)
+		return s.scanSlice(rows, columns, dstType, dstValue)
 	}
-	return s.scanOne(rows, columnTypes, dstType, dstValue)
+	return s.scanOne(rows, columns, dstType, dstValue)
 }
 
-func (s *scanner) prepare(dstType reflect.Type, columnTypes []*sql.ColumnType) (fields []*fieldMetadata, values []interface{}) {
+func (s *scanner) prepare(dstType reflect.Type, columns []*sql.ColumnType) (fields []*fieldMetadata, values []interface{}) {
 	var mStruct, ok = s.getStructMetadata(dstType)
 	if !ok {
 		mStruct = s.parseStruct(dstType)
 	}
-	fields = make([]*fieldMetadata, len(columnTypes))
-	values = make([]interface{}, len(columnTypes))
-	for idx, columnType := range columnTypes {
-		var field = mStruct.Field(columnType)
+	fields = make([]*fieldMetadata, len(columns))
+	values = make([]interface{}, len(columns))
+	for idx, column := range columns {
+		var field = mStruct.Field(column.Name())
 		if field != nil {
 			fields[idx] = field
 			values[idx] = field.TypePool.Get()
@@ -88,7 +88,7 @@ func (s *scanner) prepare(dstType reflect.Type, columnTypes []*sql.ColumnType) (
 	return fields, values
 }
 
-func (s *scanner) scanOne(rows *sql.Rows, columnTypes []*sql.ColumnType, dstType reflect.Type, dstValue reflect.Value) error {
+func (s *scanner) scanOne(rows *sql.Rows, columns []*sql.ColumnType, dstType reflect.Type, dstValue reflect.Value) error {
 	if !rows.Next() {
 		return sql.ErrNoRows
 	}
@@ -97,7 +97,7 @@ func (s *scanner) scanOne(rows *sql.Rows, columnTypes []*sql.ColumnType, dstType
 
 	switch dstType.Kind() {
 	case reflect.Struct:
-		var fields, values = s.prepare(dstType, columnTypes)
+		var fields, values = s.prepare(dstType, columns)
 		defer func() {
 			for idx, value := range values {
 				var field = fields[idx]
@@ -107,7 +107,7 @@ func (s *scanner) scanOne(rows *sql.Rows, columnTypes []*sql.ColumnType, dstType
 			}
 		}()
 
-		return s.scanIntoStruct(rows, columnTypes, fields, values, dstValue)
+		return s.scanIntoStruct(rows, columns, fields, values, dstValue)
 	case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 		reflect.Float32, reflect.Float64,
@@ -126,7 +126,7 @@ func (s *scanner) scanOne(rows *sql.Rows, columnTypes []*sql.ColumnType, dstType
 	return nil
 }
 
-func (s *scanner) scanSlice(rows *sql.Rows, columnTypes []*sql.ColumnType, dstType reflect.Type, dstValue reflect.Value) error {
+func (s *scanner) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dstType reflect.Type, dstValue reflect.Value) error {
 	dstType, dstValue = base(dstType, dstValue)
 
 	// 获取 slice 元素类型
@@ -141,7 +141,7 @@ func (s *scanner) scanSlice(rows *sql.Rows, columnTypes []*sql.ColumnType, dstTy
 
 	switch dstType.Kind() {
 	case reflect.Struct:
-		var fields, values = s.prepare(dstType, columnTypes)
+		var fields, values = s.prepare(dstType, columns)
 		defer func() {
 			for idx, value := range values {
 				var field = fields[idx]
@@ -156,7 +156,7 @@ func (s *scanner) scanSlice(rows *sql.Rows, columnTypes []*sql.ColumnType, dstTy
 			var nPointer = reflect.New(dstType)
 			var nValue = reflect.Indirect(nPointer)
 
-			if err := s.scanIntoStruct(rows, columnTypes, fields, values, nValue); err != nil {
+			if err := s.scanIntoStruct(rows, columns, fields, values, nValue); err != nil {
 				return err
 			}
 
@@ -198,12 +198,12 @@ func (s *scanner) scanSlice(rows *sql.Rows, columnTypes []*sql.ColumnType, dstTy
 	return nil
 }
 
-func (s *scanner) scanIntoStruct(rows *sql.Rows, columnTypes []*sql.ColumnType, fields []*fieldMetadata, values []interface{}, dstValue reflect.Value) error {
+func (s *scanner) scanIntoStruct(rows *sql.Rows, columns []*sql.ColumnType, fields []*fieldMetadata, values []interface{}, dstValue reflect.Value) error {
 	if err := rows.Scan(values...); err != nil {
 		return err
 	}
 
-	for idx := range columnTypes {
+	for idx := range columns {
 		var field = fields[idx]
 		if field != nil {
 			var value = reflect.ValueOf(values[idx]).Elem().Elem()
@@ -349,9 +349,8 @@ type structMetadata struct {
 	fields map[string]*fieldMetadata
 }
 
-func (s structMetadata) Field(columnType *sql.ColumnType) *fieldMetadata {
-	var columnName = columnType.Name()
-	var field = s.fields[columnName]
+func (s structMetadata) Field(name string) *fieldMetadata {
+	var field = s.fields[name]
 	return field
 }
 
