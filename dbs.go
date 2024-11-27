@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"sync"
+	"time"
 )
 
 var ErrNoRows = sql.ErrNoRows
@@ -43,7 +44,41 @@ type Transaction interface {
 	Commit() error
 }
 
-func Open(driver, url string, maxOpen, maxIdle int) (*DB, error) {
+type Option func(db *DB)
+
+func WithTimeout(timeout time.Duration) Option {
+	return func(db *DB) {
+		db.prepareTimeout = timeout
+		db.execTimeout = timeout
+		db.queryTimeout = timeout
+	}
+}
+
+func WithTxTimeout(timeout time.Duration) Option {
+	return func(db *DB) {
+		db.txTimeout = timeout
+	}
+}
+
+func WithPrepareTimeout(timeout time.Duration) Option {
+	return func(db *DB) {
+		db.prepareTimeout = timeout
+	}
+}
+
+func WithExecTimeout(timeout time.Duration) Option {
+	return func(db *DB) {
+		db.execTimeout = timeout
+	}
+}
+
+func WithQueryTimeout(timeout time.Duration) Option {
+	return func(db *DB) {
+		db.queryTimeout = timeout
+	}
+}
+
+func Open(driver, url string, maxOpen, maxIdle int, opts ...Option) (*DB, error) {
 	db, err := sql.Open(driver, url)
 	if err != nil {
 		return nil, err
@@ -55,21 +90,34 @@ func Open(driver, url string, maxOpen, maxIdle int) (*DB, error) {
 
 	db.SetMaxIdleConns(maxIdle)
 	db.SetMaxOpenConns(maxOpen)
-	return New(db), err
+	return New(db, opts...), err
 }
 
-func New(db *sql.DB) *DB {
+func New(db *sql.DB, opts ...Option) *DB {
 	var ndb = &DB{}
 	ndb.db = db
 	ndb.mu = &sync.RWMutex{}
+	ndb.txTimeout = 0
+	ndb.prepareTimeout = time.Second * 3
+	ndb.execTimeout = time.Second * 3
+	ndb.queryTimeout = time.Second * 3
 	ndb.stmts = make(map[string]*Stmt)
+	for _, opt := range opts {
+		if opt != nil {
+			opt(ndb)
+		}
+	}
 	return ndb
 }
 
 type DB struct {
-	db    *sql.DB
-	mu    *sync.RWMutex
-	stmts map[string]*Stmt
+	db             *sql.DB
+	mu             *sync.RWMutex
+	txTimeout      time.Duration
+	prepareTimeout time.Duration
+	execTimeout    time.Duration
+	queryTimeout   time.Duration
+	stmts          map[string]*Stmt
 }
 
 func (db *DB) DB() *sql.DB {
@@ -103,6 +151,11 @@ func (db *DB) Prepare(query string) (*sql.Stmt, error) {
 //
 // 本方法返回的 sql.Stmt 不会被缓存，不再使用之后需要调用其 Close 方法将其关闭。
 func (db *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	if _, ok := ctx.Deadline(); !ok && db.prepareTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, db.prepareTimeout)
+		defer cancel()
+	}
 	return db.db.PrepareContext(ctx, query)
 }
 
@@ -113,6 +166,11 @@ func (db *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, erro
 //
 //	db.QueryContext(ctx, "key", "参数1", "参数2")
 func (db *DB) PrepareStatement(ctx context.Context, key, query string) error {
+	if _, ok := ctx.Deadline(); !ok && db.prepareTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, db.prepareTimeout)
+		defer cancel()
+	}
 	_, err := db.prepareStatement(ctx, key, query)
 	return err
 }
@@ -194,6 +252,12 @@ func (db *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
 }
 
 func (db *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	if _, ok := ctx.Deadline(); !ok && db.execTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, db.execTimeout)
+		defer cancel()
+	}
+
 	stmt, err := db.statement(ctx, query)
 	if err != nil {
 		return nil, err
@@ -210,6 +274,12 @@ func (db *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
 }
 
 func (db *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	if _, ok := ctx.Deadline(); !ok && db.queryTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, db.queryTimeout)
+		defer cancel()
+	}
+
 	stmt, err := db.statement(ctx, query)
 	if err != nil {
 		return nil, err
@@ -226,6 +296,12 @@ func (db *DB) QueryRow(query string, args ...any) *sql.Row {
 }
 
 func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+	if _, ok := ctx.Deadline(); !ok && db.queryTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, db.queryTimeout)
+		defer cancel()
+	}
+
 	stmt, err := db.statement(ctx, query)
 	if err != nil {
 		return nil
@@ -246,19 +322,28 @@ func (db *DB) Begin() (*Tx, error) {
 }
 
 func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
+	var cancel context.CancelFunc
+	if _, ok := ctx.Deadline(); !ok && db.txTimeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, db.txTimeout)
+	} else {
+		ctx, cancel = context.WithCancel(ctx)
+	}
 	tx, err := db.db.BeginTx(ctx, opts)
 	if err != nil {
+		cancel()
 		return nil, err
 	}
 	var nTx = &Tx{}
 	nTx.tx = tx
 	nTx.db = db
+	nTx.cancel = cancel
 	return nTx, nil
 }
 
 type Tx struct {
-	tx *sql.Tx
-	db *DB
+	tx     *sql.Tx
+	db     *DB
+	cancel context.CancelFunc
 }
 
 func (tx *Tx) Tx() *sql.Tx {
@@ -276,10 +361,15 @@ func (tx *Tx) Prepare(query string) (*sql.Stmt, error) {
 //
 // 本方法返回的 sql.Stmt 不会被缓存，不再使用之后需要调用其 Close 方法将其关闭。
 func (tx *Tx) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	if _, ok := ctx.Deadline(); !ok && tx.db.prepareTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, tx.db.prepareTimeout)
+		defer cancel()
+	}
 	return tx.tx.PrepareContext(ctx, query)
 }
 
-func (tx *Tx) Statement(ctx context.Context, query string) (*sql.Stmt, error) {
+func (tx *Tx) statement(ctx context.Context, query string) (*sql.Stmt, error) {
 	var stmt, err = tx.db.statement(ctx, query)
 	if err != nil {
 		return nil, err
@@ -292,7 +382,13 @@ func (tx *Tx) Exec(query string, args ...interface{}) (sql.Result, error) {
 }
 
 func (tx *Tx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	stmt, err := tx.Statement(ctx, query)
+	if _, ok := ctx.Deadline(); !ok && tx.db.execTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, tx.db.execTimeout)
+		defer cancel()
+	}
+
+	stmt, err := tx.statement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -308,7 +404,13 @@ func (tx *Tx) Query(query string, args ...interface{}) (*sql.Rows, error) {
 }
 
 func (tx *Tx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	stmt, err := tx.Statement(ctx, query)
+	if _, ok := ctx.Deadline(); !ok && tx.db.queryTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, tx.db.queryTimeout)
+		defer cancel()
+	}
+
+	stmt, err := tx.statement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -324,7 +426,13 @@ func (tx *Tx) QueryRow(query string, args ...any) *sql.Row {
 }
 
 func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
-	stmt, err := tx.Statement(ctx, query)
+	if _, ok := ctx.Deadline(); !ok && tx.db.queryTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, tx.db.queryTimeout)
+		defer cancel()
+	}
+
+	stmt, err := tx.statement(ctx, query)
 	if err != nil {
 		return nil
 	}
@@ -340,9 +448,13 @@ func (tx *Tx) ToContext(ctx context.Context) context.Context {
 }
 
 func (tx *Tx) Commit() error {
-	return tx.tx.Commit()
+	var err = tx.tx.Commit()
+	tx.cancel()
+	return err
 }
 
 func (tx *Tx) Rollback() error {
-	return tx.tx.Rollback()
+	var err = tx.tx.Rollback()
+	tx.cancel()
+	return err
 }
