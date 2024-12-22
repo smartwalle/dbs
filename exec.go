@@ -37,3 +37,37 @@ func Query[T any](ctx context.Context, session Session, query string, args ...in
 func Exec(ctx context.Context, session Session, query string, args ...interface{}) (result sql.Result, err error) {
 	return session.ExecContext(ctx, query, args...)
 }
+
+func find(ctx context.Context, session Session, clause SQLClause, dst interface{}) error {
+	rows, err := query(ctx, session, clause)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	if err = gScanner.Scan(rows, dst); err != nil && !errors.Is(err, ErrNoRows) {
+		return err
+	}
+	return nil
+}
+
+func query(ctx context.Context, session Session, clause SQLClause) (*sql.Rows, error) {
+	sql, args, err := clause.SQL()
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := session.QueryContext(ctx, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+func exec(ctx context.Context, session Session, clause SQLClause) (result sql.Result, err error) {
+	sql, args, err := clause.SQL()
+	if err != nil {
+		return nil, err
+	}
+	return session.ExecContext(ctx, sql, args...)
+}

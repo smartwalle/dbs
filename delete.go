@@ -1,6 +1,8 @@
 package dbs
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"strings"
 )
@@ -151,4 +153,16 @@ func (db *DeleteBuilder) SQL() (string, []interface{}, error) {
 		return "", nil, err
 	}
 	return buffer.String(), buffer.Arguments(), nil
+}
+
+func (db *DeleteBuilder) Find(ctx context.Context, session Session, dst interface{}) error {
+	return find(ctx, session, db, dst)
+}
+
+func (db *DeleteBuilder) Query(ctx context.Context, session Session) (*sql.Rows, error) {
+	return query(ctx, session, db)
+}
+
+func (db *DeleteBuilder) Exec(ctx context.Context, session Session) (sql.Result, error) {
+	return exec(ctx, session, db)
 }
