@@ -37,7 +37,9 @@ func (c Clause) Write(w Writer) (err error) {
 			if pos == -1 {
 				break
 			}
-			w.WriteString(expr[:pos])
+			if _, err = w.WriteString(expr[:pos]); err != nil {
+				return err
+			}
 
 			if len(args) > 0 {
 				switch arg := args[0].(type) {
@@ -46,12 +48,16 @@ func (c Clause) Write(w Writer) (err error) {
 						return err
 					}
 				default:
-					w.WritePlaceholder()
+					if err = w.WritePlaceholder(); err != nil {
+						return err
+					}
 					w.WriteArguments(args[0])
 				}
 				args = args[1:]
 			} else {
-				w.WritePlaceholder()
+				if err = w.WritePlaceholder(); err != nil {
+					return err
+				}
 			}
 
 			expr = expr[pos+1:]
