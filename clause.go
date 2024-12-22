@@ -11,35 +11,35 @@ type SQLClause interface {
 }
 
 type Clause struct {
-	expr interface{}
+	sql  interface{}
 	args []interface{}
 }
 
-func NewClause(expr interface{}, args ...interface{}) Clause {
-	return Clause{expr: expr, args: args}
+func NewClause(sql interface{}, args ...interface{}) Clause {
+	return Clause{sql: sql, args: args}
 }
 
-func SQL(expr interface{}, args ...interface{}) Clause {
-	return NewClause(expr, args...)
+func SQL(sql interface{}, args ...interface{}) Clause {
+	return NewClause(sql, args...)
 }
 
 func (c Clause) Write(w Writer) (err error) {
 	var offset = 0
-	switch raw := c.expr.(type) {
+	switch raw := c.sql.(type) {
 	case SQLClause:
 		if err = raw.Write(w); err != nil {
 			return err
 		}
 	case string:
-		var expr = raw
+		var sql = raw
 		var args = c.args
 
-		for len(expr) > 0 {
-			var pos = strings.Index(expr, "?")
+		for len(sql) > 0 {
+			var pos = strings.Index(sql, "?")
 			if pos == -1 {
 				break
 			}
-			if _, err = w.WriteString(expr[:pos]); err != nil {
+			if _, err = w.WriteString(sql[:pos]); err != nil {
 				return err
 			}
 
@@ -62,7 +62,7 @@ func (c Clause) Write(w Writer) (err error) {
 				}
 			}
 
-			expr = expr[pos+1:]
+			sql = sql[pos+1:]
 			offset++
 		}
 	default:
@@ -137,4 +137,9 @@ func (cs *Clauses) SQL(p Placeholder) (string, []interface{}, error) {
 		return "", nil, err
 	}
 	return buffer.String(), buffer.Arguments(), nil
+}
+
+func (cs *Clauses) Append(sql interface{}, args ...interface{}) *Clauses {
+	cs.clauses = append(cs.clauses, SQL(sql, args...))
+	return cs
 }
