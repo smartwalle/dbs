@@ -25,7 +25,7 @@ var bufferPool = sync.Pool{
 		return &Buffer{
 			Buffer:       bytes.NewBuffer(make([]byte, 0, kDefaultBufferSize)),
 			arguments:    make([]interface{}, 0, kDefaultArgsSize),
-			placeholder:  QuestionPlaceholder,
+			placeholder:  globalPlaceholder,
 			replaceCount: 0,
 		}
 	},
@@ -33,7 +33,7 @@ var bufferPool = sync.Pool{
 
 func getBuffer(p Placeholder) *Buffer {
 	if p == nil {
-		p = QuestionPlaceholder
+		p = globalPlaceholder
 	}
 	var buffer = bufferPool.Get().(*Buffer)
 	buffer.Buffer.Reset()

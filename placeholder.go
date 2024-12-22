@@ -1,14 +1,37 @@
 package dbs
 
-import "strconv"
+import (
+	"strconv"
+)
 
 type Placeholder interface {
 	Replace(indx int) string
 }
 
-var QuestionPlaceholder = &question{}
+var questionPlaceholder = &question{}
 
-var DollarPlaceholder = &dollar{}
+var dollarPlaceholder = &dollar{}
+
+var globalPlaceholder Placeholder = questionPlaceholder
+
+func UsePlaceholder(p Placeholder) {
+	if p == nil {
+		p = questionPlaceholder
+	}
+	globalPlaceholder = p
+}
+
+func GlobalPlaceholder() Placeholder {
+	return globalPlaceholder
+}
+
+func QuestionPlaceholder() Placeholder {
+	return questionPlaceholder
+}
+
+func DollarPlaceholder() Placeholder {
+	return dollarPlaceholder
+}
 
 type question struct {
 }
