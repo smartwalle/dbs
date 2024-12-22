@@ -38,7 +38,7 @@ func Exec(ctx context.Context, session Session, query string, args ...interface{
 	return session.ExecContext(ctx, query, args...)
 }
 
-func find(ctx context.Context, session Session, clause SQLClause, dst interface{}) error {
+func scan(ctx context.Context, session Session, clause SQLClause, dst interface{}) error {
 	rows, err := query(ctx, session, clause)
 	if err != nil {
 		return err

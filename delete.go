@@ -9,6 +9,7 @@ import (
 
 type DeleteBuilder struct {
 	placeholder Placeholder
+	session     Session
 	prefixes    *Clauses
 	table       string
 	wheres      *Clauses
@@ -26,6 +27,11 @@ func NewDeleteBuilder() *DeleteBuilder {
 
 func (db *DeleteBuilder) UsePlaceholder(p Placeholder) *DeleteBuilder {
 	db.placeholder = p
+	return db
+}
+
+func (db *DeleteBuilder) UseSession(s Session) *DeleteBuilder {
+	db.session = s
 	return db
 }
 
@@ -155,14 +161,14 @@ func (db *DeleteBuilder) SQL() (string, []interface{}, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
-func (db *DeleteBuilder) Find(ctx context.Context, session Session, dst interface{}) error {
-	return find(ctx, session, db, dst)
+func (db *DeleteBuilder) Scan(ctx context.Context, dst interface{}) error {
+	return scan(ctx, db.session, db, dst)
 }
 
-func (db *DeleteBuilder) Query(ctx context.Context, session Session) (*sql.Rows, error) {
-	return query(ctx, session, db)
+func (db *DeleteBuilder) Query(ctx context.Context) (*sql.Rows, error) {
+	return query(ctx, db.session, db)
 }
 
-func (db *DeleteBuilder) Exec(ctx context.Context, session Session) (sql.Result, error) {
-	return exec(ctx, session, db)
+func (db *DeleteBuilder) Exec(ctx context.Context) (sql.Result, error) {
+	return exec(ctx, db.session, db)
 }
