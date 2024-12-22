@@ -1,6 +1,7 @@
 package dbs
 
 import (
+	"reflect"
 	"strings"
 )
 
@@ -50,10 +51,26 @@ func (c Clause) Write(w Writer) (err error) {
 						return err
 					}
 				default:
-					if err = w.WritePlaceholder(); err != nil {
-						return err
+					var argValue = reflect.ValueOf(args[0])
+					var argKind = argValue.Kind()
+					if argKind == reflect.Slice || argKind == reflect.Array {
+						for idx := 0; idx < argValue.Len(); idx++ {
+							if idx != 0 {
+								if _, err = w.WriteString(", "); err != nil {
+									return err
+								}
+							}
+							if err = w.WritePlaceholder(); err != nil {
+								return err
+							}
+							w.WriteArguments(argValue.Index(idx).Interface())
+						}
+					} else {
+						if err = w.WritePlaceholder(); err != nil {
+							return err
+						}
+						w.WriteArguments(args[0])
 					}
-					w.WriteArguments(args[0])
 				}
 				args = args[1:]
 			} else {
@@ -64,6 +81,12 @@ func (c Clause) Write(w Writer) (err error) {
 
 			sql = sql[pos+1:]
 			offset++
+		}
+
+		if len(sql) > 0 {
+			if _, err = w.WriteString(sql); err != nil {
+				return err
+			}
 		}
 	default:
 	}
