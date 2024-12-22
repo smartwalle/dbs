@@ -8,7 +8,7 @@ import (
 type SQLClause interface {
 	Write(w Writer) error
 
-	SQL(p Placeholder) (string, []interface{}, error)
+	SQL() (string, []interface{}, error)
 }
 
 type Clause struct {
@@ -119,8 +119,8 @@ func (c Clause) Write(w Writer) (err error) {
 	return nil
 }
 
-func (c Clause) SQL(p Placeholder) (string, []interface{}, error) {
-	var buffer = getBuffer(p)
+func (c Clause) SQL() (string, []interface{}, error) {
+	var buffer = getBuffer()
 	defer putBuffer(buffer)
 
 	if err := c.Write(buffer); err != nil {
@@ -152,8 +152,8 @@ func (cs *Clauses) Write(w Writer) (err error) {
 	return nil
 }
 
-func (cs *Clauses) SQL(p Placeholder) (string, []interface{}, error) {
-	var buffer = getBuffer(p)
+func (cs *Clauses) SQL() (string, []interface{}, error) {
+	var buffer = getBuffer()
 	defer putBuffer(buffer)
 
 	if err := cs.Write(buffer); err != nil {

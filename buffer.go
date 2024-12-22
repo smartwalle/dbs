@@ -31,14 +31,10 @@ var bufferPool = sync.Pool{
 	},
 }
 
-func getBuffer(p Placeholder) *Buffer {
-	if p == nil {
-		p = globalPlaceholder
-	}
+func getBuffer() *Buffer {
 	var buffer = bufferPool.Get().(*Buffer)
 	buffer.Buffer.Reset()
 	buffer.arguments = buffer.arguments[:0]
-	buffer.placeholder = p
 	buffer.replaceCount = 0
 	return buffer
 }
@@ -54,6 +50,13 @@ type Buffer struct {
 	arguments    []interface{}
 	placeholder  Placeholder
 	replaceCount int
+}
+
+func (b *Buffer) UsePlaceholder(p Placeholder) {
+	if p == nil {
+		p = globalPlaceholder
+	}
+	b.placeholder = p
 }
 
 func (b *Buffer) WritePlaceholder() error {
