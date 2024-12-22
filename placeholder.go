@@ -35,20 +35,9 @@ func replace(sql string, prefix string) (string, error) {
 	var err error
 
 	for {
-		pos := strings.Index(sql, "?")
+		var pos = strings.Index(sql, "?")
 		if pos == -1 {
 			break
-		}
-
-		if len(sql[pos:]) > 1 && sql[pos:pos+2] == "??" {
-			if _, err = buf.WriteString(sql[:pos]); err != nil {
-				return "", err
-			}
-			if _, err = buf.WriteString("?"); err != nil {
-				return "", err
-			}
-			sql = sql[pos+2:]
-			continue
 		}
 
 		i++

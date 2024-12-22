@@ -11,6 +11,8 @@ const kDefaultBufferSize = 1024
 type Writer interface {
 	Write(p []byte) (n int, err error)
 
+	WriteByte(c byte) error
+
 	WriteString(s string) (n int, err error)
 
 	WriteArgs(args ...interface{})
