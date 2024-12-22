@@ -5,7 +5,7 @@ import "strings"
 type SQLClause interface {
 	Write(w Writer) error
 
-	SQL() (string, []interface{}, error)
+	SQL(p Placeholder) (string, []interface{}, error)
 }
 
 type Clause struct {
@@ -32,26 +32,31 @@ func (c Clause) Write(w Writer) (err error) {
 		var expr = raw
 		var args = c.Args
 
-		for len(args) > 0 && len(expr) > 0 {
+		for len(expr) > 0 {
 			var pos = strings.Index(expr, "?")
 			if pos == -1 {
 				break
 			}
-			switch arg := args[0].(type) {
-			case SQLClause:
-				w.WriteString(expr[:pos])
-				if err = arg.Write(w); err != nil {
-					return err
+			w.WriteString(expr[:pos])
+
+			if len(args) > 0 {
+				switch arg := args[0].(type) {
+				case SQLClause:
+					if err = arg.Write(w); err != nil {
+						return err
+					}
+				default:
+					w.WritePlaceholder()
+					w.WriteArguments(args[0])
 				}
-			default:
-				w.WriteString(expr[:pos+1])
-				w.WriteArgs(args[0])
+				args = args[1:]
+			} else {
+				w.WritePlaceholder()
 			}
-			args = args[1:]
+
 			expr = expr[pos+1:]
 			idx++
 		}
-		w.WriteString(expr)
 	default:
 	}
 
@@ -69,19 +74,19 @@ func (c Clause) Write(w Writer) (err error) {
 				//	return err
 				//}
 			default:
-				w.WriteArgs(raw)
+				w.WriteArguments(raw)
 			}
 		}
 	}
 	return nil
 }
 
-func (c Clause) SQL() (string, []interface{}, error) {
-	var buffer = getBuffer()
+func (c Clause) SQL(p Placeholder) (string, []interface{}, error) {
+	var buffer = getBuffer(p)
 	defer putBuffer(buffer)
 
 	if err := c.Write(buffer); err != nil {
 		return "", nil, err
 	}
-	return buffer.String(), buffer.Args(), nil
+	return buffer.String(), buffer.Arguments(), nil
 }

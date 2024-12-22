@@ -15,21 +15,31 @@ type Writer interface {
 
 	WriteString(s string) (n int, err error)
 
-	WriteArgs(args ...interface{})
+	WritePlaceholder() error
+
+	WriteArguments(args ...interface{})
 }
 
 var bufferPool = sync.Pool{
 	New: func() interface{} {
 		return &Buffer{
-			Buffer: bytes.NewBuffer(make([]byte, 0, kDefaultBufferSize)),
-			args:   make([]interface{}, 0, kDefaultArgsSize),
+			Buffer:       bytes.NewBuffer(make([]byte, 0, kDefaultBufferSize)),
+			arguments:    make([]interface{}, 0, kDefaultArgsSize),
+			placeholder:  QuestionPlaceholder,
+			replaceCount: 0,
 		}
 	},
 }
 
-func getBuffer() *Buffer {
+func getBuffer(p Placeholder) *Buffer {
+	if p == nil {
+		p = QuestionPlaceholder
+	}
 	var buffer = bufferPool.Get().(*Buffer)
-	buffer.Reset()
+	buffer.Buffer.Reset()
+	buffer.arguments = buffer.arguments[:0]
+	buffer.placeholder = p
+	buffer.replaceCount = 0
 	return buffer
 }
 
@@ -41,20 +51,25 @@ func putBuffer(b *Buffer) {
 
 type Buffer struct {
 	*bytes.Buffer
-	args []interface{}
+	arguments    []interface{}
+	placeholder  Placeholder
+	replaceCount int
 }
 
-func (b *Buffer) Reset() {
-	b.args = b.args[:0]
-	b.Buffer.Reset()
+func (b *Buffer) WritePlaceholder() error {
+	b.replaceCount++
+	if _, err := b.Buffer.WriteString(b.placeholder.Replace(b.replaceCount)); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (b *Buffer) WriteArgs(args ...interface{}) {
-	b.args = append(b.args, args...)
+func (b *Buffer) WriteArguments(args ...interface{}) {
+	b.arguments = append(b.arguments, args...)
 }
 
-func (b *Buffer) Args() []interface{} {
-	var nArgs = make([]interface{}, 0, len(b.args))
-	nArgs = append(nArgs, b.args...)
-	return nArgs
+func (b *Buffer) Arguments() []interface{} {
+	var args = make([]interface{}, 0, len(b.arguments))
+	args = append(args, b.arguments...)
+	return args
 }
