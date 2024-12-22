@@ -1,6 +1,8 @@
 package dbs
 
-import "strings"
+import (
+	"strings"
+)
 
 type SQLClause interface {
 	Write(w Writer) error
@@ -22,7 +24,7 @@ func SQL(expr interface{}, args ...interface{}) Clause {
 }
 
 func (c Clause) Write(w Writer) (err error) {
-	var idx = 0
+	var offset = 0
 	switch raw := c.Expr.(type) {
 	case SQLClause:
 		if err = raw.Write(w); err != nil {
@@ -61,28 +63,35 @@ func (c Clause) Write(w Writer) (err error) {
 			}
 
 			expr = expr[pos+1:]
-			idx++
+			offset++
 		}
 	default:
 	}
 
-	if idx < len(c.Args) {
-		for _, arg := range c.Args[idx:] {
-			switch raw := arg.(type) {
-			case SQLClause:
-				//if err = w.WriteByte('('); err != nil {
-				//	return err
-				//}
-				if err = raw.Write(w); err != nil {
-					return err
-				}
-				//if err = w.WriteByte(')'); err != nil {
-				//	return err
-				//}
-			default:
-				w.WriteArguments(raw)
-			}
-		}
+	if offset < len(c.Args) {
+		// 1 - 返回错误
+		//return errors.New("参数数量错误")
+
+		// 2 - 将多余的参数直接追加到参数列表中
+		w.WriteArguments(c.Args[offset:]...)
+
+		// 3 - 将多余的参数进行处理并追加到参数列表中
+		//for _, arg := range c.Args[offset:] {
+		//	switch raw := arg.(type) {
+		//	case SQLClause:
+		//		//if err = w.WriteByte('('); err != nil {
+		//		//	return err
+		//		//}
+		//		if err = raw.Write(w); err != nil {
+		//			return err
+		//		}
+		//		//if err = w.WriteByte(')'); err != nil {
+		//		//	return err
+		//		//}
+		//	default:
+		//		w.WriteArguments(raw)
+		//	}
+		//}
 	}
 	return nil
 }
