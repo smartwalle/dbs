@@ -92,6 +92,19 @@ func (sb *SelectBuilder) Where(sql interface{}, args ...interface{}) *SelectBuil
 	return sb
 }
 
+func (sb *SelectBuilder) GroupBy(groupBys ...string) *SelectBuilder {
+	sb.groupBys = append(sb.groupBys, groupBys...)
+	return sb
+}
+
+func (sb *SelectBuilder) Having(sql interface{}, args ...interface{}) *SelectBuilder {
+	if sb.having == nil {
+		sb.having = NewClauses(" ")
+	}
+	sb.having.Append(sql, args...)
+	return sb
+}
+
 func (sb *SelectBuilder) OrderBy(sql ...string) *SelectBuilder {
 	sb.orderBys = append(sb.orderBys, sql...)
 	return sb

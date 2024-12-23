@@ -170,3 +170,11 @@ func (cs *Clauses) Append(sql interface{}, args ...interface{}) *Clauses {
 	cs.clauses = append(cs.clauses, SQL(sql, args...))
 	return cs
 }
+
+func AND(clauses ...SQLClause) *Clauses {
+	return NewClauses(" AND ", clauses...)
+}
+
+func OR(clauses ...SQLClause) *Clauses {
+	return NewClauses(" OR ", clauses...)
+}
