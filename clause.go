@@ -162,6 +162,10 @@ func (cs *Clauses) SQL() (string, []interface{}, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
+func (cs *Clauses) valid() bool {
+	return cs != nil && len(cs.clauses) > 0
+}
+
 func (cs *Clauses) Append(sql interface{}, args ...interface{}) *Clauses {
 	cs.clauses = append(cs.clauses, SQL(sql, args...))
 	return cs

@@ -116,11 +116,11 @@ func (sb *SelectBuilder) Suffix(sql interface{}, args ...interface{}) *SelectBui
 }
 
 func (sb *SelectBuilder) Write(w Writer) (err error) {
-	if sb.columns == nil || len(sb.columns.clauses) == 0 {
+	if !sb.columns.valid() {
 		return errors.New("dbs: select clause must have at least one result column")
 	}
 
-	if sb.prefixes != nil {
+	if sb.prefixes.valid() {
 		if err = sb.prefixes.Write(w); err != nil {
 			return err
 		}
@@ -133,7 +133,7 @@ func (sb *SelectBuilder) Write(w Writer) (err error) {
 		return err
 	}
 
-	if sb.options != nil {
+	if sb.options.valid() {
 		if err = sb.options.Write(w); err != nil {
 			return err
 		}
@@ -142,13 +142,13 @@ func (sb *SelectBuilder) Write(w Writer) (err error) {
 		}
 	}
 
-	if sb.columns != nil {
+	if sb.columns.valid() {
 		if err = sb.columns.Write(w); err != nil {
 			return err
 		}
 	}
 
-	if sb.tables != nil {
+	if sb.tables.valid() {
 		if _, err = w.WriteString(" FROM "); err != nil {
 			return err
 		}
@@ -157,7 +157,7 @@ func (sb *SelectBuilder) Write(w Writer) (err error) {
 		}
 	}
 
-	if sb.joins != nil {
+	if sb.joins.valid() {
 		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
@@ -166,7 +166,7 @@ func (sb *SelectBuilder) Write(w Writer) (err error) {
 		}
 	}
 
-	if sb.wheres != nil {
+	if sb.wheres.valid() {
 		if _, err = w.WriteString(" WHERE "); err != nil {
 			return err
 		}
@@ -184,7 +184,7 @@ func (sb *SelectBuilder) Write(w Writer) (err error) {
 		}
 	}
 
-	if sb.having != nil {
+	if sb.having.valid() {
 		if _, err = w.WriteString(" HAVING "); err != nil {
 			return err
 		}
@@ -214,7 +214,7 @@ func (sb *SelectBuilder) Write(w Writer) (err error) {
 		}
 	}
 
-	if sb.suffixes != nil {
+	if sb.suffixes.valid() {
 		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
