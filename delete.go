@@ -87,7 +87,7 @@ func (db *DeleteBuilder) Write(w Writer) (err error) {
 		return errors.New("dbs: delete clause must have at least one where")
 	}
 
-	if db.prefixes != nil {
+	if db.prefixes.valid() {
 		if err = db.prefixes.Write(w); err != nil {
 			return err
 		}
@@ -107,7 +107,7 @@ func (db *DeleteBuilder) Write(w Writer) (err error) {
 		return err
 	}
 
-	if db.wheres != nil {
+	if db.wheres.valid() {
 		if _, err = w.WriteString(" WHERE "); err != nil {
 			return err
 		}
@@ -137,7 +137,7 @@ func (db *DeleteBuilder) Write(w Writer) (err error) {
 		}
 	}
 
-	if db.suffixes != nil {
+	if db.suffixes.valid() {
 		if _, err = w.WriteString(" "); err != nil {
 			return err
 		}
