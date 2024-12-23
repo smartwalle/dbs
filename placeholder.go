@@ -1,11 +1,9 @@
 package dbs
 
-import (
-	"strconv"
-)
+import "strconv"
 
 type Placeholder interface {
-	Replace(indx int) string
+	BuildPlaceholder(w Writer, indx int) error
 }
 
 var questionPlaceholder = &question{}
@@ -36,13 +34,22 @@ func DollarPlaceholder() Placeholder {
 type question struct {
 }
 
-func (q *question) Replace(index int) string {
-	return "?"
+func (q *question) BuildPlaceholder(w Writer, idx int) (err error) {
+	if err = w.WriteByte('?'); err != nil {
+		return err
+	}
+	return nil
 }
 
 type dollar struct {
 }
 
-func (d *dollar) Replace(index int) string {
-	return "$" + strconv.Itoa(index)
+func (d *dollar) BuildPlaceholder(w Writer, idx int) (err error) {
+	if err = w.WriteByte('$'); err != nil {
+		return err
+	}
+	if _, err = w.WriteString(strconv.Itoa(idx)); err != nil {
+		return err
+	}
+	return nil
 }

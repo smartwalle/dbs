@@ -23,10 +23,10 @@ type Writer interface {
 var bufferPool = sync.Pool{
 	New: func() interface{} {
 		return &Buffer{
-			Buffer:       bytes.NewBuffer(make([]byte, 0, kDefaultBufferSize)),
-			arguments:    make([]interface{}, 0, kDefaultArgsSize),
-			placeholder:  globalPlaceholder,
-			replaceCount: 0,
+			Buffer:           bytes.NewBuffer(make([]byte, 0, kDefaultBufferSize)),
+			arguments:        make([]interface{}, 0, kDefaultArgsSize),
+			placeholder:      globalPlaceholder,
+			placeholderCount: 0,
 		}
 	},
 }
@@ -35,7 +35,7 @@ func getBuffer() *Buffer {
 	var buffer = bufferPool.Get().(*Buffer)
 	buffer.Buffer.Reset()
 	buffer.arguments = buffer.arguments[:0]
-	buffer.replaceCount = 0
+	buffer.placeholderCount = 0
 	return buffer
 }
 
@@ -47,9 +47,9 @@ func putBuffer(b *Buffer) {
 
 type Buffer struct {
 	*bytes.Buffer
-	arguments    []interface{}
-	placeholder  Placeholder
-	replaceCount int
+	arguments        []interface{}
+	placeholder      Placeholder
+	placeholderCount int
 }
 
 func (b *Buffer) UsePlaceholder(p Placeholder) {
@@ -60,8 +60,8 @@ func (b *Buffer) UsePlaceholder(p Placeholder) {
 }
 
 func (b *Buffer) WritePlaceholder() error {
-	b.replaceCount++
-	if _, err := b.Buffer.WriteString(b.placeholder.Replace(b.replaceCount)); err != nil {
+	b.placeholderCount++
+	if err := b.placeholder.BuildPlaceholder(b, b.placeholderCount); err != nil {
 		return err
 	}
 	return nil
