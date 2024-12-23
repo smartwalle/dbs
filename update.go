@@ -13,7 +13,7 @@ type UpdateBuilder struct {
 	prefixes    *Clauses
 	options     *Clauses
 	table       string
-	columns     *Clauses
+	columns     []Pair
 	wheres      *Clauses
 	orderBys    []string
 	limit       SQLClause
@@ -59,10 +59,7 @@ func (ub *UpdateBuilder) Table(table string) *UpdateBuilder {
 }
 
 func (ub *UpdateBuilder) SET(column string, value interface{}) *UpdateBuilder {
-	if ub.columns == nil {
-		ub.columns = NewClauses(", ")
-	}
-	ub.columns.Append(column+" = ?", value)
+	ub.columns = append(ub.columns, NewPair(column, value))
 	return ub
 }
 
@@ -101,7 +98,7 @@ func (ub *UpdateBuilder) Write(w Writer) (err error) {
 	if len(ub.table) == 0 {
 		return errors.New("dbs: update clause must specify a table")
 	}
-	if !ub.columns.valid() {
+	if len(ub.columns) == 0 {
 		return errors.New("dbs: update clause must have at least one Set")
 	}
 	if !ub.wheres.valid() {
@@ -138,8 +135,13 @@ func (ub *UpdateBuilder) Write(w Writer) (err error) {
 		return err
 	}
 
-	if ub.columns.valid() {
-		if err = ub.columns.Write(w); err != nil {
+	for idx, pair := range ub.columns {
+		if idx != 0 {
+			if _, err = w.WriteString(", "); err != nil {
+				return err
+			}
+		}
+		if err = pair.Write(w); err != nil {
 			return err
 		}
 	}

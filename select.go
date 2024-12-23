@@ -57,7 +57,7 @@ func (sb *SelectBuilder) Option(sql interface{}, args ...interface{}) *SelectBui
 }
 
 func (sb *SelectBuilder) Selects(columns ...string) *SelectBuilder {
-	return sb.Select(strings.Join(columns, ", "))
+	return sb.Select(NewColumns(", ", columns...))
 }
 
 func (sb *SelectBuilder) Select(sql interface{}, args ...interface{}) *SelectBuilder {
