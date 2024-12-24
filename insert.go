@@ -115,6 +115,7 @@ func (ib *InsertBuilder) Write(w Writer) (err error) {
 		if _, err = w.WriteString("("); err != nil {
 			return err
 		}
+		// TODO
 		if _, err = w.WriteString(strings.Join(ib.columns, ", ")); err != nil {
 			return err
 		}

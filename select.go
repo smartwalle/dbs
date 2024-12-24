@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"strings"
 )
 
 type SelectBuilder struct {
@@ -16,9 +15,9 @@ type SelectBuilder struct {
 	tables      *Clauses
 	joins       *Clauses
 	wheres      *Clauses
-	groupBys    []string
+	groupBys    Strings
 	having      *Clauses
-	orderBys    []string
+	orderBys    Strings
 	limit       SQLClause
 	offset      SQLClause
 	suffixes    *Clauses
@@ -192,7 +191,7 @@ func (sb *SelectBuilder) Write(w Writer) (err error) {
 		if _, err = w.WriteString(" GROUP BY "); err != nil {
 			return err
 		}
-		if _, err = w.WriteString(strings.Join(sb.groupBys, ", ")); err != nil {
+		if err = sb.groupBys.Write(w, ", "); err != nil {
 			return err
 		}
 	}
@@ -210,7 +209,7 @@ func (sb *SelectBuilder) Write(w Writer) (err error) {
 		if _, err = w.WriteString(" ORDER BY "); err != nil {
 			return err
 		}
-		if _, err = w.WriteString(strings.Join(sb.orderBys, ", ")); err != nil {
+		if err = sb.orderBys.Write(w, ", "); err != nil {
 			return err
 		}
 	}
