@@ -34,7 +34,7 @@ func DollarPlaceholder() Placeholder {
 type question struct {
 }
 
-func (q *question) BuildPlaceholder(w Writer, idx int) (err error) {
+func (q *question) BuildPlaceholder(w Writer, _ int) (err error) {
 	if err = w.WriteByte('?'); err != nil {
 		return err
 	}

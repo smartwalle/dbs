@@ -90,7 +90,7 @@ func (db *DeleteBuilder) Write(w Writer) (err error) {
 		if err = db.prefixes.Write(w); err != nil {
 			return err
 		}
-		if _, err = w.WriteString(" "); err != nil {
+		if err = w.WriteByte(' '); err != nil {
 			return err
 		}
 	}
@@ -137,7 +137,7 @@ func (db *DeleteBuilder) Write(w Writer) (err error) {
 	}
 
 	if db.suffixes.valid() {
-		if _, err = w.WriteString(" "); err != nil {
+		if err = w.WriteByte(' '); err != nil {
 			return err
 		}
 		if err = db.suffixes.Write(w); err != nil {

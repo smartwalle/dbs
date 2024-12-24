@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"strings"
 )
 
 type InsertBuilder struct {
@@ -12,7 +11,7 @@ type InsertBuilder struct {
 	session     Session
 	prefixes    *Clauses
 	options     *Clauses
-	columns     []string
+	columns     Strings
 	table       string
 	values      [][]interface{}
 	suffixes    *Clauses
@@ -85,7 +84,7 @@ func (ib *InsertBuilder) Write(w Writer) (err error) {
 		if err = ib.prefixes.Write(w); err != nil {
 			return err
 		}
-		if _, err = w.WriteString(" "); err != nil {
+		if err = w.WriteByte(' '); err != nil {
 			return err
 		}
 	}
@@ -98,7 +97,7 @@ func (ib *InsertBuilder) Write(w Writer) (err error) {
 		if err = ib.options.Write(w); err != nil {
 			return err
 		}
-		if _, err = w.WriteString(" "); err != nil {
+		if err = w.WriteByte(' '); err != nil {
 			return err
 		}
 	}
@@ -109,17 +108,18 @@ func (ib *InsertBuilder) Write(w Writer) (err error) {
 	if _, err = w.WriteString(ib.table); err != nil {
 		return err
 	}
-	w.WriteString(" ")
+	if err = w.WriteByte(' '); err != nil {
+		return err
+	}
 
 	if len(ib.columns) > 0 {
-		if _, err = w.WriteString("("); err != nil {
+		if err = w.WriteByte('('); err != nil {
 			return err
 		}
-		// TODO
-		if _, err = w.WriteString(strings.Join(ib.columns, ", ")); err != nil {
+		if err = ib.columns.Write(w, ", "); err != nil {
 			return err
 		}
-		if _, err = w.WriteString(")"); err != nil {
+		if err = w.WriteByte(')'); err != nil {
 			return err
 		}
 	}
@@ -129,31 +129,43 @@ func (ib *InsertBuilder) Write(w Writer) (err error) {
 			return err
 		}
 		for row, values := range ib.values {
-			w.WriteString("(")
-			for i, value := range values {
-				switch vt := value.(type) {
+			if row != 0 {
+				if _, err = w.WriteString(", "); err != nil {
+					return err
+				}
+			}
+
+			if err = w.WriteByte('('); err != nil {
+				return err
+			}
+			for col, value := range values {
+				if col != 0 {
+					if _, err = w.WriteString(", "); err != nil {
+						return err
+					}
+				}
+
+				switch raw := value.(type) {
 				case SQLClause:
-					if err = vt.Write(w); err != nil {
+					if err = raw.Write(w); err != nil {
 						return err
 					}
 				default:
-					w.WritePlaceholder()
+					if err = w.WritePlaceholder(); err != nil {
+						return err
+					}
 					w.WriteArguments(value)
 				}
-				if i < len(values)-1 {
-					w.WriteString(", ")
-				}
-			}
-			w.WriteString(")")
 
-			if row < len(ib.values)-1 {
-				w.WriteString(", ")
+			}
+			if err = w.WriteByte(')'); err != nil {
+				return err
 			}
 		}
 	}
 
 	if ib.suffixes.valid() {
-		if _, err = w.WriteString(" "); err != nil {
+		if err = w.WriteByte(' '); err != nil {
 			return err
 		}
 		if err = ib.suffixes.Write(w); err != nil {

@@ -108,7 +108,7 @@ func (ub *UpdateBuilder) Write(w Writer) (err error) {
 		if err = ub.prefixes.Write(w); err != nil {
 			return err
 		}
-		if _, err = w.WriteString(" "); err != nil {
+		if err = w.WriteByte(' '); err != nil {
 			return err
 		}
 	}
@@ -121,7 +121,7 @@ func (ub *UpdateBuilder) Write(w Writer) (err error) {
 		if err = ub.options.Write(w); err != nil {
 			return err
 		}
-		if _, err = w.WriteString(" "); err != nil {
+		if err = w.WriteByte(' '); err != nil {
 			return err
 		}
 	}
@@ -177,7 +177,7 @@ func (ub *UpdateBuilder) Write(w Writer) (err error) {
 	}
 
 	if ub.suffixes.valid() {
-		if _, err = w.WriteString(" "); err != nil {
+		if err = w.WriteByte(' '); err != nil {
 			return err
 		}
 		if err = ub.suffixes.Write(w); err != nil {

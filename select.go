@@ -136,7 +136,7 @@ func (sb *SelectBuilder) Write(w Writer) (err error) {
 		if err = sb.prefixes.Write(w); err != nil {
 			return err
 		}
-		if _, err = w.WriteString(" "); err != nil {
+		if err = w.WriteByte(' '); err != nil {
 			return err
 		}
 	}
@@ -149,7 +149,7 @@ func (sb *SelectBuilder) Write(w Writer) (err error) {
 		if err = sb.options.Write(w); err != nil {
 			return err
 		}
-		if _, err = w.WriteString(" "); err != nil {
+		if err = w.WriteByte(' '); err != nil {
 			return err
 		}
 	}
@@ -170,7 +170,7 @@ func (sb *SelectBuilder) Write(w Writer) (err error) {
 	}
 
 	if sb.joins.valid() {
-		if _, err = w.WriteString(" "); err != nil {
+		if err = w.WriteByte(' '); err != nil {
 			return err
 		}
 		if err = sb.joins.Write(w); err != nil {
@@ -227,7 +227,7 @@ func (sb *SelectBuilder) Write(w Writer) (err error) {
 	}
 
 	if sb.suffixes.valid() {
-		if _, err = w.WriteString(" "); err != nil {
+		if err = w.WriteByte(' '); err != nil {
 			return err
 		}
 		if err = sb.suffixes.Write(w); err != nil {
