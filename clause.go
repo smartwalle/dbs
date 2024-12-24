@@ -228,24 +228,24 @@ func (cs Columns) SQL() (string, []interface{}, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
-type Pair struct {
+type Expr struct {
 	column string
 	value  interface{}
 }
 
-func NewPair(column string, value interface{}) Pair {
-	return Pair{column: column, value: value}
+func NewExpr(column string, value interface{}) Expr {
+	return Expr{column: column, value: value}
 }
 
-func (p Pair) Write(w Writer) (err error) {
-	if _, err = w.WriteString(p.column); err != nil {
+func (sc Expr) Write(w Writer) (err error) {
+	if _, err = w.WriteString(sc.column); err != nil {
 		return err
 	}
 	if _, err = w.WriteString(" = "); err != nil {
 		return err
 	}
 
-	switch raw := p.value.(type) {
+	switch raw := sc.value.(type) {
 	case SQLClause:
 		if err = raw.Write(w); err != nil {
 			return err
@@ -259,12 +259,32 @@ func (p Pair) Write(w Writer) (err error) {
 	return nil
 }
 
-func (p Pair) SQL() (string, []interface{}, error) {
+func (sc Expr) SQL() (string, []interface{}, error) {
 	var buffer = getBuffer()
 	defer putBuffer(buffer)
 
-	if err := p.Write(buffer); err != nil {
+	if err := sc.Write(buffer); err != nil {
 		return "", nil, err
 	}
 	return buffer.String(), buffer.Arguments(), nil
+}
+
+type Strings []string
+
+func (ss Strings) Write(w Writer, sep string) (err error) {
+	for idx, s := range ss {
+		if len(s) == 0 {
+			continue
+		}
+
+		if idx != 0 && len(sep) > 0 {
+			if _, err = w.WriteString(sep); err != nil {
+				return err
+			}
+		}
+		if _, err = w.WriteString(s); err != nil {
+			return err
+		}
+	}
+	return nil
 }

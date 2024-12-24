@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"strings"
 )
 
 type UpdateBuilder struct {
@@ -13,9 +12,9 @@ type UpdateBuilder struct {
 	prefixes    *Clauses
 	options     *Clauses
 	table       string
-	columns     []Pair
+	columns     []Expr
 	wheres      *Clauses
-	orderBys    []string
+	orderBys    Strings
 	limit       SQLClause
 	offset      SQLClause
 	suffixes    *Clauses
@@ -59,7 +58,7 @@ func (ub *UpdateBuilder) Table(table string) *UpdateBuilder {
 }
 
 func (ub *UpdateBuilder) SET(column string, value interface{}) *UpdateBuilder {
-	ub.columns = append(ub.columns, NewPair(column, value))
+	ub.columns = append(ub.columns, NewExpr(column, value))
 	return ub
 }
 
@@ -135,13 +134,13 @@ func (ub *UpdateBuilder) Write(w Writer) (err error) {
 		return err
 	}
 
-	for idx, pair := range ub.columns {
+	for idx, column := range ub.columns {
 		if idx != 0 {
 			if _, err = w.WriteString(", "); err != nil {
 				return err
 			}
 		}
-		if err = pair.Write(w); err != nil {
+		if err = column.Write(w); err != nil {
 			return err
 		}
 	}
@@ -159,7 +158,8 @@ func (ub *UpdateBuilder) Write(w Writer) (err error) {
 		if _, err = w.WriteString(" ORDER BY "); err != nil {
 			return err
 		}
-		if _, err = w.WriteString(strings.Join(ub.orderBys, ", ")); err != nil {
+
+		if err = ub.orderBys.Write(w, ", "); err != nil {
 			return err
 		}
 	}
