@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"strings"
 )
 
 type DeleteBuilder struct {
@@ -13,7 +12,7 @@ type DeleteBuilder struct {
 	prefixes    *Clauses
 	table       string
 	wheres      *Clauses
-	orderBys    []string
+	orderBys    Strings
 	limit       SQLClause
 	offset      SQLClause
 	suffixes    *Clauses
@@ -120,7 +119,7 @@ func (db *DeleteBuilder) Write(w Writer) (err error) {
 		if _, err = w.WriteString(" ORDER BY "); err != nil {
 			return err
 		}
-		if _, err = w.WriteString(strings.Join(db.orderBys, ", ")); err != nil {
+		if err = db.orderBys.Write(w, ", "); err != nil {
 			return err
 		}
 	}
