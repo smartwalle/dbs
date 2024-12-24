@@ -3,7 +3,7 @@ package dbs
 import "strconv"
 
 type Placeholder interface {
-	BuildPlaceholder(w Writer, indx int) error
+	WriteTo(w Writer, indx int) error
 }
 
 var questionPlaceholder = &question{}
@@ -34,7 +34,7 @@ func DollarPlaceholder() Placeholder {
 type question struct {
 }
 
-func (q *question) BuildPlaceholder(w Writer, _ int) (err error) {
+func (q *question) WriteTo(w Writer, _ int) (err error) {
 	if err = w.WriteByte('?'); err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func (q *question) BuildPlaceholder(w Writer, _ int) (err error) {
 type dollar struct {
 }
 
-func (d *dollar) BuildPlaceholder(w Writer, idx int) (err error) {
+func (d *dollar) WriteTo(w Writer, idx int) (err error) {
 	if err = w.WriteByte('$'); err != nil {
 		return err
 	}

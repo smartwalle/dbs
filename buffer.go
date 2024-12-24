@@ -25,7 +25,7 @@ var bufferPool = sync.Pool{
 		return &Buffer{
 			Buffer:           bytes.NewBuffer(make([]byte, 0, kDefaultBufferSize)),
 			arguments:        make([]interface{}, 0, kDefaultArgsSize),
-			placeholder:      globalPlaceholder,
+			placeholder:      GlobalPlaceholder(),
 			placeholderCount: 0,
 		}
 	},
@@ -54,14 +54,14 @@ type Buffer struct {
 
 func (b *Buffer) UsePlaceholder(p Placeholder) {
 	if p == nil {
-		p = globalPlaceholder
+		p = GlobalPlaceholder()
 	}
 	b.placeholder = p
 }
 
 func (b *Buffer) WritePlaceholder() error {
 	b.placeholderCount++
-	if err := b.placeholder.BuildPlaceholder(b, b.placeholderCount); err != nil {
+	if err := b.placeholder.WriteTo(b, b.placeholderCount); err != nil {
 		return err
 	}
 	return nil
