@@ -10,11 +10,11 @@ type DeleteBuilder struct {
 	placeholder Placeholder
 	session     Session
 	prefixes    *Clauses
+	options     *Clauses
 	table       string
 	wheres      *Clauses
 	orderBys    Strings
 	limit       SQLClause
-	offset      SQLClause
 	suffixes    *Clauses
 }
 
@@ -42,6 +42,14 @@ func (db *DeleteBuilder) Prefix(sql interface{}, args ...interface{}) *DeleteBui
 	return db
 }
 
+func (db *DeleteBuilder) Option(sql interface{}, args ...interface{}) *DeleteBuilder {
+	if db.options == nil {
+		db.options = NewClauses(" ")
+	}
+	db.options.Append(sql, args...)
+	return db
+}
+
 func (db *DeleteBuilder) From(table string) *DeleteBuilder {
 	db.table = table
 	return db
@@ -62,11 +70,6 @@ func (db *DeleteBuilder) OrderBy(sql ...string) *DeleteBuilder {
 
 func (db *DeleteBuilder) Limit(limit int64) *DeleteBuilder {
 	db.limit = NewClause(" LIMIT ?", limit)
-	return db
-}
-
-func (db *DeleteBuilder) Offset(offset int64) *DeleteBuilder {
-	db.offset = NewClause(" OFFSET ?", offset)
 	return db
 }
 
@@ -99,6 +102,15 @@ func (db *DeleteBuilder) Write(w Writer) (err error) {
 		return err
 	}
 
+	if db.options.valid() {
+		if err = db.options.Write(w); err != nil {
+			return err
+		}
+		if err = w.WriteByte(' '); err != nil {
+			return err
+		}
+	}
+
 	if _, err = w.WriteString("FROM "); err != nil {
 		return err
 	}
@@ -126,12 +138,6 @@ func (db *DeleteBuilder) Write(w Writer) (err error) {
 
 	if db.limit != nil {
 		if err = db.limit.Write(w); err != nil {
-			return err
-		}
-	}
-
-	if db.offset != nil {
-		if err = db.offset.Write(w); err != nil {
 			return err
 		}
 	}

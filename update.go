@@ -16,7 +16,6 @@ type UpdateBuilder struct {
 	wheres      *Clauses
 	orderBys    Strings
 	limit       SQLClause
-	offset      SQLClause
 	suffixes    *Clauses
 }
 
@@ -77,11 +76,6 @@ func (ub *UpdateBuilder) OrderBy(sql ...string) *UpdateBuilder {
 
 func (ub *UpdateBuilder) Limit(limit int64) *UpdateBuilder {
 	ub.limit = NewClause(" LIMIT ?", limit)
-	return ub
-}
-
-func (ub *UpdateBuilder) Offset(offset int64) *UpdateBuilder {
-	ub.offset = NewClause(" OFFSET ?", offset)
 	return ub
 }
 
@@ -166,12 +160,6 @@ func (ub *UpdateBuilder) Write(w Writer) (err error) {
 
 	if ub.limit != nil {
 		if err = ub.limit.Write(w); err != nil {
-			return err
-		}
-	}
-
-	if ub.offset != nil {
-		if err = ub.offset.Write(w); err != nil {
 			return err
 		}
 	}
