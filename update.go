@@ -12,7 +12,7 @@ type UpdateBuilder struct {
 	prefixes    *Clauses
 	options     *Clauses
 	table       string
-	columns     []Expr
+	sets        []Expr
 	wheres      *Clauses
 	orderBys    Strings
 	limit       SQLClause
@@ -57,7 +57,7 @@ func (ub *UpdateBuilder) Table(table string) *UpdateBuilder {
 }
 
 func (ub *UpdateBuilder) SET(column string, value interface{}) *UpdateBuilder {
-	ub.columns = append(ub.columns, NewExpr(column, value))
+	ub.sets = append(ub.sets, NewExpr(column, value))
 	return ub
 }
 
@@ -91,8 +91,8 @@ func (ub *UpdateBuilder) Write(w Writer) (err error) {
 	if len(ub.table) == 0 {
 		return errors.New("dbs: update clause must specify a table")
 	}
-	if len(ub.columns) == 0 {
-		return errors.New("dbs: update clause must have at least one Set")
+	if len(ub.sets) == 0 {
+		return errors.New("dbs: update clause must have at least one set")
 	}
 	if !ub.wheres.valid() {
 		return errors.New("dbs: update clause must have at least one where")
@@ -128,13 +128,13 @@ func (ub *UpdateBuilder) Write(w Writer) (err error) {
 		return err
 	}
 
-	for idx, column := range ub.columns {
+	for idx, expr := range ub.sets {
 		if idx != 0 {
 			if _, err = w.WriteString(", "); err != nil {
 				return err
 			}
 		}
-		if err = column.Write(w); err != nil {
+		if err = expr.Write(w); err != nil {
 			return err
 		}
 	}
