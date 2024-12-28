@@ -11,7 +11,7 @@ type InsertBuilder struct {
 	session     Session
 	prefixes    *Clauses
 	options     *Clauses
-	columns     Strings
+	columns     Parts
 	table       string
 	values      [][]interface{}
 	suffixes    *Clauses
@@ -116,7 +116,7 @@ func (ib *InsertBuilder) Write(w Writer) (err error) {
 		if err = w.WriteByte('('); err != nil {
 			return err
 		}
-		if err = ib.columns.Write(w, ", "); err != nil {
+		if err = ib.columns.Write(w); err != nil {
 			return err
 		}
 		if err = w.WriteByte(')'); err != nil {

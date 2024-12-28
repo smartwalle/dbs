@@ -15,9 +15,9 @@ type SelectBuilder struct {
 	tables      *Clauses
 	joins       *Clauses
 	wheres      *Clauses
-	groupBys    Strings
+	groupBys    Parts
 	having      *Clauses
-	orderBys    Strings
+	orderBys    Parts
 	limit       SQLClause
 	offset      SQLClause
 	suffixes    *Clauses
@@ -56,7 +56,7 @@ func (sb *SelectBuilder) Option(sql interface{}, args ...interface{}) *SelectBui
 }
 
 func (sb *SelectBuilder) Selects(columns ...string) *SelectBuilder {
-	return sb.Select(NewColumns(", ", columns...))
+	return sb.Select(Parts(columns))
 }
 
 func (sb *SelectBuilder) Select(sql interface{}, args ...interface{}) *SelectBuilder {
@@ -191,7 +191,7 @@ func (sb *SelectBuilder) Write(w Writer) (err error) {
 		if _, err = w.WriteString(" GROUP BY "); err != nil {
 			return err
 		}
-		if err = sb.groupBys.Write(w, ", "); err != nil {
+		if err = sb.groupBys.Write(w); err != nil {
 			return err
 		}
 	}
@@ -209,7 +209,7 @@ func (sb *SelectBuilder) Write(w Writer) (err error) {
 		if _, err = w.WriteString(" ORDER BY "); err != nil {
 			return err
 		}
-		if err = sb.orderBys.Write(w, ", "); err != nil {
+		if err = sb.orderBys.Write(w); err != nil {
 			return err
 		}
 	}
@@ -250,13 +250,8 @@ func (sb *SelectBuilder) SQL() (string, []interface{}, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
-func (sb *SelectBuilder) Count(alias ...string) *SelectBuilder {
-	var columns = NewColumns(" ", "COUNT(1)")
-	if len(alias) > 0 {
-		columns.columns = append(columns.columns, alias...)
-	}
-
-	var clauses = NewClauses(", ", columns)
+func (sb *SelectBuilder) Count() *SelectBuilder {
+	var columns = NewClauses(", ", SQL("COUNT(1)"))
 
 	var temp = *sb
 	temp.limit = nil
@@ -266,11 +261,12 @@ func (sb *SelectBuilder) Count(alias ...string) *SelectBuilder {
 	var nsb *SelectBuilder
 	if len(temp.groupBys) > 0 {
 		temp.columns = NewClauses(", ", SQL("1"))
+
 		nsb = NewSelectBuilder()
-		nsb.columns = clauses
+		nsb.columns = columns
 		nsb.From("(?)", &temp)
 	} else {
-		temp.columns = clauses
+		temp.columns = columns
 		nsb = &temp
 	}
 

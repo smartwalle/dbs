@@ -195,39 +195,6 @@ func OR(clauses ...SQLClause) *Clauses {
 	return NewClauses(" OR ", clauses...)
 }
 
-type Columns struct {
-	sep     string
-	columns []string
-}
-
-func NewColumns(sep string, columns ...string) Columns {
-	return Columns{sep: sep, columns: columns}
-}
-
-func (cs Columns) Write(w Writer) (err error) {
-	for idx, column := range cs.columns {
-		if idx != 0 && len(cs.sep) > 0 {
-			if _, err = w.WriteString(cs.sep); err != nil {
-				return err
-			}
-		}
-		if _, err = w.WriteString(column); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (cs Columns) SQL() (string, []interface{}, error) {
-	var buffer = getBuffer()
-	defer putBuffer(buffer)
-
-	if err := cs.Write(buffer); err != nil {
-		return "", nil, err
-	}
-	return buffer.String(), buffer.Arguments(), nil
-}
-
 type Set struct {
 	column string
 	value  interface{}
@@ -269,16 +236,16 @@ func (sc Set) SQL() (string, []interface{}, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
-type Strings []string
+type Parts []string
 
-func (ss Strings) Write(w Writer, sep string) (err error) {
-	for idx, s := range ss {
+func (ps Parts) Write(w Writer) (err error) {
+	for idx, s := range ps {
 		if len(s) == 0 {
 			continue
 		}
 
-		if idx != 0 && len(sep) > 0 {
-			if _, err = w.WriteString(sep); err != nil {
+		if idx != 0 {
+			if _, err = w.WriteString(", "); err != nil {
 				return err
 			}
 		}
@@ -287,4 +254,14 @@ func (ss Strings) Write(w Writer, sep string) (err error) {
 		}
 	}
 	return nil
+}
+
+func (ps Parts) SQL() (string, []interface{}, error) {
+	var buffer = getBuffer()
+	defer putBuffer(buffer)
+
+	if err := ps.Write(buffer); err != nil {
+		return "", nil, err
+	}
+	return buffer.String(), buffer.Arguments(), nil
 }

@@ -14,7 +14,7 @@ type UpdateBuilder struct {
 	table       string
 	sets        []Set
 	wheres      *Clauses
-	orderBys    Strings
+	orderBys    Parts
 	limit       SQLClause
 	suffixes    *Clauses
 }
@@ -153,7 +153,7 @@ func (ub *UpdateBuilder) Write(w Writer) (err error) {
 			return err
 		}
 
-		if err = ub.orderBys.Write(w, ", "); err != nil {
+		if err = ub.orderBys.Write(w); err != nil {
 			return err
 		}
 	}
