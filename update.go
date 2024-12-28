@@ -12,7 +12,7 @@ type UpdateBuilder struct {
 	prefixes    *Clauses
 	options     *Clauses
 	table       string
-	sets        []Expr
+	sets        []Set
 	wheres      *Clauses
 	orderBys    Strings
 	limit       SQLClause
@@ -57,7 +57,7 @@ func (ub *UpdateBuilder) Table(table string) *UpdateBuilder {
 }
 
 func (ub *UpdateBuilder) SET(column string, value interface{}) *UpdateBuilder {
-	ub.sets = append(ub.sets, NewExpr(column, value))
+	ub.sets = append(ub.sets, NewSet(column, value))
 	return ub
 }
 

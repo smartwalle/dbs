@@ -228,16 +228,16 @@ func (cs Columns) SQL() (string, []interface{}, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
-type Expr struct {
+type Set struct {
 	column string
 	value  interface{}
 }
 
-func NewExpr(column string, value interface{}) Expr {
-	return Expr{column: column, value: value}
+func NewSet(column string, value interface{}) Set {
+	return Set{column: column, value: value}
 }
 
-func (sc Expr) Write(w Writer) (err error) {
+func (sc Set) Write(w Writer) (err error) {
 	if _, err = w.WriteString(sc.column); err != nil {
 		return err
 	}
@@ -259,7 +259,7 @@ func (sc Expr) Write(w Writer) (err error) {
 	return nil
 }
 
-func (sc Expr) SQL() (string, []interface{}, error) {
+func (sc Set) SQL() (string, []interface{}, error) {
 	var buffer = getBuffer()
 	defer putBuffer(buffer)
 
