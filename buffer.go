@@ -9,6 +9,8 @@ const kDefaultArgsSize = 64
 const kDefaultBufferSize = 1024
 
 type Writer interface {
+	UsePlaceholder(p Placeholder)
+
 	Write(p []byte) (n int, err error)
 
 	WriteByte(c byte) error
@@ -18,6 +20,8 @@ type Writer interface {
 	WritePlaceholder() error
 
 	WriteArguments(args ...interface{})
+
+	Arguments() []interface{}
 }
 
 var bufferPool = sync.Pool{

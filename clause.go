@@ -62,6 +62,8 @@ func (c Clause) Write(w Writer) (err error) {
 		//		w.WriteArguments(raw)
 		//	}
 		//}
+		//
+		// 4 - 直接丢弃
 	}
 	return nil
 }
