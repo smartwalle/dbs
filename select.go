@@ -250,6 +250,33 @@ func (sb *SelectBuilder) SQL() (string, []interface{}, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
+func (sb *SelectBuilder) Count(alias ...string) *SelectBuilder {
+	var columns = NewColumns(" ", "COUNT(1)")
+	if len(alias) > 0 {
+		columns.columns = append(columns.columns, alias...)
+	}
+
+	var clauses = NewClauses(", ", columns)
+
+	var temp = *sb
+	temp.limit = nil
+	temp.offset = nil
+	temp.orderBys = nil
+
+	var nsb *SelectBuilder
+	if len(temp.groupBys) > 0 {
+		temp.columns = NewClauses(", ", SQL("1"))
+		nsb = NewSelectBuilder()
+		nsb.columns = clauses
+		nsb.From("(?)", &temp)
+	} else {
+		temp.columns = clauses
+		nsb = &temp
+	}
+
+	return nsb
+}
+
 func (sb *SelectBuilder) Scan(ctx context.Context, dst interface{}) error {
 	return scan(ctx, sb.session, sb, dst)
 }
