@@ -76,7 +76,7 @@ func (b *Buffer) WriteArguments(args ...interface{}) {
 }
 
 func (b *Buffer) Arguments() []interface{} {
-	var args = make([]interface{}, 0, len(b.arguments))
-	args = append(args, b.arguments...)
+	var args = make([]interface{}, len(b.arguments))
+	copy(args, b.arguments)
 	return args
 }
