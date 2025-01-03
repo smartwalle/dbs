@@ -151,10 +151,9 @@ func (ib *InsertBuilder) Write(w Writer) (err error) {
 						return err
 					}
 				default:
-					if err = w.WritePlaceholder(); err != nil {
+					if err = w.WriteArgument(FlagPlaceholder|FlagArgument, value); err != nil {
 						return err
 					}
-					w.WriteArguments(value)
 				}
 
 			}

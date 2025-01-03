@@ -8,6 +8,11 @@ import (
 const kDefaultArgsSize = 64
 const kDefaultBufferSize = 1024
 
+const (
+	FlagPlaceholder = uint8(1)
+	FlagArgument    = uint8(2)
+)
+
 type Writer interface {
 	UsePlaceholder(p Placeholder)
 
@@ -17,9 +22,7 @@ type Writer interface {
 
 	WriteString(s string) (n int, err error)
 
-	WritePlaceholder() error
-
-	WriteArguments(args ...interface{})
+	WriteArgument(flag uint8, arg interface{}) (err error)
 
 	Arguments() []interface{}
 }
@@ -63,16 +66,18 @@ func (b *Buffer) UsePlaceholder(p Placeholder) {
 	b.placeholder = p
 }
 
-func (b *Buffer) WritePlaceholder() error {
-	b.placeholderCount++
-	if err := b.placeholder.WriteTo(b, b.placeholderCount); err != nil {
-		return err
+func (b *Buffer) WriteArgument(flag uint8, arg interface{}) (err error) {
+	if flag&FlagArgument == FlagArgument {
+		b.arguments = append(b.arguments, arg)
+	}
+
+	if flag&FlagPlaceholder == FlagPlaceholder {
+		b.placeholderCount++
+		if err = b.placeholder.WriteTo(b, b.placeholderCount); err != nil {
+			return err
+		}
 	}
 	return nil
-}
-
-func (b *Buffer) WriteArguments(args ...interface{}) {
-	b.arguments = append(b.arguments, args...)
 }
 
 func (b *Buffer) Arguments() []interface{} {

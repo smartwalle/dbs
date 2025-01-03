@@ -43,7 +43,11 @@ func (c Clause) Write(w Writer) (err error) {
 		//return errors.New("参数数量错误")
 
 		// 2 - 将多余的参数直接追加到参数列表中
-		w.WriteArguments(args...)
+		for _, arg := range args {
+			if err = w.WriteArgument(FlagArgument, arg); err != nil {
+				return err
+			}
+		}
 
 		// 3 - 将多余的参数进行处理并追加到参数列表中
 		//for _, arg := range args[offset:] {
@@ -94,16 +98,14 @@ func buildArgument(w Writer, arg interface{}) (err error) {
 						return err
 					}
 				}
-				if err = w.WritePlaceholder(); err != nil {
+				if err = w.WriteArgument(FlagPlaceholder|FlagArgument, value.Index(idx).Interface()); err != nil {
 					return err
 				}
-				w.WriteArguments(value.Index(idx).Interface())
 			}
 		} else {
-			if err = w.WritePlaceholder(); err != nil {
+			if err = w.WriteArgument(FlagPlaceholder|FlagArgument, raw); err != nil {
 				return err
 			}
-			w.WriteArguments(raw)
 		}
 	}
 	return nil
@@ -127,7 +129,7 @@ func buildClause(w Writer, sql string, args []interface{}) ([]interface{}, error
 			}
 			args = args[1:]
 		} else {
-			if err = w.WritePlaceholder(); err != nil {
+			if err = w.WriteArgument(FlagPlaceholder, nil); err != nil {
 				return nil, err
 			}
 		}
@@ -266,10 +268,9 @@ func (sc Set) Write(w Writer) (err error) {
 			return err
 		}
 	default:
-		if err = w.WritePlaceholder(); err != nil {
+		if err = w.WriteArgument(FlagPlaceholder|FlagArgument, raw); err != nil {
 			return err
 		}
-		w.WriteArguments(raw)
 	}
 	return nil
 }
