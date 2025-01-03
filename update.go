@@ -14,7 +14,7 @@ type UpdateBuilder struct {
 	table       string
 	sets        []Set
 	wheres      *Clauses
-	orderBys    Parts
+	orderBys    *Clauses
 	limit       SQLClause
 	suffixes    *Clauses
 }
@@ -69,8 +69,11 @@ func (ub *UpdateBuilder) Where(sql interface{}, args ...interface{}) *UpdateBuil
 	return ub
 }
 
-func (ub *UpdateBuilder) OrderBy(sql ...string) *UpdateBuilder {
-	ub.orderBys = append(ub.orderBys, sql...)
+func (ub *UpdateBuilder) OrderBy(sql interface{}, args ...interface{}) *UpdateBuilder {
+	if ub.orderBys == nil {
+		ub.orderBys = NewClauses(", ")
+	}
+	ub.orderBys.Append(sql, args...)
 	return ub
 }
 
@@ -148,7 +151,7 @@ func (ub *UpdateBuilder) Write(w Writer) (err error) {
 		}
 	}
 
-	if len(ub.orderBys) > 0 {
+	if ub.orderBys.valid() {
 		if _, err = w.WriteString(" ORDER BY "); err != nil {
 			return err
 		}

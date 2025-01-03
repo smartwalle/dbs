@@ -13,7 +13,7 @@ type DeleteBuilder struct {
 	options     *Clauses
 	table       string
 	wheres      *Clauses
-	orderBys    Parts
+	orderBys    *Clauses
 	limit       SQLClause
 	suffixes    *Clauses
 }
@@ -63,8 +63,11 @@ func (db *DeleteBuilder) Where(sql interface{}, args ...interface{}) *DeleteBuil
 	return db
 }
 
-func (db *DeleteBuilder) OrderBy(sql ...string) *DeleteBuilder {
-	db.orderBys = append(db.orderBys, sql...)
+func (db *DeleteBuilder) OrderBy(sql interface{}, args ...interface{}) *DeleteBuilder {
+	if db.orderBys == nil {
+		db.orderBys = NewClauses(", ")
+	}
+	db.orderBys.Append(sql, args...)
 	return db
 }
 
@@ -127,7 +130,7 @@ func (db *DeleteBuilder) Write(w Writer) (err error) {
 		}
 	}
 
-	if len(db.orderBys) > 0 {
+	if db.orderBys.valid() {
 		if _, err = w.WriteString(" ORDER BY "); err != nil {
 			return err
 		}

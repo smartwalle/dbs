@@ -17,7 +17,7 @@ type SelectBuilder struct {
 	wheres      *Clauses
 	groupBys    Parts
 	having      *Clauses
-	orderBys    Parts
+	orderBys    *Clauses
 	limit       SQLClause
 	offset      SQLClause
 	suffixes    *Clauses
@@ -104,8 +104,11 @@ func (sb *SelectBuilder) Having(sql interface{}, args ...interface{}) *SelectBui
 	return sb
 }
 
-func (sb *SelectBuilder) OrderBy(sql ...string) *SelectBuilder {
-	sb.orderBys = append(sb.orderBys, sql...)
+func (sb *SelectBuilder) OrderBy(sql interface{}, args ...interface{}) *SelectBuilder {
+	if sb.orderBys == nil {
+		sb.orderBys = NewClauses(", ")
+	}
+	sb.orderBys.Append(sql, args...)
 	return sb
 }
 
@@ -205,7 +208,7 @@ func (sb *SelectBuilder) Write(w Writer) (err error) {
 		}
 	}
 
-	if len(sb.orderBys) > 0 {
+	if sb.orderBys.valid() {
 		if _, err = w.WriteString(" ORDER BY "); err != nil {
 			return err
 		}
