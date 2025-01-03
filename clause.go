@@ -144,18 +144,18 @@ func buildClause(w Writer, sql string, args []interface{}) ([]interface{}, error
 }
 
 type Clauses struct {
-	sep     string
+	sep     byte
 	clauses []SQLClause
 }
 
-func NewClauses(sep string, clauses ...SQLClause) *Clauses {
+func NewClauses(sep byte, clauses ...SQLClause) *Clauses {
 	return &Clauses{sep: sep, clauses: clauses}
 }
 
 func (cs *Clauses) Write(w Writer) (err error) {
 	for idx, clause := range cs.clauses {
 		if idx != 0 {
-			if _, err = w.WriteString(cs.sep); err != nil {
+			if err = w.WriteByte(cs.sep); err != nil {
 				return err
 			}
 		}
@@ -189,12 +189,58 @@ func (cs *Clauses) Append(sql interface{}, args ...interface{}) *Clauses {
 	return cs
 }
 
-func AND(clauses ...SQLClause) *Clauses {
-	return NewClauses(" AND ", clauses...)
+type Conds struct {
+	sep     string
+	clauses []SQLClause
 }
 
-func OR(clauses ...SQLClause) *Clauses {
-	return NewClauses(" OR ", clauses...)
+func NewConds(sep string, clauses ...SQLClause) *Conds {
+	return &Conds{sep: sep, clauses: clauses}
+}
+
+func (cs *Conds) Write(w Writer) (err error) {
+	for idx, clause := range cs.clauses {
+		if idx != 0 {
+			if _, err = w.WriteString(cs.sep); err != nil {
+				return err
+			}
+		}
+		if err = clause.Write(w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (cs *Conds) SQL() (string, []interface{}, error) {
+	var buffer = getBuffer()
+	defer putBuffer(buffer)
+
+	if err := cs.Write(buffer); err != nil {
+		return "", nil, err
+	}
+	return buffer.String(), buffer.Arguments(), nil
+}
+
+func (cs *Conds) valid() bool {
+	return cs != nil && len(cs.clauses) > 0
+}
+
+func (cs *Conds) Append(sql interface{}, args ...interface{}) *Conds {
+	if raw, ok := sql.(SQLClause); ok {
+		cs.clauses = append(cs.clauses, raw)
+	} else {
+		cs.clauses = append(cs.clauses, SQL(sql, args...))
+	}
+	return cs
+}
+
+func AND(clauses ...SQLClause) *Conds {
+	return NewConds(" AND ", clauses...)
+}
+
+func OR(clauses ...SQLClause) *Conds {
+	return NewConds(" OR ", clauses...)
 }
 
 type Set struct {

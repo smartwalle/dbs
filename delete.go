@@ -12,7 +12,7 @@ type DeleteBuilder struct {
 	prefixes    *Clauses
 	options     *Clauses
 	table       string
-	wheres      *Clauses
+	wheres      *Conds
 	orderBys    *Clauses
 	limit       SQLClause
 	suffixes    *Clauses
@@ -36,7 +36,7 @@ func (db *DeleteBuilder) UseSession(s Session) *DeleteBuilder {
 
 func (db *DeleteBuilder) Prefix(sql interface{}, args ...interface{}) *DeleteBuilder {
 	if db.prefixes == nil {
-		db.prefixes = NewClauses(" ")
+		db.prefixes = NewClauses(' ')
 	}
 	db.prefixes.Append(sql, args...)
 	return db
@@ -44,7 +44,7 @@ func (db *DeleteBuilder) Prefix(sql interface{}, args ...interface{}) *DeleteBui
 
 func (db *DeleteBuilder) Option(sql interface{}, args ...interface{}) *DeleteBuilder {
 	if db.options == nil {
-		db.options = NewClauses(" ")
+		db.options = NewClauses(' ')
 	}
 	db.options.Append(sql, args...)
 	return db
@@ -57,7 +57,7 @@ func (db *DeleteBuilder) From(table string) *DeleteBuilder {
 
 func (db *DeleteBuilder) Where(sql interface{}, args ...interface{}) *DeleteBuilder {
 	if db.wheres == nil {
-		db.wheres = NewClauses(" AND ")
+		db.wheres = NewConds(" AND ")
 	}
 	db.wheres.Append(sql, args...)
 	return db
@@ -65,7 +65,7 @@ func (db *DeleteBuilder) Where(sql interface{}, args ...interface{}) *DeleteBuil
 
 func (db *DeleteBuilder) OrderBy(sql interface{}, args ...interface{}) *DeleteBuilder {
 	if db.orderBys == nil {
-		db.orderBys = NewClauses(", ")
+		db.orderBys = NewClauses(',')
 	}
 	db.orderBys.Append(sql, args...)
 	return db
@@ -78,7 +78,7 @@ func (db *DeleteBuilder) Limit(limit int64) *DeleteBuilder {
 
 func (db *DeleteBuilder) Suffix(sql interface{}, args ...interface{}) *DeleteBuilder {
 	if db.suffixes == nil {
-		db.suffixes = NewClauses(" ")
+		db.suffixes = NewClauses(' ')
 	}
 	db.suffixes.Append(sql, args...)
 	return db

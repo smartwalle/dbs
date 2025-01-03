@@ -14,7 +14,7 @@ type SelectBuilder struct {
 	columns     *Clauses
 	tables      *Clauses
 	joins       *Clauses
-	wheres      *Clauses
+	wheres      *Conds
 	groupBys    Parts
 	having      *Clauses
 	orderBys    *Clauses
@@ -41,7 +41,7 @@ func (sb *SelectBuilder) UseSession(s Session) *SelectBuilder {
 
 func (sb *SelectBuilder) Prefix(sql interface{}, args ...interface{}) *SelectBuilder {
 	if sb.prefixes == nil {
-		sb.prefixes = NewClauses(" ")
+		sb.prefixes = NewClauses(' ')
 	}
 	sb.prefixes.Append(sql, args...)
 	return sb
@@ -49,7 +49,7 @@ func (sb *SelectBuilder) Prefix(sql interface{}, args ...interface{}) *SelectBui
 
 func (sb *SelectBuilder) Option(sql interface{}, args ...interface{}) *SelectBuilder {
 	if sb.options == nil {
-		sb.options = NewClauses(" ")
+		sb.options = NewClauses(' ')
 	}
 	sb.options.Append(sql, args...)
 	return sb
@@ -61,7 +61,7 @@ func (sb *SelectBuilder) Selects(columns ...string) *SelectBuilder {
 
 func (sb *SelectBuilder) Select(sql interface{}, args ...interface{}) *SelectBuilder {
 	if sb.columns == nil {
-		sb.columns = NewClauses(", ")
+		sb.columns = NewClauses(',')
 	}
 	sb.columns.Append(sql, args...)
 	return sb
@@ -69,7 +69,7 @@ func (sb *SelectBuilder) Select(sql interface{}, args ...interface{}) *SelectBui
 
 func (sb *SelectBuilder) From(table string, args ...interface{}) *SelectBuilder {
 	if sb.tables == nil {
-		sb.tables = NewClauses(", ")
+		sb.tables = NewClauses(',')
 	}
 	sb.tables.Append(table, args...)
 	return sb
@@ -77,7 +77,7 @@ func (sb *SelectBuilder) From(table string, args ...interface{}) *SelectBuilder 
 
 func (sb *SelectBuilder) Join(sql interface{}, args ...interface{}) *SelectBuilder {
 	if sb.joins == nil {
-		sb.joins = NewClauses(" ")
+		sb.joins = NewClauses(' ')
 	}
 	sb.joins.Append(sql, args...)
 	return sb
@@ -85,7 +85,7 @@ func (sb *SelectBuilder) Join(sql interface{}, args ...interface{}) *SelectBuild
 
 func (sb *SelectBuilder) Where(sql interface{}, args ...interface{}) *SelectBuilder {
 	if sb.wheres == nil {
-		sb.wheres = NewClauses(" AND ")
+		sb.wheres = NewConds(" AND ")
 	}
 	sb.wheres.Append(sql, args...)
 	return sb
@@ -98,7 +98,7 @@ func (sb *SelectBuilder) GroupBy(groupBys ...string) *SelectBuilder {
 
 func (sb *SelectBuilder) Having(sql interface{}, args ...interface{}) *SelectBuilder {
 	if sb.having == nil {
-		sb.having = NewClauses(" ")
+		sb.having = NewClauses(' ')
 	}
 	sb.having.Append(sql, args...)
 	return sb
@@ -106,7 +106,7 @@ func (sb *SelectBuilder) Having(sql interface{}, args ...interface{}) *SelectBui
 
 func (sb *SelectBuilder) OrderBy(sql interface{}, args ...interface{}) *SelectBuilder {
 	if sb.orderBys == nil {
-		sb.orderBys = NewClauses(", ")
+		sb.orderBys = NewClauses(',')
 	}
 	sb.orderBys.Append(sql, args...)
 	return sb
@@ -124,7 +124,7 @@ func (sb *SelectBuilder) Offset(offset int64) *SelectBuilder {
 
 func (sb *SelectBuilder) Suffix(sql interface{}, args ...interface{}) *SelectBuilder {
 	if sb.suffixes == nil {
-		sb.suffixes = NewClauses(" ")
+		sb.suffixes = NewClauses(' ')
 	}
 	sb.suffixes.Append(sql, args...)
 	return sb
@@ -254,7 +254,7 @@ func (sb *SelectBuilder) SQL() (string, []interface{}, error) {
 }
 
 func (sb *SelectBuilder) Count() *SelectBuilder {
-	var columns = NewClauses(", ", SQL("COUNT(1)"))
+	var columns = NewClauses(',', SQL("COUNT(1)"))
 
 	var temp = *sb
 	temp.limit = nil
@@ -263,7 +263,7 @@ func (sb *SelectBuilder) Count() *SelectBuilder {
 
 	var nsb *SelectBuilder
 	if len(temp.groupBys) > 0 {
-		temp.columns = NewClauses(", ", SQL("1"))
+		temp.columns = NewClauses(',', SQL("1"))
 
 		nsb = NewSelectBuilder()
 		nsb.columns = columns

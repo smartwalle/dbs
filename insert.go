@@ -35,7 +35,7 @@ func (ib *InsertBuilder) UseSession(s Session) *InsertBuilder {
 
 func (ib *InsertBuilder) Prefix(sql interface{}, args ...interface{}) *InsertBuilder {
 	if ib.prefixes == nil {
-		ib.prefixes = NewClauses(" ")
+		ib.prefixes = NewClauses(' ')
 	}
 	ib.prefixes.Append(sql, args...)
 	return ib
@@ -43,7 +43,7 @@ func (ib *InsertBuilder) Prefix(sql interface{}, args ...interface{}) *InsertBui
 
 func (ib *InsertBuilder) Option(sql interface{}, args ...interface{}) *InsertBuilder {
 	if ib.options == nil {
-		ib.options = NewClauses(" ")
+		ib.options = NewClauses(' ')
 	}
 	ib.options.Append(sql, args...)
 	return ib
@@ -66,7 +66,7 @@ func (ib *InsertBuilder) Values(values ...interface{}) *InsertBuilder {
 
 func (ib *InsertBuilder) Suffix(sql interface{}, args ...interface{}) *InsertBuilder {
 	if ib.suffixes == nil {
-		ib.suffixes = NewClauses(" ")
+		ib.suffixes = NewClauses(' ')
 	}
 	ib.suffixes.Append(sql, args...)
 	return ib
@@ -130,7 +130,7 @@ func (ib *InsertBuilder) Write(w Writer) (err error) {
 		}
 		for row, values := range ib.values {
 			if row != 0 {
-				if _, err = w.WriteString(", "); err != nil {
+				if err = w.WriteByte(','); err != nil {
 					return err
 				}
 			}
@@ -140,7 +140,7 @@ func (ib *InsertBuilder) Write(w Writer) (err error) {
 			}
 			for col, value := range values {
 				if col != 0 {
-					if _, err = w.WriteString(", "); err != nil {
+					if err = w.WriteByte(','); err != nil {
 						return err
 					}
 				}

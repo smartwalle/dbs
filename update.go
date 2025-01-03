@@ -13,7 +13,7 @@ type UpdateBuilder struct {
 	options     *Clauses
 	table       string
 	sets        []Set
-	wheres      *Clauses
+	wheres      *Conds
 	orderBys    *Clauses
 	limit       SQLClause
 	suffixes    *Clauses
@@ -37,7 +37,7 @@ func (ub *UpdateBuilder) UseSession(s Session) *UpdateBuilder {
 
 func (ub *UpdateBuilder) Prefix(sql interface{}, args ...interface{}) *UpdateBuilder {
 	if ub.prefixes == nil {
-		ub.prefixes = NewClauses(" ")
+		ub.prefixes = NewClauses(' ')
 	}
 	ub.prefixes.Append(sql, args...)
 	return ub
@@ -45,7 +45,7 @@ func (ub *UpdateBuilder) Prefix(sql interface{}, args ...interface{}) *UpdateBui
 
 func (ub *UpdateBuilder) Option(sql interface{}, args ...interface{}) *UpdateBuilder {
 	if ub.options == nil {
-		ub.options = NewClauses(" ")
+		ub.options = NewClauses(' ')
 	}
 	ub.options.Append(sql, args...)
 	return ub
@@ -63,7 +63,7 @@ func (ub *UpdateBuilder) SET(column string, value interface{}) *UpdateBuilder {
 
 func (ub *UpdateBuilder) Where(sql interface{}, args ...interface{}) *UpdateBuilder {
 	if ub.wheres == nil {
-		ub.wheres = NewClauses(" AND ")
+		ub.wheres = NewConds(" AND ")
 	}
 	ub.wheres.Append(sql, args...)
 	return ub
@@ -71,7 +71,7 @@ func (ub *UpdateBuilder) Where(sql interface{}, args ...interface{}) *UpdateBuil
 
 func (ub *UpdateBuilder) OrderBy(sql interface{}, args ...interface{}) *UpdateBuilder {
 	if ub.orderBys == nil {
-		ub.orderBys = NewClauses(", ")
+		ub.orderBys = NewClauses(',')
 	}
 	ub.orderBys.Append(sql, args...)
 	return ub
@@ -84,7 +84,7 @@ func (ub *UpdateBuilder) Limit(limit int64) *UpdateBuilder {
 
 func (ub *UpdateBuilder) Suffix(sql interface{}, args ...interface{}) *UpdateBuilder {
 	if ub.suffixes == nil {
-		ub.suffixes = NewClauses(" ")
+		ub.suffixes = NewClauses(' ')
 	}
 	ub.suffixes.Append(sql, args...)
 	return ub
@@ -133,7 +133,7 @@ func (ub *UpdateBuilder) Write(w Writer) (err error) {
 
 	for idx, expr := range ub.sets {
 		if idx != 0 {
-			if _, err = w.WriteString(", "); err != nil {
+			if err = w.WriteByte(','); err != nil {
 				return err
 			}
 		}

@@ -30,7 +30,7 @@ func (rb *Builder) UseSession(s Session) *Builder {
 
 func (rb *Builder) Append(sql interface{}, args ...interface{}) *Builder {
 	if rb.clauses == nil {
-		rb.clauses = NewClauses(" ")
+		rb.clauses = NewClauses(' ')
 	}
 	rb.clauses.Append(sql, args...)
 	return rb
