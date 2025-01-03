@@ -90,7 +90,7 @@ func buildArgument(w Writer, arg interface{}) (err error) {
 		if kind == reflect.Slice || kind == reflect.Array {
 			for idx := 0; idx < value.Len(); idx++ {
 				if idx != 0 {
-					if _, err = w.WriteString(", "); err != nil {
+					if err = w.WriteByte(','); err != nil {
 						return err
 					}
 				}
@@ -113,7 +113,7 @@ func buildClause(w Writer, sql string, args []interface{}) ([]interface{}, error
 	var err error
 
 	for len(sql) > 0 {
-		var pos = strings.Index(sql, "?")
+		var pos = strings.IndexByte(sql, '?')
 		if pos == -1 {
 			break
 		}
@@ -210,7 +210,7 @@ func (sc Set) Write(w Writer) (err error) {
 	if _, err = w.WriteString(sc.column); err != nil {
 		return err
 	}
-	if _, err = w.WriteString(" = "); err != nil {
+	if err = w.WriteByte('='); err != nil {
 		return err
 	}
 
@@ -247,7 +247,7 @@ func (ps Parts) Write(w Writer) (err error) {
 		}
 
 		if idx != 0 {
-			if _, err = w.WriteString(", "); err != nil {
+			if err = w.WriteByte(','); err != nil {
 				return err
 			}
 		}
