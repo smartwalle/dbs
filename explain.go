@@ -11,7 +11,7 @@ import (
 
 var convertibleTypes = []reflect.Type{reflect.TypeOf(time.Time{})}
 
-func Explain(clause Clause) (string, error) {
+func Explain(clause SQLClause) (string, error) {
 	sql, args, err := clause.SQL()
 	if err != nil {
 		return "", err
@@ -19,7 +19,7 @@ func Explain(clause Clause) (string, error) {
 	return ExplainSQL(sql, args)
 }
 
-func ExplainToBuffer(buffer *bytes.Buffer, clause Clause) (err error) {
+func ExplainToBuffer(buffer *bytes.Buffer, clause SQLClause) (err error) {
 	sql, args, err := clause.SQL()
 	if err != nil {
 		return err
