@@ -209,6 +209,15 @@ func TestClause_SQL(t *testing.T) {
 			ExpectSQL:  "DELETE FROM user WHERE id = ?",
 			ExpectArgs: ExpectArgs(100),
 		},
+		{
+			Clause: dbs.NewSelectBuilder().From(
+				"(? UNION ALL ?) t",
+				dbs.NewSelectBuilder().From("student s").Selects("s.id,s.name").Where("s.id < ?", 100),
+				dbs.NewSelectBuilder().From("teacher t").Selects("t.id,t.name").Where("t.id < ?", 1000),
+			).Selects("t.id,t.name"),
+			ExpectSQL:  "SELECT t.id,t.name FROM (SELECT s.id,s.name FROM student s WHERE s.id < ? UNION ALL SELECT t.id,t.name FROM teacher t WHERE t.id < ?) t",
+			ExpectArgs: ExpectArgs(100, 1000),
+		},
 	}
 
 	for _, test := range tests {
