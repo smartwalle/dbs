@@ -267,7 +267,7 @@ func (sb *SelectBuilder) Count() *SelectBuilder {
 
 		nsb = NewSelectBuilder()
 		nsb.columns = columns
-		nsb.From("(?)", &temp)
+		nsb.From("(?) group_count_table", &temp)
 	} else {
 		temp.columns = columns
 		nsb = &temp
