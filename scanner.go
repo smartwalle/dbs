@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 const (
@@ -199,6 +200,21 @@ func (s *scanner) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dstType r
 }
 
 func (s *scanner) scanIntoStruct(rows *sql.Rows, columns []*sql.ColumnType, fields []*fieldMetadata, values []interface{}, dstValue reflect.Value) error {
+	var isScanner = false
+	if len(columns) == 1 && fields[0] == nil {
+		switch dstValue.Addr().Interface().(type) {
+		case time.Time:
+			var val time.Time
+			values[0] = &val
+		case *time.Time:
+			var val *time.Time
+			values[0] = &val
+		case sql.Scanner:
+			values[0] = dstValue.Addr().Interface()
+			isScanner = true
+		}
+	}
+
 	if err := rows.Scan(values...); err != nil {
 		return err
 	}
@@ -209,6 +225,11 @@ func (s *scanner) scanIntoStruct(rows *sql.Rows, columns []*sql.ColumnType, fiel
 			var value = reflect.ValueOf(values[idx]).Elem().Elem()
 			if value.IsValid() {
 				fieldByIndex(dstValue, fields[idx].Index).Set(value)
+			}
+		} else if len(columns) == 1 && !isScanner {
+			var value = reflect.ValueOf(values[idx]).Elem().Elem()
+			if value.IsValid() {
+				dstValue.Set(value)
 			}
 		}
 	}
