@@ -5,9 +5,9 @@ import (
 	"database/sql"
 )
 
-// Shard 维护一组数据库连接信息，用于客户端实现数据库层面的分片操作。
+// Shard 维护一组数据库连接信息，用于实现简单的分片操作。
 type Shard struct {
-	sharding       func(value interface{}) int
+	sharding       func(value interface{}) uint32
 	shards         []Database
 	numberOfShards int
 }
@@ -19,7 +19,7 @@ func WithShardValue(ctx context.Context, value interface{}) context.Context {
 	return context.WithValue(ctx, shardKey{}, value)
 }
 
-func NewShard(sharding func(value interface{}) int, shards ...Database) *Shard {
+func NewShard(sharding func(value interface{}) uint32, shards ...Database) *Shard {
 	var ndb = &Shard{}
 	ndb.sharding = sharding
 	ndb.shards = shards
