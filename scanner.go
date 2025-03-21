@@ -22,13 +22,14 @@ type Scanner interface {
 type scanner struct {
 	tag     string
 	structs atomic.Value // map[reflect.Type]structMetadata
-	mu      sync.Mutex
+	mu      *sync.Mutex
 }
 
 func NewScanner(tag string) *scanner {
 	var m = &scanner{}
 	m.tag = tag
 	m.structs.Store(make(map[reflect.Type]structMetadata))
+	m.mu = &sync.Mutex{}
 	return m
 }
 
@@ -72,7 +73,7 @@ func (s *scanner) Scan(rows *sql.Rows, dst interface{}) error {
 func (s *scanner) prepare(dstType reflect.Type, columns []*sql.ColumnType) (fields []*fieldMetadata, values []interface{}) {
 	var mStruct, ok = s.getStructMetadata(dstType)
 	if !ok {
-		mStruct = s.parseStruct(dstType)
+		mStruct = s.buildStructMetadata(dstType)
 	}
 	fields = make([]*fieldMetadata, len(columns))
 	values = make([]interface{}, len(columns))
@@ -290,7 +291,7 @@ type element struct {
 	Index []int
 }
 
-func (s *scanner) parseStruct(dstType reflect.Type) structMetadata {
+func (s *scanner) buildStructMetadata(dstType reflect.Type) structMetadata {
 	s.mu.Lock()
 
 	var mStruct, exists = s.getStructMetadata(dstType)
