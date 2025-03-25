@@ -36,6 +36,14 @@ func (rb *Builder) Append(sql interface{}, args ...interface{}) *Builder {
 	return rb
 }
 
+func (rb *Builder) Raw(sql string, args ...interface{}) *Builder {
+	if rb.clauses == nil {
+		rb.clauses = NewClauses(' ')
+	}
+	rb.clauses.Append(sql, args...)
+	return rb
+}
+
 func (rb *Builder) Write(w Writer) (err error) {
 	if rb.clauses.valid() {
 		if err = rb.clauses.Write(w); err != nil {
