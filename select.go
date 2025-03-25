@@ -276,8 +276,8 @@ func (sb *SelectBuilder) Count() *SelectBuilder {
 	return nsb
 }
 
-func (sb *SelectBuilder) Scan(ctx context.Context, dst interface{}) error {
-	return scan(ctx, sb.session, sb, dst)
+func (sb *SelectBuilder) Scan(ctx context.Context, dest interface{}) error {
+	return scan(ctx, sb.session, sb, dest)
 }
 
 func (sb *SelectBuilder) Query(ctx context.Context) (*sql.Rows, error) {

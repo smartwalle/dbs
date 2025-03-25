@@ -187,8 +187,8 @@ func (ib *InsertBuilder) SQL() (string, []interface{}, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
-func (ib *InsertBuilder) Scan(ctx context.Context, dst interface{}) error {
-	return scan(ctx, ib.session, ib, dst)
+func (ib *InsertBuilder) Scan(ctx context.Context, dest interface{}) error {
+	return scan(ctx, ib.session, ib, dest)
 }
 
 func (ib *InsertBuilder) Query(ctx context.Context) (*sql.Rows, error) {

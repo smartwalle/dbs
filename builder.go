@@ -57,8 +57,8 @@ func (rb *Builder) SQL() (string, []interface{}, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
-func (rb *Builder) Scan(ctx context.Context, dst interface{}) error {
-	return scan(ctx, rb.session, rb, dst)
+func (rb *Builder) Scan(ctx context.Context, dest interface{}) error {
+	return scan(ctx, rb.session, rb, dest)
 }
 
 func (rb *Builder) Query(ctx context.Context) (*sql.Rows, error) {
@@ -69,14 +69,14 @@ func (rb *Builder) Exec(ctx context.Context) (sql.Result, error) {
 	return exec(ctx, rb.session, rb)
 }
 
-func scan(ctx context.Context, session Session, clause SQLClause, dst interface{}) error {
+func scan(ctx context.Context, session Session, clause SQLClause, dest interface{}) error {
 	rows, err := query(ctx, session, clause)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
-	if err = gScanner.Scan(rows, dst); err != nil && !errors.Is(err, ErrNoRows) {
+	if err = gScanner.Scan(rows, dest); err != nil && !errors.Is(err, ErrNoRows) {
 		return err
 	}
 	return nil

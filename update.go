@@ -200,8 +200,8 @@ func (ub *UpdateBuilder) SQL() (string, []interface{}, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
-func (ub *UpdateBuilder) Scan(ctx context.Context, dst interface{}) error {
-	return scan(ctx, ub.session, ub, dst)
+func (ub *UpdateBuilder) Scan(ctx context.Context, dest interface{}) error {
+	return scan(ctx, ub.session, ub, dest)
 }
 
 func (ub *UpdateBuilder) Query(ctx context.Context) (*sql.Rows, error) {

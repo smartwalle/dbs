@@ -16,7 +16,7 @@ const (
 )
 
 type Scanner interface {
-	Scan(rows *sql.Rows, dst interface{}) error
+	Scan(rows *sql.Rows, dest interface{}) error
 }
 
 type scanner struct {
@@ -33,7 +33,7 @@ func NewScanner(tag string) *scanner {
 	return m
 }
 
-func (s *scanner) Scan(rows *sql.Rows, dst interface{}) error {
+func (s *scanner) Scan(rows *sql.Rows, dest interface{}) error {
 	if rows == nil {
 		return sql.ErrNoRows
 	}
@@ -47,33 +47,33 @@ func (s *scanner) Scan(rows *sql.Rows, dst interface{}) error {
 		return err
 	}
 
-	var dstValue = reflect.ValueOf(dst)
-	var dstType = dstValue.Type()
+	var destValue = reflect.ValueOf(dest)
+	var destType = destValue.Type()
 
-	if dstValue.Kind() != reflect.Ptr {
+	if destValue.Kind() != reflect.Ptr {
 		return errors.New("must pass a pointer")
 	}
 
-	if dstValue.IsNil() {
+	if destValue.IsNil() {
 		return errors.New("nil pointer passed")
 	}
 
-	var realType = dstType
+	var realType = destType
 	for realType.Kind() == reflect.Ptr {
 		realType = realType.Elem()
 	}
 
 	var isSlice = realType.Kind() == reflect.Slice
 	if isSlice {
-		return s.scanSlice(rows, columns, dstType, dstValue)
+		return s.scanSlice(rows, columns, destType, destValue)
 	}
-	return s.scanOne(rows, columns, dstType, dstValue)
+	return s.scanOne(rows, columns, destType, destValue)
 }
 
-func (s *scanner) prepare(dstType reflect.Type, columns []*sql.ColumnType) (fields []*fieldMetadata, values []interface{}) {
-	var mStruct, ok = s.getStructMetadata(dstType)
+func (s *scanner) prepare(destType reflect.Type, columns []*sql.ColumnType) (fields []*fieldMetadata, values []interface{}) {
+	var mStruct, ok = s.getStructMetadata(destType)
 	if !ok {
-		mStruct = s.buildStructMetadata(dstType)
+		mStruct = s.buildStructMetadata(destType)
 	}
 	fields = make([]*fieldMetadata, len(columns))
 	values = make([]interface{}, len(columns))
@@ -90,16 +90,16 @@ func (s *scanner) prepare(dstType reflect.Type, columns []*sql.ColumnType) (fiel
 	return fields, values
 }
 
-func (s *scanner) scanOne(rows *sql.Rows, columns []*sql.ColumnType, dstType reflect.Type, dstValue reflect.Value) error {
+func (s *scanner) scanOne(rows *sql.Rows, columns []*sql.ColumnType, destType reflect.Type, destValue reflect.Value) error {
 	if !rows.Next() {
 		return sql.ErrNoRows
 	}
 
-	dstType, dstValue = base(dstType, dstValue)
+	destType, destValue = base(destType, destValue)
 
-	switch dstType.Kind() {
+	switch destType.Kind() {
 	case reflect.Struct:
-		var fields, values = s.prepare(dstType, columns)
+		var fields, values = s.prepare(destType, columns)
 		defer func() {
 			for idx, value := range values {
 				var field = fields[idx]
@@ -109,41 +109,41 @@ func (s *scanner) scanOne(rows *sql.Rows, columns []*sql.ColumnType, dstType ref
 			}
 		}()
 
-		return s.scanIntoStruct(rows, columns, fields, values, dstValue)
+		return s.scanIntoStruct(rows, columns, fields, values, destValue)
 	case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 		reflect.Float32, reflect.Float64,
 		reflect.String:
-		var nPointer = reflect.New(reflect.PointerTo(dstType))
+		var nPointer = reflect.New(reflect.PointerTo(destType))
 		if err := rows.Scan(nPointer.Interface()); err != nil {
 			return err
 		}
 		var nValue = nPointer.Elem().Elem()
 		if nValue.IsValid() {
-			dstValue.Set(nValue)
+			destValue.Set(nValue)
 		}
 	default:
-		return fmt.Errorf("%s is unsupported", dstType.Kind())
+		return fmt.Errorf("%s is unsupported", destType.Kind())
 	}
 	return nil
 }
 
-func (s *scanner) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dstType reflect.Type, dstValue reflect.Value) error {
-	dstType, dstValue = base(dstType, dstValue)
+func (s *scanner) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, destType reflect.Type, destValue reflect.Value) error {
+	destType, destValue = base(destType, destValue)
 
 	// 获取 slice 元素类型
-	dstType = dstType.Elem()
+	destType = destType.Elem()
 
 	// 判断元素类型是否为指针
-	var isPointer = dstType.Kind() == reflect.Ptr
+	var isPointer = destType.Kind() == reflect.Ptr
 
 	if isPointer {
-		dstType = dstType.Elem()
+		destType = destType.Elem()
 	}
 
-	switch dstType.Kind() {
+	switch destType.Kind() {
 	case reflect.Struct:
-		var fields, values = s.prepare(dstType, columns)
+		var fields, values = s.prepare(destType, columns)
 		defer func() {
 			for idx, value := range values {
 				var field = fields[idx]
@@ -155,7 +155,7 @@ func (s *scanner) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dstType r
 
 		var nList = make([]reflect.Value, 0, 20)
 		for rows.Next() {
-			var nPointer = reflect.New(dstType)
+			var nPointer = reflect.New(destType)
 			var nValue = reflect.Indirect(nPointer)
 
 			if err := s.scanIntoStruct(rows, columns, fields, values, nValue); err != nil {
@@ -170,7 +170,7 @@ func (s *scanner) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dstType r
 		}
 
 		if len(nList) > 0 {
-			dstValue.Set(reflect.Append(dstValue, nList...))
+			destValue.Set(reflect.Append(destValue, nList...))
 		}
 	case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
@@ -178,7 +178,7 @@ func (s *scanner) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dstType r
 		reflect.String:
 		var nList = make([]reflect.Value, 0, 20)
 		for rows.Next() {
-			var nPointer = reflect.New(reflect.PointerTo(dstType))
+			var nPointer = reflect.New(reflect.PointerTo(destType))
 			if err := rows.Scan(nPointer.Interface()); err != nil {
 				return err
 			}
@@ -192,18 +192,18 @@ func (s *scanner) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dstType r
 			}
 		}
 		if len(nList) > 0 {
-			dstValue.Set(reflect.Append(dstValue, nList...))
+			destValue.Set(reflect.Append(destValue, nList...))
 		}
 	default:
-		return fmt.Errorf("%s is unsupported", dstType.Kind())
+		return fmt.Errorf("%s is unsupported", destType.Kind())
 	}
 	return nil
 }
 
-func (s *scanner) scanIntoStruct(rows *sql.Rows, columns []*sql.ColumnType, fields []*fieldMetadata, values []interface{}, dstValue reflect.Value) error {
+func (s *scanner) scanIntoStruct(rows *sql.Rows, columns []*sql.ColumnType, fields []*fieldMetadata, values []interface{}, destValue reflect.Value) error {
 	var isScanner = false
 	if len(columns) == 1 && fields[0] == nil {
-		switch dstValue.Addr().Interface().(type) {
+		switch destValue.Addr().Interface().(type) {
 		case time.Time:
 			var val time.Time
 			values[0] = &val
@@ -211,7 +211,7 @@ func (s *scanner) scanIntoStruct(rows *sql.Rows, columns []*sql.ColumnType, fiel
 			var val *time.Time
 			values[0] = &val
 		case sql.Scanner:
-			values[0] = dstValue.Addr().Interface()
+			values[0] = destValue.Addr().Interface()
 			isScanner = true
 		}
 	}
@@ -225,32 +225,32 @@ func (s *scanner) scanIntoStruct(rows *sql.Rows, columns []*sql.ColumnType, fiel
 		if field != nil {
 			var value = reflect.ValueOf(values[idx]).Elem().Elem()
 			if value.IsValid() {
-				fieldByIndex(dstValue, fields[idx].Index).Set(value)
+				fieldByIndex(destValue, fields[idx].Index).Set(value)
 			}
 		} else if len(columns) == 1 && !isScanner {
 			var value = reflect.ValueOf(values[idx]).Elem().Elem()
 			if value.IsValid() {
-				dstValue.Set(value)
+				destValue.Set(value)
 			}
 		}
 	}
 	return nil
 }
 
-func base(dstType reflect.Type, dstValue reflect.Value) (reflect.Type, reflect.Value) {
+func base(destType reflect.Type, destValue reflect.Value) (reflect.Type, reflect.Value) {
 	for {
-		if dstValue.Kind() == reflect.Ptr && dstValue.IsNil() {
-			dstValue.Set(reflect.New(dstType.Elem()))
+		if destValue.Kind() == reflect.Ptr && destValue.IsNil() {
+			destValue.Set(reflect.New(destType.Elem()))
 		}
 
-		if dstValue.Kind() == reflect.Ptr {
-			dstValue = dstValue.Elem()
-			dstType = dstType.Elem()
+		if destValue.Kind() == reflect.Ptr {
+			destValue = destValue.Elem()
+			destType = destType.Elem()
 			continue
 		}
 		break
 	}
-	return dstType, dstValue
+	return destType, destValue
 }
 
 func fieldByIndex(value reflect.Value, index []int) reflect.Value {
@@ -291,10 +291,10 @@ type element struct {
 	Index []int
 }
 
-func (s *scanner) buildStructMetadata(dstType reflect.Type) structMetadata {
+func (s *scanner) buildStructMetadata(destType reflect.Type) structMetadata {
 	s.mu.Lock()
 
-	var mStruct, exists = s.getStructMetadata(dstType)
+	var mStruct, exists = s.getStructMetadata(destType)
 	if exists {
 		s.mu.Unlock()
 		return mStruct
@@ -302,7 +302,7 @@ func (s *scanner) buildStructMetadata(dstType reflect.Type) structMetadata {
 
 	var queue = make([]element, 0, 10)
 	queue = append(queue, element{
-		Type:  dstType,
+		Type:  destType,
 		Index: nil,
 	})
 
@@ -355,7 +355,7 @@ func (s *scanner) buildStructMetadata(dstType reflect.Type) structMetadata {
 	}
 	mStruct.fields = fields
 
-	s.setStructMetadata(dstType, mStruct)
+	s.setStructMetadata(destType, mStruct)
 	s.mu.Unlock()
 
 	return mStruct

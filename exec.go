@@ -14,24 +14,24 @@ func UseScanner(s Scanner) {
 	}
 }
 
-func Scan[T any](rows *sql.Rows) (dst T, err error) {
-	if err = gScanner.Scan(rows, &dst); err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return dst, err
+func Scan[T any](rows *sql.Rows) (dest T, err error) {
+	if err = gScanner.Scan(rows, &dest); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return dest, err
 	}
-	return dst, nil
+	return dest, nil
 }
 
-func Query[T any](ctx context.Context, session Session, query string, args ...interface{}) (dst T, err error) {
+func Query[T any](ctx context.Context, session Session, query string, args ...interface{}) (dest T, err error) {
 	rows, err := session.QueryContext(ctx, query, args...)
 	if err != nil {
-		return dst, err
+		return dest, err
 	}
 	defer rows.Close()
 
-	if err = gScanner.Scan(rows, &dst); err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return dst, err
+	if err = gScanner.Scan(rows, &dest); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return dest, err
 	}
-	return dst, nil
+	return dest, nil
 }
 
 func Exec(ctx context.Context, session Session, query string, args ...interface{}) (result sql.Result, err error) {

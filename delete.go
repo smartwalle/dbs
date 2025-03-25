@@ -169,8 +169,8 @@ func (db *DeleteBuilder) SQL() (string, []interface{}, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
-func (db *DeleteBuilder) Scan(ctx context.Context, dst interface{}) error {
-	return scan(ctx, db.session, db, dst)
+func (db *DeleteBuilder) Scan(ctx context.Context, dest interface{}) error {
+	return scan(ctx, db.session, db, dest)
 }
 
 func (db *DeleteBuilder) Query(ctx context.Context) (*sql.Rows, error) {
