@@ -335,7 +335,7 @@ func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *s
 	return row
 }
 
-func (tx *Tx) ToContext(ctx context.Context) context.Context {
+func (tx *Tx) WithContext(ctx context.Context) context.Context {
 	return context.WithValue(ctx, sessionKey{}, tx)
 }
 
