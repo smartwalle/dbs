@@ -195,3 +195,13 @@ func Test_StringSlicePointer(t *testing.T) {
 	}
 	t.Logf("string: %+v \n", emails)
 }
+
+func Test_Map(t *testing.T) {
+	t.Log("-----Map-----")
+
+	mapValue, err := dbs.Query[map[string]interface{}](context.Background(), db, "SELECT * FROM mail WHERE email = $1", "qqq@qq.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("map2: %+v \n", mapValue)
+}

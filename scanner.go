@@ -122,6 +122,8 @@ func (s *scanner) scanOne(rows *sql.Rows, columns []*sql.ColumnType, destType re
 		if nValue.IsValid() {
 			destValue.Set(nValue)
 		}
+	case reflect.Map:
+		return s.scanIntoMap(rows, columns, destValue)
 	default:
 		return fmt.Errorf("%s is unsupported", destType.Kind())
 	}
@@ -194,8 +196,41 @@ func (s *scanner) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, destType 
 		if len(nList) > 0 {
 			destValue.Set(reflect.Append(destValue, nList...))
 		}
+	case reflect.Map:
+		var nList = make([]reflect.Value, 0, 20)
+		for rows.Next() {
+			var nValue = reflect.MakeMap(destType)
+			if err := s.scanIntoMap(rows, columns, nValue); err != nil {
+				return err
+			}
+			nList = append(nList, nValue)
+		}
+		if len(nList) > 0 {
+			destValue.Set(reflect.Append(destValue, nList...))
+		}
 	default:
 		return fmt.Errorf("%s is unsupported", destType.Kind())
+	}
+	return nil
+}
+
+func (s *scanner) scanIntoMap(rows *sql.Rows, columns []*sql.ColumnType, destValue reflect.Value) error {
+	var values = make([]interface{}, len(columns))
+	for idx := range columns {
+		var val interface{}
+		values[idx] = &val
+	}
+
+	if destValue.IsNil() {
+		destValue.Set(reflect.MakeMap(destValue.Type()))
+	}
+
+	if err := rows.Scan(values...); err != nil {
+		return err
+	}
+
+	for idx, column := range columns {
+		destValue.SetMapIndex(reflect.ValueOf(column.Name()), reflect.ValueOf(values[idx]).Elem())
 	}
 	return nil
 }
