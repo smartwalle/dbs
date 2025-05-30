@@ -65,9 +65,9 @@ func (s *scanner) Scan(rows *sql.Rows, dest interface{}) error {
 
 	var isSlice = realType.Kind() == reflect.Slice
 	if isSlice {
-		return s.scanSlice(rows, columns, destType, destValue)
+		return s.scanSlice(rows, columns, dest, destType, destValue)
 	}
-	return s.scanOne(rows, columns, destType, destValue)
+	return s.scanOne(rows, columns, dest, destType, destValue)
 }
 
 func (s *scanner) prepare(destType reflect.Type, columns []*sql.ColumnType) (fields []*fieldMetadata, values []interface{}) {
@@ -90,7 +90,7 @@ func (s *scanner) prepare(destType reflect.Type, columns []*sql.ColumnType) (fie
 	return fields, values
 }
 
-func (s *scanner) scanOne(rows *sql.Rows, columns []*sql.ColumnType, destType reflect.Type, destValue reflect.Value) error {
+func (s *scanner) scanOne(rows *sql.Rows, columns []*sql.ColumnType, dest interface{}, destType reflect.Type, destValue reflect.Value) error {
 	if !rows.Next() {
 		return sql.ErrNoRows
 	}
@@ -123,14 +123,20 @@ func (s *scanner) scanOne(rows *sql.Rows, columns []*sql.ColumnType, destType re
 			destValue.Set(nValue)
 		}
 	case reflect.Map:
-		return s.scanIntoMap(rows, columns, destValue)
+		if mapValue, ok := dest.(*map[string]interface{}); ok {
+			if *mapValue == nil {
+				*mapValue = map[string]interface{}{}
+			}
+			return s.scanIntoMap(rows, columns, *mapValue)
+		}
+		return fmt.Errorf("must be map[string]interface{}")
 	default:
 		return fmt.Errorf("%s is unsupported", destType.Kind())
 	}
 	return nil
 }
 
-func (s *scanner) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, destType reflect.Type, destValue reflect.Value) error {
+func (s *scanner) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest interface{}, destType reflect.Type, destValue reflect.Value) error {
 	destType, destValue = base(destType, destValue)
 
 	// 获取 slice 元素类型
@@ -197,32 +203,32 @@ func (s *scanner) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, destType 
 			destValue.Set(reflect.Append(destValue, nList...))
 		}
 	case reflect.Map:
-		var nList = make([]reflect.Value, 0, 20)
-		for rows.Next() {
-			var nValue = reflect.MakeMap(destType)
-			if err := s.scanIntoMap(rows, columns, nValue); err != nil {
-				return err
+		if mapValues, ok := dest.(*[]map[string]interface{}); ok {
+			if *mapValues == nil {
+				*mapValues = []map[string]interface{}{}
 			}
-			nList = append(nList, nValue)
+
+			for rows.Next() {
+				var mapValue = make(map[string]interface{})
+				if err := s.scanIntoMap(rows, columns, mapValue); err != nil {
+					return err
+				}
+				*mapValues = append(*mapValues, mapValue)
+			}
+			return nil
 		}
-		if len(nList) > 0 {
-			destValue.Set(reflect.Append(destValue, nList...))
-		}
+		return fmt.Errorf("must be []map[string]interface{}")
 	default:
 		return fmt.Errorf("%s is unsupported", destType.Kind())
 	}
 	return nil
 }
 
-func (s *scanner) scanIntoMap(rows *sql.Rows, columns []*sql.ColumnType, destValue reflect.Value) error {
+func (s *scanner) scanIntoMap(rows *sql.Rows, columns []*sql.ColumnType, destMap map[string]interface{}) error {
 	var values = make([]interface{}, len(columns))
 	for idx := range columns {
 		var val interface{}
 		values[idx] = &val
-	}
-
-	if destValue.IsNil() {
-		destValue.Set(reflect.MakeMap(destValue.Type()))
 	}
 
 	if err := rows.Scan(values...); err != nil {
@@ -230,8 +236,12 @@ func (s *scanner) scanIntoMap(rows *sql.Rows, columns []*sql.ColumnType, destVal
 	}
 
 	for idx, column := range columns {
-		destValue.SetMapIndex(reflect.ValueOf(column.Name()), reflect.ValueOf(values[idx]).Elem())
+		var value = reflect.ValueOf(values[idx]).Elem()
+		if value.IsValid() {
+			destMap[column.Name()] = reflect.Indirect(value).Interface()
+		}
 	}
+
 	return nil
 }
 

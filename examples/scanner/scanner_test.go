@@ -198,10 +198,38 @@ func Test_StringSlicePointer(t *testing.T) {
 
 func Test_Map(t *testing.T) {
 	t.Log("-----Map-----")
+	var sb = dbs.NewBuilder()
+	sb.Raw("SELECT * FROM mail WHERE id = 1")
 
-	mapValue, err := dbs.Query[map[string]interface{}](context.Background(), db, "SELECT * FROM mail WHERE email = $1", "qqq@qq.com")
+	var mapValue1 = map[string]interface{}{}
+	if err := sb.UseSession(db).Scan(context.Background(), &mapValue1); err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("Map1: %+v \n", mapValue1)
+
+	mapValue2, err := dbs.Query[map[string]interface{}](context.Background(), db, "SELECT * FROM mail WHERE id = 1")
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("map2: %+v \n", mapValue)
+
+	t.Logf("Map2: %+v \n", mapValue2)
+}
+
+func Test_MapList(t *testing.T) {
+	t.Log("-----MapList-----")
+	var sb = dbs.NewBuilder()
+	sb.Raw("SELECT * FROM mail WHERE id < 5")
+
+	var mapValue1 []map[string]interface{}
+	if err := sb.UseSession(db).Scan(context.Background(), &mapValue1); err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("MapList1: %d --- %+v \n", len(mapValue1), mapValue1)
+
+	mapValue2, err := dbs.Query[[]map[string]interface{}](context.Background(), db, "SELECT * FROM mail WHERE id < 5")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("MapList2: %d --- %+v \n", len(mapValue2), mapValue2)
 }
