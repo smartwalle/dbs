@@ -2,6 +2,7 @@ package dbs
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"reflect"
@@ -224,11 +225,15 @@ func (s *scanner) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest inte
 	return nil
 }
 
-func (s *scanner) scanIntoMap(rows *sql.Rows, columns []*sql.ColumnType, destMap map[string]interface{}) error {
+func (s *scanner) scanIntoMap(rows *sql.Rows, columns []*sql.ColumnType, mapValue map[string]interface{}) error {
 	var values = make([]interface{}, len(columns))
-	for idx := range columns {
-		var val interface{}
-		values[idx] = &val
+	for idx, column := range columns {
+		if column.ScanType() != nil {
+			values[idx] = reflect.New(reflect.PointerTo(column.ScanType())).Interface()
+		} else {
+			var val interface{}
+			values[idx] = &val
+		}
 	}
 
 	if err := rows.Scan(values...); err != nil {
@@ -236,12 +241,19 @@ func (s *scanner) scanIntoMap(rows *sql.Rows, columns []*sql.ColumnType, destMap
 	}
 
 	for idx, column := range columns {
-		var value = reflect.ValueOf(values[idx]).Elem()
-		if value.IsValid() {
-			destMap[column.Name()] = reflect.Indirect(value).Interface()
+		var name = column.Name()
+		if reflectValue := reflect.Indirect(reflect.Indirect(reflect.ValueOf(values[idx]))); reflectValue.IsValid() {
+			var value = reflectValue.Interface()
+			if valuer, ok := value.(driver.Valuer); ok {
+				value, _ = valuer.Value()
+			} else if b, ok := value.(sql.RawBytes); ok {
+				value = string(b)
+			}
+			mapValue[name] = value
+		} else {
+			mapValue[name] = nil
 		}
 	}
-
 	return nil
 }
 
