@@ -171,7 +171,27 @@ func TestClause_SQL(t *testing.T) {
 		},
 		{
 			Clause:     dbs.NewSelectBuilder().From("user u").Selects("u.id,u.name,u.age").Where("u.id < ?", 100).Limit(10).Offset(10).GroupBy("u.age").Count(),
-			ExpectSQL:  "SELECT COUNT(1) FROM (SELECT 1 FROM user u WHERE u.id < ? GROUP BY u.age) group_count_table",
+			ExpectSQL:  "SELECT COUNT(1) FROM (SELECT u.id,u.name,u.age FROM user u WHERE u.id < ? GROUP BY u.age) embed_count_table",
+			ExpectArgs: ExpectArgs(100),
+		},
+		{
+			Clause:     dbs.NewSelectBuilder().From("user u").Selects("u.id,u.name,u.age").Where("u.id < ?", 100).Limit(10).Offset(10).GroupBy("u.age").EmbedCount("1"),
+			ExpectSQL:  "SELECT COUNT(1) FROM (SELECT 1 FROM user u WHERE u.id < ? GROUP BY u.age) embed_count_table",
+			ExpectArgs: ExpectArgs(100),
+		},
+		{
+			Clause:     dbs.NewSelectBuilder().From("user u").Selects("u.age,count(1) age_count").Where("u.id < ?", 100).Limit(10).Offset(10).GroupBy("u.age").Having("age_count > ?", 10).Count(),
+			ExpectSQL:  "SELECT COUNT(1) FROM (SELECT u.age,count(1) age_count FROM user u WHERE u.id < ? GROUP BY u.age HAVING age_count > ?) embed_count_table",
+			ExpectArgs: ExpectArgs(100, 10),
+		},
+		{
+			Clause:     dbs.NewSelectBuilder().From("user u").Selects("u.age,count(1) age_count").Where("u.id < ?", 100).Limit(10).Offset(10).GroupBy("u.age").Having("age_count > ?", 10).EmbedCount("count(1) age_count"),
+			ExpectSQL:  "SELECT COUNT(1) FROM (SELECT count(1) age_count FROM user u WHERE u.id < ? GROUP BY u.age HAVING age_count > ?) embed_count_table",
+			ExpectArgs: ExpectArgs(100, 10),
+		},
+		{
+			Clause:     dbs.NewSelectBuilder().From("user u").Select("distinct u.name").Where("u.id < ?", 100).Limit(10).Offset(10).EmbedCount(),
+			ExpectSQL:  "SELECT COUNT(1) FROM (SELECT distinct u.name FROM user u WHERE u.id < ?) embed_count_table",
 			ExpectArgs: ExpectArgs(100),
 		},
 		{
