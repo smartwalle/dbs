@@ -9,6 +9,7 @@ import (
 	"github.com/smartwalle/dbs"
 	"log"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -58,178 +59,126 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func Test_PointerSlice(t *testing.T) {
-	t.Log("-----[]*Mail-----")
-
-	mails, err := dbs.Query[[]*Mail](context.Background(), db, "SELECT * FROM mail")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, mail := range mails {
-		t.Logf("指针切片: %+v \n", mail)
-	}
+func Test_Type(t *testing.T) {
+	t.Log("-----Type-----")
+	scanIntoType[string](t)
+	scanIntoType[string](t)
+	scanIntoType[int](t)
+	scanIntoType[int8](t)
+	scanIntoType[int16](t)
+	scanIntoType[int32](t)
+	scanIntoType[int64](t)
+	scanIntoType[uint](t)
+	scanIntoType[uint8](t)
+	scanIntoType[uint16](t)
+	scanIntoType[uint32](t)
+	scanIntoType[uint64](t)
+	scanIntoType[float32](t)
+	scanIntoType[float64](t)
+	scanIntoType[bool](t)
+	scanIntoType[Mail](t)
+	scanIntoType[*Mail](t)
 }
 
-func Test_PointerSlicePointer(t *testing.T) {
-	t.Log("-----*[]*Mail-----")
-
-	mails, err := dbs.Query[*[]*Mail](context.Background(), db, "SELECT * FROM mail")
+func scanIntoType[T any](t *testing.T) {
+	value, err := dbs.Query[T](context.Background(), db, "SELECT id FROM mail WHERE id = 1")
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, mail := range *mails {
-		t.Logf("指针切片指针: %+v \n", mail)
-	}
+	t.Logf("%+v: %+v \n", reflect.TypeOf(value).Kind(), value)
 }
 
-func Test_StructSlice(t *testing.T) {
-	t.Log("-----[]Mial-----")
-
-	mails, err := dbs.Query[[]Mail](context.Background(), db, "SELECT * FROM mail")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, mail := range mails {
-		t.Logf("结构体切片: %+v \n", mail)
-	}
+func Test_TypeSlice(t *testing.T) {
+	t.Log("-----[]Type-----")
+	scanIntoSlice[[]string](t)
+	scanIntoSlice[*[]string](t)
+	scanIntoSlice[[]int](t)
+	scanIntoSlice[*[]int](t)
+	scanIntoSlice[[]int8](t)
+	scanIntoSlice[*[]int8](t)
+	scanIntoSlice[[]int16](t)
+	scanIntoSlice[*[]int16](t)
+	scanIntoSlice[[]int32](t)
+	scanIntoSlice[*[]int32](t)
+	scanIntoSlice[[]int64](t)
+	scanIntoSlice[*[]int64](t)
+	scanIntoSlice[[]uint](t)
+	scanIntoSlice[*[]uint](t)
+	scanIntoSlice[[]uint8](t)
+	scanIntoSlice[*[]uint8](t)
+	scanIntoSlice[[]uint16](t)
+	scanIntoSlice[*[]uint16](t)
+	scanIntoSlice[[]uint32](t)
+	scanIntoSlice[*[]uint32](t)
+	scanIntoSlice[[]uint64](t)
+	scanIntoSlice[*[]uint64](t)
+	scanIntoSlice[[]float32](t)
+	scanIntoSlice[*[]float32](t)
+	scanIntoSlice[[]float64](t)
+	scanIntoSlice[*[]float64](t)
+	scanIntoSlice[[]Mail](t)
+	scanIntoSlice[[]*Mail](t)
+	scanIntoSlice[*[]Mail](t)
+	scanIntoSlice[*[]*Mail](t)
 }
 
-func Test_StructSlicePointer(t *testing.T) {
-	t.Log("-----*[]Mial-----")
-
-	mails, err := dbs.Query[*[]Mail](context.Background(), db, "SELECT * FROM mail")
+func scanIntoSlice[T any](t *testing.T) {
+	value, err := dbs.Query[T](context.Background(), db, "SELECT id FROM mail WHERE id < 5 ORDER BY id ASC")
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, mail := range *mails {
-		t.Logf("结构体切片指针: %+v \n", mail)
-	}
-}
-
-func Test_Pointer(t *testing.T) {
-	t.Log("-----*Mail-----")
-	mail, err := dbs.Query[*Mail](context.Background(), db, "SELECT * FROM mail WHERE email = $1", "1@qq.com")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("指针: %+v \n", mail)
-}
-
-func Test_Struct(t *testing.T) {
-	t.Log("-----Mail-----")
-	mail, err := dbs.Query[Mail](context.Background(), db, "SELECT * FROM mail WHERE email = $1", "1@qq.com")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("结构体: %+v \n", mail)
-}
-
-func Test_Int64(t *testing.T) {
-	t.Log("-----int64-----")
-	id, err := dbs.Query[int64](context.Background(), db, "SELECT id FROM mail WHERE email = $1", "qq@qq.com")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("int64: %+v \n", id)
-}
-
-func Test_Int64Pointer(t *testing.T) {
-	t.Log("-----*int64-----")
-	id, err := dbs.Query[*int64](context.Background(), db, "SELECT id FROM mail WHERE email = $1", "qq@qq.com")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("int64: %+v \n", *id)
-}
-
-func Test_Int64Slice(t *testing.T) {
-	t.Log("-----[]int64-----")
-	ids, err := dbs.Query[[]int64](context.Background(), db, "SELECT id FROM mail")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("int64 slice: %+v \n", ids)
-}
-
-func Test_Int64SlicePointer(t *testing.T) {
-	t.Log("-----*[]int64-----")
-	ids, err := dbs.Query[*[]int64](context.Background(), db, "SELECT id FROM mail")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("int64 slice: %+v \n", ids)
-}
-
-func Test_String(t *testing.T) {
-	t.Log("-----string-----")
-	email, err := dbs.Query[string](context.Background(), db, "SELECT email FROM mail WHERE email = $1", "qq@qq.com")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("string: %+v \n", email)
-}
-
-func Test_StringPointer(t *testing.T) {
-	t.Log("-----*string-----")
-	email, err := dbs.Query[*string](context.Background(), db, "SELECT email FROM mail WHERE email = $1", "qq@qq.com")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("string: %+v \n", *email)
-}
-
-func Test_StringSlice(t *testing.T) {
-	t.Log("-----[]string-----")
-	emails, err := dbs.Query[[]string](context.Background(), db, "SELECT status FROM mail")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("string: %+v \n", emails)
-}
-
-func Test_StringSlicePointer(t *testing.T) {
-	t.Log("-----*[]string-----")
-	emails, err := dbs.Query[*[]string](context.Background(), db, "SELECT status FROM mail")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("string: %+v \n", emails)
+	t.Logf("[]%+v: %+v \n", reflect.TypeOf(value).Elem().Kind(), value)
 }
 
 func Test_Map(t *testing.T) {
 	t.Log("-----Map-----")
-	var sb = dbs.NewBuilder()
-	sb.Raw("SELECT * FROM mail WHERE id = 1")
-
-	var mapValue1 = map[string]interface{}{}
-	if err := sb.UseSession(db).Scan(context.Background(), &mapValue1); err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("Map1: %+v \n", mapValue1)
-
-	mapValue2, err := dbs.Query[map[string]interface{}](context.Background(), db, "SELECT * FROM mail WHERE id = 1")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Logf("Map2: %+v \n", mapValue2)
+	scanIntoMap[interface{}](t)
+	scanIntoMap[string](t)
+	scanIntoMap[int](t)
+	scanIntoMap[int8](t)
+	scanIntoMap[int16](t)
+	scanIntoMap[int32](t)
+	scanIntoMap[int64](t)
+	scanIntoMap[uint](t)
+	scanIntoMap[uint8](t)
+	scanIntoMap[uint16](t)
+	scanIntoMap[uint32](t)
+	scanIntoMap[uint64](t)
+	scanIntoMap[float32](t)
+	scanIntoMap[float64](t)
+	scanIntoMap[bool](t)
 }
 
-func Test_MapList(t *testing.T) {
-	t.Log("-----MapList-----")
-	var sb = dbs.NewBuilder()
-	sb.Raw("SELECT * FROM mail WHERE id < 5")
-
-	var mapValue1 []map[string]interface{}
-	if err := sb.UseSession(db).Scan(context.Background(), &mapValue1); err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("MapList1: %d --- %+v \n", len(mapValue1), mapValue1)
-
-	mapValue2, err := dbs.Query[[]map[string]interface{}](context.Background(), db, "SELECT * FROM mail WHERE id < 5")
+func scanIntoMap[T any](t *testing.T) {
+	mapValue, err := dbs.Query[map[string]T](context.Background(), db, "SELECT id FROM mail WHERE id = 1")
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Logf("map[string]%+v: %+v \n", reflect.TypeOf(mapValue).Elem().Kind(), mapValue)
+}
 
-	t.Logf("MapList2: %d --- %+v \n", len(mapValue2), mapValue2)
+func Test_MapSlice(t *testing.T) {
+	t.Log("-----MapSlice-----")
+	scanIntoMapSlice[interface{}](t)
+	scanIntoMapSlice[string](t)
+	scanIntoMapSlice[int](t)
+	scanIntoMapSlice[int8](t)
+	scanIntoMapSlice[int16](t)
+	scanIntoMapSlice[int32](t)
+	scanIntoMapSlice[int64](t)
+	scanIntoMapSlice[uint](t)
+	scanIntoMapSlice[uint8](t)
+	scanIntoMapSlice[uint16](t)
+	scanIntoMapSlice[uint32](t)
+	scanIntoMapSlice[uint64](t)
+	scanIntoMapSlice[float32](t)
+	scanIntoMapSlice[float64](t)
+}
+
+func scanIntoMapSlice[T any](t *testing.T) {
+	mapValue, err := dbs.Query[[]map[string]T](context.Background(), db, "SELECT id FROM mail WHERE id < 5 ORDER BY id ASC")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("[]map[string]%+v: %+v \n", reflect.TypeOf(mapValue).Elem().Elem().Kind(), mapValue)
 }
