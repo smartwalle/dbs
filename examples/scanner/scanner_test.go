@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/lib/pq"
 	"github.com/smartwalle/dbs"
 	"log"
@@ -48,137 +51,189 @@ func (a *Extra) Scan(value interface{}) error {
 var db dbs.Database
 
 func TestMain(m *testing.M) {
-	var err error
-	db, err = dbs.Open("postgres", "host=127.0.0.1 port=5432 user=postgres password=postgres dbname=test sslmode=disable", 1, 1)
-	if err != nil {
-		log.Println("连接数据库出错：", err)
-		return
-	}
+	db = NewPgx()
+
 	var code = m.Run()
 	db.Close()
 	os.Exit(code)
 }
 
-func Test_Type(t *testing.T) {
-	t.Log("-----Type-----")
-	scanIntoType[string](t)
-	scanIntoType[string](t)
-	scanIntoType[int](t)
-	scanIntoType[int8](t)
-	scanIntoType[int16](t)
-	scanIntoType[int32](t)
-	scanIntoType[int64](t)
-	scanIntoType[uint](t)
-	scanIntoType[uint8](t)
-	scanIntoType[uint16](t)
-	scanIntoType[uint32](t)
-	scanIntoType[uint64](t)
-	scanIntoType[float32](t)
-	scanIntoType[float64](t)
-	scanIntoType[bool](t)
-	scanIntoType[Mail](t)
-	scanIntoType[*Mail](t)
+func NewPostgres() dbs.Database {
+	rawDB, err := sql.Open("postgres", "host=127.0.0.1 port=5432 user=postgres password=postgres dbname=test sslmode=disable")
+	if err != nil {
+		log.Println("连接数据库出错：", err)
+		os.Exit(-1)
+	}
+	return dbs.New(rawDB)
 }
 
-func scanIntoType[T any](t *testing.T) {
+func NewPgx() dbs.Database {
+	var config, err = pgx.ParseConfig("host=127.0.0.1 port=5432 user=postgres password=postgres dbname=test sslmode=disable")
+	if err != nil {
+		log.Println("连接数据库出错：", err)
+		os.Exit(-1)
+	}
+	rawDB := stdlib.OpenDB(*config)
+	return dbs.New(rawDB)
+}
+
+func Test_Type(t *testing.T) {
+	t.Log("-----Type-----")
+	scanIntoType[string](t, true)
+	scanIntoType[string](t, true)
+	scanIntoType[int](t, true)
+	scanIntoType[int8](t, true)
+	scanIntoType[int16](t, true)
+	scanIntoType[int32](t, true)
+	scanIntoType[int64](t, true)
+	scanIntoType[uint](t, true)
+	scanIntoType[uint8](t, true)
+	scanIntoType[uint16](t, true)
+	scanIntoType[uint32](t, true)
+	scanIntoType[uint64](t, true)
+	scanIntoType[float32](t, true)
+	scanIntoType[float64](t, true)
+	scanIntoType[bool](t, true)
+	scanIntoType[Mail](t, true)
+	scanIntoType[*Mail](t, true)
+}
+
+func scanIntoType[T any](t Tester, enableLog bool) {
 	value, err := dbs.Query[T](context.Background(), db, "SELECT id FROM mail WHERE id = 1")
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("%+v: %+v \n", reflect.TypeOf(value).Kind(), value)
+	if enableLog {
+		t.Logf("%+v: %+v \n", reflect.TypeOf(value).Kind(), value)
+	}
 }
 
 func Test_TypeSlice(t *testing.T) {
 	t.Log("-----[]Type-----")
-	scanIntoSlice[[]string](t)
-	scanIntoSlice[*[]string](t)
-	scanIntoSlice[[]int](t)
-	scanIntoSlice[*[]int](t)
-	scanIntoSlice[[]int8](t)
-	scanIntoSlice[*[]int8](t)
-	scanIntoSlice[[]int16](t)
-	scanIntoSlice[*[]int16](t)
-	scanIntoSlice[[]int32](t)
-	scanIntoSlice[*[]int32](t)
-	scanIntoSlice[[]int64](t)
-	scanIntoSlice[*[]int64](t)
-	scanIntoSlice[[]uint](t)
-	scanIntoSlice[*[]uint](t)
-	scanIntoSlice[[]uint8](t)
-	scanIntoSlice[*[]uint8](t)
-	scanIntoSlice[[]uint16](t)
-	scanIntoSlice[*[]uint16](t)
-	scanIntoSlice[[]uint32](t)
-	scanIntoSlice[*[]uint32](t)
-	scanIntoSlice[[]uint64](t)
-	scanIntoSlice[*[]uint64](t)
-	scanIntoSlice[[]float32](t)
-	scanIntoSlice[*[]float32](t)
-	scanIntoSlice[[]float64](t)
-	scanIntoSlice[*[]float64](t)
-	scanIntoSlice[[]Mail](t)
-	scanIntoSlice[[]*Mail](t)
-	scanIntoSlice[*[]Mail](t)
-	scanIntoSlice[*[]*Mail](t)
+	scanIntoSlice[[]string](t, true)
+	scanIntoSlice[*[]string](t, true)
+	scanIntoSlice[[]int](t, true)
+	scanIntoSlice[*[]int](t, true)
+	scanIntoSlice[[]int8](t, true)
+	scanIntoSlice[*[]int8](t, true)
+	scanIntoSlice[[]int16](t, true)
+	scanIntoSlice[*[]int16](t, true)
+	scanIntoSlice[[]int32](t, true)
+	scanIntoSlice[*[]int32](t, true)
+	scanIntoSlice[[]int64](t, true)
+	scanIntoSlice[*[]int64](t, true)
+	scanIntoSlice[[]uint](t, true)
+	scanIntoSlice[*[]uint](t, true)
+	scanIntoSlice[[]uint8](t, true)
+	scanIntoSlice[*[]uint8](t, true)
+	scanIntoSlice[[]uint16](t, true)
+	scanIntoSlice[*[]uint16](t, true)
+	scanIntoSlice[[]uint32](t, true)
+	scanIntoSlice[*[]uint32](t, true)
+	scanIntoSlice[[]uint64](t, true)
+	scanIntoSlice[*[]uint64](t, true)
+	scanIntoSlice[[]float32](t, true)
+	scanIntoSlice[*[]float32](t, true)
+	scanIntoSlice[[]float64](t, true)
+	scanIntoSlice[*[]float64](t, true)
+	scanIntoSlice[[]Mail](t, true)
+	scanIntoSlice[[]*Mail](t, true)
+	scanIntoSlice[*[]Mail](t, true)
+	scanIntoSlice[*[]*Mail](t, true)
 }
 
-func scanIntoSlice[T any](t *testing.T) {
+func scanIntoSlice[T any](t Tester, enableLog bool) {
 	value, err := dbs.Query[T](context.Background(), db, "SELECT id FROM mail WHERE id < 5 ORDER BY id ASC")
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("[]%+v: %+v \n", reflect.TypeOf(value).Elem().Kind(), value)
+	if enableLog {
+		t.Logf("[]%+v: %+v \n", reflect.TypeOf(value).Elem().Kind(), value)
+	}
 }
 
 func Test_Map(t *testing.T) {
 	t.Log("-----Map-----")
-	scanIntoMap[interface{}](t)
-	scanIntoMap[string](t)
-	scanIntoMap[int](t)
-	scanIntoMap[int8](t)
-	scanIntoMap[int16](t)
-	scanIntoMap[int32](t)
-	scanIntoMap[int64](t)
-	scanIntoMap[uint](t)
-	scanIntoMap[uint8](t)
-	scanIntoMap[uint16](t)
-	scanIntoMap[uint32](t)
-	scanIntoMap[uint64](t)
-	scanIntoMap[float32](t)
-	scanIntoMap[float64](t)
-	scanIntoMap[bool](t)
+	scanIntoMap[interface{}](t, true)
+	scanIntoMap[string](t, true)
+	scanIntoMap[int](t, true)
+	scanIntoMap[int8](t, true)
+	scanIntoMap[int16](t, true)
+	scanIntoMap[int32](t, true)
+	scanIntoMap[int64](t, true)
+	scanIntoMap[uint](t, true)
+	scanIntoMap[uint8](t, true)
+	scanIntoMap[uint16](t, true)
+	scanIntoMap[uint32](t, true)
+	scanIntoMap[uint64](t, true)
+	scanIntoMap[float32](t, true)
+	scanIntoMap[float64](t, true)
+	scanIntoMap[bool](t, true)
 }
 
-func scanIntoMap[T any](t *testing.T) {
+func scanIntoMap[T any](t Tester, enableLog bool) {
 	mapValue, err := dbs.Query[map[string]T](context.Background(), db, "SELECT id FROM mail WHERE id = 1")
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("map[string]%+v: %+v \n", reflect.TypeOf(mapValue).Elem().Kind(), mapValue)
+	if enableLog {
+		t.Logf("map[string]%+v: %+v \n", reflect.TypeOf(mapValue).Elem().Kind(), mapValue)
+	}
 }
 
 func Test_MapSlice(t *testing.T) {
-	t.Log("-----MapSlice-----")
-	scanIntoMapSlice[interface{}](t)
-	scanIntoMapSlice[string](t)
-	scanIntoMapSlice[int](t)
-	scanIntoMapSlice[int8](t)
-	scanIntoMapSlice[int16](t)
-	scanIntoMapSlice[int32](t)
-	scanIntoMapSlice[int64](t)
-	scanIntoMapSlice[uint](t)
-	scanIntoMapSlice[uint8](t)
-	scanIntoMapSlice[uint16](t)
-	scanIntoMapSlice[uint32](t)
-	scanIntoMapSlice[uint64](t)
-	scanIntoMapSlice[float32](t)
-	scanIntoMapSlice[float64](t)
+	t.Log("-----[]Map-----")
+	scanIntoMapSlice[interface{}](t, true)
+	scanIntoMapSlice[string](t, true)
+	scanIntoMapSlice[int](t, true)
+	scanIntoMapSlice[int8](t, true)
+	scanIntoMapSlice[int16](t, true)
+	scanIntoMapSlice[int32](t, true)
+	scanIntoMapSlice[int64](t, true)
+	scanIntoMapSlice[uint](t, true)
+	scanIntoMapSlice[uint8](t, true)
+	scanIntoMapSlice[uint16](t, true)
+	scanIntoMapSlice[uint32](t, true)
+	scanIntoMapSlice[uint64](t, true)
+	scanIntoMapSlice[float32](t, true)
+	scanIntoMapSlice[float64](t, true)
 }
 
-func scanIntoMapSlice[T any](t *testing.T) {
+func scanIntoMapSlice[T any](t Tester, enableLog bool) {
 	mapValue, err := dbs.Query[[]map[string]T](context.Background(), db, "SELECT id FROM mail WHERE id < 5 ORDER BY id ASC")
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("[]map[string]%+v: %+v \n", reflect.TypeOf(mapValue).Elem().Elem().Kind(), mapValue)
+	if enableLog {
+		t.Logf("[]map[string]%+v: %+v \n", reflect.TypeOf(mapValue).Elem().Elem().Kind(), mapValue)
+	}
+}
+
+type Tester interface {
+	Fatal(args ...any)
+	Logf(format string, args ...any)
+}
+
+func Benchmark_Type(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		scanIntoType[int64](b, false)
+	}
+}
+
+func Benchmark_TypeSlice(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		scanIntoSlice[[]int64](b, false)
+	}
+}
+
+func Benchmark_Map(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		scanIntoMap[int64](b, false)
+	}
+}
+
+func Benchmark_MapSlice(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		scanIntoMapSlice[interface{}](b, false)
+	}
 }
