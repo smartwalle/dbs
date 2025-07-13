@@ -50,6 +50,7 @@ func Open(driver, url string, maxOpen, maxIdle int) (*DB, error) {
 	}
 
 	if err = db.Ping(); err != nil {
+		db.Close()
 		return nil, err
 	}
 
