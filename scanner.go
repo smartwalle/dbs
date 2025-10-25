@@ -6,18 +6,22 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
 const (
-	kNoTag = "-"
-	kTag   = "sql"
+	kNoTag         = "-"
+	kTag           = "sql"
+	kAutoIncrement = "auto_increment"
 )
 
 type Scanner interface {
 	Scan(rows *sql.Rows, dest interface{}) error
+
+	Encode(src interface{}) (values map[string]interface{}, err error)
 }
 
 type scanner struct {
@@ -32,6 +36,28 @@ func NewScanner(tag string) *scanner {
 	m.structs.Store(make(map[reflect.Type]structMetadata))
 	m.mu = &sync.Mutex{}
 	return m
+}
+
+func (s *scanner) Encode(src interface{}) (map[string]interface{}, error) {
+	var srcValue = reflect.ValueOf(src)
+	var srcType = srcValue.Type()
+
+	srcType, srcValue = base(srcType, srcValue)
+
+	var mStruct, ok = s.getStructMetadata(srcType)
+	if !ok {
+		mStruct = s.buildStructMetadata(srcType)
+	}
+
+	var values = make(map[string]interface{}, len(mStruct.fields))
+	for name, field := range mStruct.fields {
+		var value = srcValue.FieldByIndex(field.Index)
+		if field.AutoIncrement && value.IsZero() {
+			continue
+		}
+		values[name] = value.Interface()
+	}
+	return values, nil
 }
 
 func (s *scanner) Scan(rows *sql.Rows, dest interface{}) error {
@@ -84,7 +110,7 @@ func (s *scanner) prepare(destType reflect.Type, columns []*sql.ColumnType) (fie
 		var field = mStruct.Field(column.Name())
 		if field != nil {
 			fields[idx] = field
-			values[idx] = field.TypePool.Get()
+			values[idx] = field.ValuePool.Get()
 		} else {
 			var val interface{}
 			values[idx] = &val
@@ -107,7 +133,7 @@ func (s *scanner) scanOne(rows *sql.Rows, columns []*sql.ColumnType, dest interf
 			for idx, value := range values {
 				var field = fields[idx]
 				if field != nil {
-					fields[idx].TypePool.Put(value)
+					fields[idx].ValuePool.Put(value)
 				}
 			}
 		}()
@@ -187,7 +213,7 @@ func (s *scanner) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest inte
 			for idx, value := range values {
 				var field = fields[idx]
 				if field != nil {
-					fields[idx].TypePool.Put(value)
+					fields[idx].ValuePool.Put(value)
 				}
 			}
 		}()
@@ -481,15 +507,24 @@ func (s *scanner) buildStructMetadata(destType reflect.Type) structMetadata {
 				}
 			}
 
-			if _, ok = fields[tag]; ok {
+			var tagValues = strings.Split(tag, ";")
+			var tagMap = make(map[string]bool)
+			for _, tagValue := range tagValues {
+				tagMap[strings.ToLower(tagValue)] = true
+			}
+
+			var fieldName = tagValues[0]
+
+			if _, ok = fields[fieldName]; ok {
 				continue
 			}
 
 			var field = &fieldMetadata{}
 			field.Index = append(current.Index, i)
 			field.Type = fieldStruct.Type
-			field.TypePool = getTypePool(field.Type)
-			fields[tag] = field
+			field.ValuePool = getValuePool(field.Type)
+			field.AutoIncrement = tagMap[kAutoIncrement]
+			fields[fieldName] = field
 		}
 	}
 	mStruct.fields = fields
@@ -501,9 +536,10 @@ func (s *scanner) buildStructMetadata(destType reflect.Type) structMetadata {
 }
 
 type fieldMetadata struct {
-	Index    []int
-	Type     reflect.Type
-	TypePool *sync.Pool
+	Index         []int
+	Type          reflect.Type
+	ValuePool     *sync.Pool
+	AutoIncrement bool
 }
 
 type structMetadata struct {
@@ -515,10 +551,10 @@ func (s structMetadata) Field(name string) *fieldMetadata {
 	return field
 }
 
-var typePool = sync.Map{}
+var valuePool = sync.Map{}
 
-func getTypePool(reflectType reflect.Type) *sync.Pool {
-	var pool, _ = typePool.LoadOrStore(reflectType, &sync.Pool{
+func getValuePool(reflectType reflect.Type) *sync.Pool {
+	var pool, _ = valuePool.LoadOrStore(reflectType, &sync.Pool{
 		New: func() interface{} {
 			return reflect.New(reflect.PointerTo(reflectType)).Interface()
 		},
