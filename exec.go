@@ -6,16 +6,20 @@ import (
 	"errors"
 )
 
-var gScanner Scanner = NewScanner(kTag)
+var gMapper Mapper = NewMapper(kTag)
 
-func UseScanner(s Scanner) {
+func UseMapper(s Mapper) {
 	if s != nil {
-		gScanner = s
+		gMapper = s
 	}
 }
 
+func GetMapper() Mapper {
+	return gMapper
+}
+
 func Scan[T any](rows *sql.Rows) (dest T, err error) {
-	if err = gScanner.Scan(rows, &dest); err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if err = gMapper.Decode(rows, &dest); err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return dest, err
 	}
 	return dest, nil
@@ -28,7 +32,7 @@ func Query[T any](ctx context.Context, session Session, query string, args ...in
 	}
 	defer rows.Close()
 
-	if err = gScanner.Scan(rows, &dest); err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if err = gMapper.Decode(rows, &dest); err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return dest, err
 	}
 	return dest, nil

@@ -18,35 +18,35 @@ const (
 	kAutoIncrement = "auto_increment"
 )
 
-type Scanner interface {
-	Scan(rows *sql.Rows, dest interface{}) error
-
+type Mapper interface {
 	Encode(src interface{}) (values map[string]interface{}, err error)
+
+	Decode(rows *sql.Rows, dest interface{}) error
 }
 
-type scanner struct {
+type mapper struct {
 	tag     string
 	structs atomic.Value // map[reflect.Type]structMetadata
 	mu      *sync.Mutex
 }
 
-func NewScanner(tag string) *scanner {
-	var m = &scanner{}
+func NewMapper(tag string) *mapper {
+	var m = &mapper{}
 	m.tag = tag
 	m.structs.Store(make(map[reflect.Type]structMetadata))
 	m.mu = &sync.Mutex{}
 	return m
 }
 
-func (s *scanner) Encode(src interface{}) (map[string]interface{}, error) {
+func (m *mapper) Encode(src interface{}) (map[string]interface{}, error) {
 	var srcValue = reflect.ValueOf(src)
 	var srcType = srcValue.Type()
 
 	srcType, srcValue = base(srcType, srcValue)
 
-	var mStruct, ok = s.getStructMetadata(srcType)
+	var mStruct, ok = m.getStructMetadata(srcType)
 	if !ok {
-		mStruct = s.buildStructMetadata(srcType)
+		mStruct = m.buildStructMetadata(srcType)
 	}
 
 	var values = make(map[string]interface{}, len(mStruct.fields))
@@ -60,7 +60,7 @@ func (s *scanner) Encode(src interface{}) (map[string]interface{}, error) {
 	return values, nil
 }
 
-func (s *scanner) Scan(rows *sql.Rows, dest interface{}) error {
+func (m *mapper) Decode(rows *sql.Rows, dest interface{}) error {
 	if rows == nil {
 		return sql.ErrNoRows
 	}
@@ -94,15 +94,15 @@ func (s *scanner) Scan(rows *sql.Rows, dest interface{}) error {
 
 	//var isSlice = destType.Kind() == reflect.Slice
 	if destType.Kind() == reflect.Slice {
-		return s.scanSlice(rows, columns, dest, destType, destValue)
+		return m.scanSlice(rows, columns, dest, destType, destValue)
 	}
-	return s.scanOne(rows, columns, dest, destType, destValue)
+	return m.scanOne(rows, columns, dest, destType, destValue)
 }
 
-func (s *scanner) prepare(destType reflect.Type, columns []*sql.ColumnType) (fields []*fieldMetadata, values []interface{}) {
-	var mStruct, ok = s.getStructMetadata(destType)
+func (m *mapper) prepare(destType reflect.Type, columns []*sql.ColumnType) (fields []*fieldMetadata, values []interface{}) {
+	var mStruct, ok = m.getStructMetadata(destType)
 	if !ok {
-		mStruct = s.buildStructMetadata(destType)
+		mStruct = m.buildStructMetadata(destType)
 	}
 	fields = make([]*fieldMetadata, len(columns))
 	values = make([]interface{}, len(columns))
@@ -119,7 +119,7 @@ func (s *scanner) prepare(destType reflect.Type, columns []*sql.ColumnType) (fie
 	return fields, values
 }
 
-func (s *scanner) scanOne(rows *sql.Rows, columns []*sql.ColumnType, dest interface{}, destType reflect.Type, destValue reflect.Value) error {
+func (m *mapper) scanOne(rows *sql.Rows, columns []*sql.ColumnType, dest interface{}, destType reflect.Type, destValue reflect.Value) error {
 	if !rows.Next() {
 		return sql.ErrNoRows
 	}
@@ -128,7 +128,7 @@ func (s *scanner) scanOne(rows *sql.Rows, columns []*sql.ColumnType, dest interf
 
 	switch destType.Kind() {
 	case reflect.Struct:
-		var fields, values = s.prepare(destType, columns)
+		var fields, values = m.prepare(destType, columns)
 		defer func() {
 			for idx, value := range values {
 				var field = fields[idx]
@@ -193,7 +193,7 @@ func (s *scanner) scanOne(rows *sql.Rows, columns []*sql.ColumnType, dest interf
 	return nil
 }
 
-func (s *scanner) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest interface{}, destType reflect.Type, destValue reflect.Value) error {
+func (m *mapper) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest interface{}, destType reflect.Type, destValue reflect.Value) error {
 	//destType, destValue = base(destType, destValue)
 
 	// 获取 slice 元素类型
@@ -208,7 +208,7 @@ func (s *scanner) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest inte
 
 	switch destType.Kind() {
 	case reflect.Struct:
-		var fields, values = s.prepare(destType, columns)
+		var fields, values = m.prepare(destType, columns)
 		defer func() {
 			for idx, value := range values {
 				var field = fields[idx]
@@ -436,19 +436,19 @@ func fieldByIndex(value reflect.Value, index []int) reflect.Value {
 	return value
 }
 
-func (s *scanner) getStructMetadata(key reflect.Type) (structMetadata, bool) {
-	var value, ok = s.structs.Load().(map[reflect.Type]structMetadata)[key]
+func (m *mapper) getStructMetadata(key reflect.Type) (structMetadata, bool) {
+	var value, ok = m.structs.Load().(map[reflect.Type]structMetadata)[key]
 	return value, ok
 }
 
-func (s *scanner) setStructMetadata(key reflect.Type, value structMetadata) {
-	var structs = s.structs.Load().(map[reflect.Type]structMetadata)
+func (m *mapper) setStructMetadata(key reflect.Type, value structMetadata) {
+	var structs = m.structs.Load().(map[reflect.Type]structMetadata)
 	var nStructs = make(map[reflect.Type]structMetadata, len(structs)+1)
 	for k, v := range structs {
 		nStructs[k] = v
 	}
 	nStructs[key] = value
-	s.structs.Store(nStructs)
+	m.structs.Store(nStructs)
 }
 
 type element struct {
@@ -456,12 +456,12 @@ type element struct {
 	Index []int
 }
 
-func (s *scanner) buildStructMetadata(destType reflect.Type) structMetadata {
-	s.mu.Lock()
+func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
+	m.mu.Lock()
 
-	var mStruct, ok = s.getStructMetadata(destType)
+	var mStruct, ok = m.getStructMetadata(destType)
 	if ok {
-		s.mu.Unlock()
+		m.mu.Unlock()
 		return mStruct
 	}
 
@@ -482,7 +482,7 @@ func (s *scanner) buildStructMetadata(destType reflect.Type) structMetadata {
 		for i := 0; i < numField; i++ {
 			var fieldStruct = current.Type.Field(i)
 
-			var tag = fieldStruct.Tag.Get(s.tag)
+			var tag = fieldStruct.Tag.Get(m.tag)
 			if tag == kNoTag {
 				continue
 			}
@@ -529,8 +529,8 @@ func (s *scanner) buildStructMetadata(destType reflect.Type) structMetadata {
 	}
 	mStruct.fields = fields
 
-	s.setStructMetadata(destType, mStruct)
-	s.mu.Unlock()
+	m.setStructMetadata(destType, mStruct)
+	m.mu.Unlock()
 
 	return mStruct
 }

@@ -84,7 +84,7 @@ func scan(ctx context.Context, session Session, clause SQLClause, dest interface
 	}
 	defer rows.Close()
 
-	if err = gScanner.Scan(rows, dest); err != nil && !errors.Is(err, ErrNoRows) {
+	if err = gMapper.Decode(rows, dest); err != nil && !errors.Is(err, ErrNoRows) {
 		return err
 	}
 	return nil
