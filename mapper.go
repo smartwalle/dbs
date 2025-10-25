@@ -19,7 +19,7 @@ const (
 )
 
 type Mapper interface {
-	Encode(src interface{}) (values map[string]interface{}, err error)
+	Encode(src interface{}) (values []*FieldValue, err error)
 
 	Decode(rows *sql.Rows, dest interface{}) error
 }
@@ -38,7 +38,7 @@ func NewMapper(tag string) *mapper {
 	return m
 }
 
-func (m *mapper) Encode(src interface{}) (map[string]interface{}, error) {
+func (m *mapper) Encode(src interface{}) (values []*FieldValue, err error) {
 	var srcValue = reflect.ValueOf(src)
 	var srcType = srcValue.Type()
 
@@ -49,13 +49,18 @@ func (m *mapper) Encode(src interface{}) (map[string]interface{}, error) {
 		mStruct = m.buildStructMetadata(srcType)
 	}
 
-	var values = make(map[string]interface{}, len(mStruct.fields))
-	for name, field := range mStruct.fields {
+	values = make([]*FieldValue, 0, len(mStruct.fields))
+	for _, column := range mStruct.columns {
+		var field = mStruct.fields[column]
+		if field == nil {
+			continue
+		}
+
 		var value = srcValue.FieldByIndex(field.Index)
 		if field.AutoIncrement && value.IsZero() {
 			continue
 		}
-		values[name] = value.Interface()
+		values = append(values, &FieldValue{Name: column, Value: value.Interface()})
 	}
 	return values, nil
 }
@@ -472,6 +477,7 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 	})
 
 	var fields = make(map[string]*fieldMetadata)
+	var columns = make([]string, 0)
 
 	for len(queue) > 0 {
 		var current = queue[0]
@@ -525,8 +531,10 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 			field.ValuePool = getValuePool(field.Type)
 			field.AutoIncrement = tagMap[kAutoIncrement]
 			fields[fieldName] = field
+			columns = append(columns, fieldName)
 		}
 	}
+	mStruct.columns = columns
 	mStruct.fields = fields
 
 	m.setStructMetadata(destType, mStruct)
@@ -543,7 +551,8 @@ type fieldMetadata struct {
 }
 
 type structMetadata struct {
-	fields map[string]*fieldMetadata
+	columns []string
+	fields  map[string]*fieldMetadata
 }
 
 func (s structMetadata) Field(name string) *fieldMetadata {
@@ -551,13 +560,18 @@ func (s structMetadata) Field(name string) *fieldMetadata {
 	return field
 }
 
-var valuePool = sync.Map{}
+var cachedValue = sync.Map{}
 
 func getValuePool(reflectType reflect.Type) *sync.Pool {
-	var pool, _ = valuePool.LoadOrStore(reflectType, &sync.Pool{
+	var pool, _ = cachedValue.LoadOrStore(reflectType, &sync.Pool{
 		New: func() interface{} {
 			return reflect.New(reflect.PointerTo(reflectType)).Interface()
 		},
 	})
 	return pool.(*sync.Pool)
+}
+
+type FieldValue struct {
+	Name  string
+	Value interface{}
 }

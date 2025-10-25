@@ -18,7 +18,7 @@ import (
 )
 
 type Base struct {
-	Id int32 `sql:"id"`
+	Id int32 `sql:"id;auto_increment"`
 }
 
 type Mail struct {
@@ -27,7 +27,11 @@ type Mail struct {
 	Status    string     `sql:"status"`
 	CreatedAt *time.Time `sql:"created_at"`
 	UpdatedAt time.Time  `sql:"updated_at"`
-	Extra     Extra      `sql:"extra"`
+	Extra     *Extra     `sql:"extra"`
+}
+
+func (m *Mail) TableName(ctx context.Context) string {
+	return "mail"
 }
 
 type Extra struct {
@@ -75,6 +79,67 @@ func NewPgx() dbs.Database {
 	}
 	rawDB := stdlib.OpenDB(*config)
 	return dbs.New(rawDB)
+}
+
+type CreateBuilder struct {
+	ib *dbs.InsertBuilder
+}
+
+func NewCreateBuilder() *CreateBuilder {
+	var i = &CreateBuilder{}
+	i.ib = dbs.NewInsertBuilder()
+	return i
+}
+
+func (i *CreateBuilder) UsePlaceholder(p dbs.Placeholder) *CreateBuilder {
+	i.ib.UsePlaceholder(p)
+	return i
+}
+
+func (i *CreateBuilder) UseSession(s dbs.Session) *CreateBuilder {
+	i.ib.UseSession(s)
+	return i
+}
+
+func (i *CreateBuilder) Create(ctx context.Context, entity Entity) (sql.Result, error) {
+	var fieldValues, err = dbs.GetMapper().Encode(entity)
+	if err != nil {
+		return nil, err
+	}
+
+	var columns = make([]string, 0, len(fieldValues))
+	var values = make([]interface{}, 0, len(fieldValues))
+
+	for _, fieldValue := range fieldValues {
+		columns = append(columns, fieldValue.Name)
+		values = append(values, fieldValue.Value)
+	}
+	i.ib.Table(entity.TableName(ctx))
+	i.ib.Columns(columns...)
+	i.ib.Values(values...)
+
+	return i.ib.Exec(ctx)
+}
+
+type Entity interface {
+	// TableName 获取实体对象对应表的名称
+	TableName(ctx context.Context) string
+}
+
+func Test_Encode(t *testing.T) {
+	var create = NewCreateBuilder()
+	create.UseSession(db)
+	create.UsePlaceholder(dbs.DollarPlaceholder())
+
+	var mail = Mail{}
+	mail.Email = "qq@qq.com"
+	mail.UpdatedAt = time.Now()
+	mail.CreatedAt = &mail.UpdatedAt
+	result, err := create.Create(context.Background(), &mail)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(result.LastInsertId())
 }
 
 func Test_Type(t *testing.T) {
