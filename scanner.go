@@ -59,13 +59,15 @@ func (s *scanner) Scan(rows *sql.Rows, dest interface{}) error {
 		return errors.New("nil pointer passed")
 	}
 
-	var realType = destType
-	for realType.Kind() == reflect.Ptr {
-		realType = realType.Elem()
-	}
+	//var realType = destType
+	//for realType.Kind() == reflect.Ptr {
+	//	realType = realType.Elem()
+	//}
 
-	var isSlice = realType.Kind() == reflect.Slice
-	if isSlice {
+	destType, destValue = base(destType, destValue)
+
+	//var isSlice = destType.Kind() == reflect.Slice
+	if destType.Kind() == reflect.Slice {
 		return s.scanSlice(rows, columns, dest, destType, destValue)
 	}
 	return s.scanOne(rows, columns, dest, destType, destValue)
@@ -96,7 +98,7 @@ func (s *scanner) scanOne(rows *sql.Rows, columns []*sql.ColumnType, dest interf
 		return sql.ErrNoRows
 	}
 
-	destType, destValue = base(destType, destValue)
+	//destType, destValue = base(destType, destValue)
 
 	switch destType.Kind() {
 	case reflect.Struct:
@@ -166,7 +168,7 @@ func (s *scanner) scanOne(rows *sql.Rows, columns []*sql.ColumnType, dest interf
 }
 
 func (s *scanner) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest interface{}, destType reflect.Type, destValue reflect.Value) error {
-	destType, destValue = base(destType, destValue)
+	//destType, destValue = base(destType, destValue)
 
 	// 获取 slice 元素类型
 	destType = destType.Elem()
