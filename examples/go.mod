@@ -7,6 +7,8 @@ require (
 )
 
 require (
+	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/go-sql-driver/mysql v1.9.2 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
@@ -17,4 +19,6 @@ require (
 
 replace github.com/smartwalle/dbs => ../
 
-go 1.18
+go 1.21.0
+
+toolchain go1.23.4

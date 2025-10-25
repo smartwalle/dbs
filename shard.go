@@ -38,8 +38,8 @@ func (s *Shard) Shards() []Database {
 }
 
 func (s *Shard) Session(ctx context.Context) Session {
-	var session, exists = ctx.Value(sessionKey{}).(Session)
-	if exists && session != nil {
+	var session, ok = ctx.Value(sessionKey{}).(Session)
+	if ok && session != nil {
 		return session
 	}
 	return s

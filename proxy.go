@@ -58,8 +58,8 @@ func (p *Proxy) Slaves() []Database {
 }
 
 func (p *Proxy) Session(ctx context.Context) Session {
-	var session, exists = ctx.Value(sessionKey{}).(Session)
-	if exists && session != nil {
+	var session, ok = ctx.Value(sessionKey{}).(Session)
+	if ok && session != nil {
 		return session
 	}
 	return p

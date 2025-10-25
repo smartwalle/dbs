@@ -409,8 +409,8 @@ func fieldByIndex(value reflect.Value, index []int) reflect.Value {
 }
 
 func (s *scanner) getStructMetadata(key reflect.Type) (structMetadata, bool) {
-	var value, exists = s.structs.Load().(map[reflect.Type]structMetadata)[key]
-	return value, exists
+	var value, ok = s.structs.Load().(map[reflect.Type]structMetadata)[key]
+	return value, ok
 }
 
 func (s *scanner) setStructMetadata(key reflect.Type, value structMetadata) {
@@ -431,8 +431,8 @@ type element struct {
 func (s *scanner) buildStructMetadata(destType reflect.Type) structMetadata {
 	s.mu.Lock()
 
-	var mStruct, exists = s.getStructMetadata(destType)
-	if exists {
+	var mStruct, ok = s.getStructMetadata(destType)
+	if ok {
 		s.mu.Unlock()
 		return mStruct
 	}
@@ -479,7 +479,7 @@ func (s *scanner) buildStructMetadata(destType reflect.Type) structMetadata {
 				}
 			}
 
-			if _, exists = fields[tag]; exists {
+			if _, ok = fields[tag]; ok {
 				continue
 			}
 
