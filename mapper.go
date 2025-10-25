@@ -79,6 +79,10 @@ func (m *mapper) Decode(rows *sql.Rows, dest interface{}) error {
 		return err
 	}
 
+	if !rows.Next() {
+		return sql.ErrNoRows
+	}
+
 	var destValue = reflect.ValueOf(dest)
 	var destType = destValue.Type()
 
@@ -90,14 +94,8 @@ func (m *mapper) Decode(rows *sql.Rows, dest interface{}) error {
 		return errors.New("nil pointer passed")
 	}
 
-	//var realType = destType
-	//for realType.Kind() == reflect.Ptr {
-	//	realType = realType.Elem()
-	//}
-
 	destType, destValue = base(destType, destValue)
 
-	//var isSlice = destType.Kind() == reflect.Slice
 	if destType.Kind() == reflect.Slice {
 		return m.scanSlice(rows, columns, dest, destType, destValue)
 	}
@@ -125,12 +123,6 @@ func (m *mapper) prepare(destType reflect.Type, columns []*sql.ColumnType) (fiel
 }
 
 func (m *mapper) scanOne(rows *sql.Rows, columns []*sql.ColumnType, dest interface{}, destType reflect.Type, destValue reflect.Value) error {
-	if !rows.Next() {
-		return sql.ErrNoRows
-	}
-
-	//destType, destValue = base(destType, destValue)
-
 	switch destType.Kind() {
 	case reflect.Struct:
 		var fields, values = m.prepare(destType, columns)
@@ -199,8 +191,6 @@ func (m *mapper) scanOne(rows *sql.Rows, columns []*sql.ColumnType, dest interfa
 }
 
 func (m *mapper) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest interface{}, destType reflect.Type, destValue reflect.Value) error {
-	//destType, destValue = base(destType, destValue)
-
 	// 获取 slice 元素类型
 	destType = destType.Elem()
 
@@ -224,7 +214,7 @@ func (m *mapper) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest inter
 		}()
 
 		var nList = make([]reflect.Value, 0, 20)
-		for rows.Next() {
+		for {
 			var nPointer = reflect.New(destType)
 			var nValue = reflect.Indirect(nPointer)
 
@@ -237,6 +227,10 @@ func (m *mapper) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest inter
 			} else {
 				nList = append(nList, nValue)
 			}
+
+			if !rows.Next() {
+				break
+			}
 		}
 
 		if len(nList) > 0 {
@@ -247,7 +241,7 @@ func (m *mapper) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest inter
 		reflect.Float32, reflect.Float64,
 		reflect.String:
 		var nList = make([]reflect.Value, 0, 20)
-		for rows.Next() {
+		for {
 			var nPointer = reflect.New(reflect.PointerTo(destType))
 			if err := rows.Scan(nPointer.Interface()); err != nil {
 				return err
@@ -259,6 +253,10 @@ func (m *mapper) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest inter
 				} else {
 					nList = append(nList, nValue)
 				}
+			}
+
+			if !rows.Next() {
+				break
 			}
 		}
 		if len(nList) > 0 {
@@ -327,12 +325,16 @@ func scanIntoMaps[T any](rows *sql.Rows, specificType bool, columns []*sql.Colum
 		*mapValues = []map[string]T{}
 	}
 
-	for rows.Next() {
+	for {
 		var mapValue = make(map[string]T)
 		if err := scanIntoMapValue[T](rows, specificType, columns, mapValue); err != nil {
 			return err
 		}
 		*mapValues = append(*mapValues, mapValue)
+
+		if !rows.Next() {
+			break
+		}
 	}
 	return nil
 }
