@@ -38,25 +38,24 @@ var bufferPool = sync.Pool{
 	},
 }
 
-func getBuffer() *Buffer {
-	var buffer = bufferPool.Get().(*Buffer)
-	buffer.Buffer.Reset()
-	buffer.arguments = buffer.arguments[:0]
-	buffer.placeholderCount = 0
-	return buffer
-}
-
-func putBuffer(b *Buffer) {
-	if b != nil {
-		bufferPool.Put(b)
-	}
-}
-
 type Buffer struct {
 	*bytes.Buffer
 	arguments        []interface{}
 	placeholder      Placeholder
 	placeholderCount int
+}
+
+func NewBuffer() *Buffer {
+	var buffer = bufferPool.Get().(*Buffer)
+	buffer.Buffer.Reset()
+	buffer.arguments = buffer.arguments[:0]
+	buffer.placeholder = GlobalPlaceholder()
+	buffer.placeholderCount = 0
+	return buffer
+}
+
+func (b *Buffer) Release() {
+	bufferPool.Put(b)
 }
 
 func (b *Buffer) UsePlaceholder(p Placeholder) {

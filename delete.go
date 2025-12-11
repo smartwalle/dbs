@@ -160,10 +160,10 @@ func (db *DeleteBuilder) Write(w Writer) (err error) {
 }
 
 func (db *DeleteBuilder) SQL() (string, []interface{}, error) {
-	var buffer = getBuffer()
-	buffer.UsePlaceholder(db.placeholder)
+	var buffer = NewBuffer()
+	defer buffer.Release()
 
-	defer putBuffer(buffer)
+	buffer.UsePlaceholder(db.placeholder)
 
 	if err := db.Write(buffer); err != nil {
 		return "", nil, err

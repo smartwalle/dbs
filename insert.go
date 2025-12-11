@@ -176,10 +176,10 @@ func (ib *InsertBuilder) Write(w Writer) (err error) {
 }
 
 func (ib *InsertBuilder) SQL() (string, []interface{}, error) {
-	var buffer = getBuffer()
-	buffer.UsePlaceholder(ib.placeholder)
+	var buffer = NewBuffer()
+	defer buffer.Release()
 
-	defer putBuffer(buffer)
+	buffer.UsePlaceholder(ib.placeholder)
 
 	if err := ib.Write(buffer); err != nil {
 		return "", nil, err

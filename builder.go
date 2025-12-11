@@ -54,10 +54,10 @@ func (rb *Builder) Write(w Writer) (err error) {
 }
 
 func (rb *Builder) SQL() (string, []interface{}, error) {
-	var buffer = getBuffer()
-	buffer.UsePlaceholder(rb.placeholder)
+	var buffer = NewBuffer()
+	defer buffer.Release()
 
-	defer putBuffer(buffer)
+	buffer.UsePlaceholder(rb.placeholder)
 
 	if err := rb.Write(buffer); err != nil {
 		return "", nil, err

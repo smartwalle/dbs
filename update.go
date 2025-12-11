@@ -191,10 +191,10 @@ func (ub *UpdateBuilder) Write(w Writer) (err error) {
 }
 
 func (ub *UpdateBuilder) SQL() (string, []interface{}, error) {
-	var buffer = getBuffer()
-	buffer.UsePlaceholder(ub.placeholder)
+	var buffer = NewBuffer()
+	defer buffer.Release()
 
-	defer putBuffer(buffer)
+	buffer.UsePlaceholder(ub.placeholder)
 
 	if err := ub.Write(buffer); err != nil {
 		return "", nil, err

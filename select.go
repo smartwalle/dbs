@@ -244,10 +244,10 @@ func (sb *SelectBuilder) Write(w Writer) (err error) {
 }
 
 func (sb *SelectBuilder) SQL() (string, []interface{}, error) {
-	var buffer = getBuffer()
-	buffer.UsePlaceholder(sb.placeholder)
+	var buffer = NewBuffer()
+	defer buffer.Release()
 
-	defer putBuffer(buffer)
+	buffer.UsePlaceholder(sb.placeholder)
 
 	if err := sb.Write(buffer); err != nil {
 		return "", nil, err

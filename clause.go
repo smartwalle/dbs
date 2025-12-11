@@ -73,8 +73,8 @@ func (c Clause) Write(w Writer) (err error) {
 }
 
 func (c Clause) SQL() (string, []interface{}, error) {
-	var buffer = getBuffer()
-	defer putBuffer(buffer)
+	var buffer = NewBuffer()
+	defer buffer.Release()
 
 	if err := c.Write(buffer); err != nil {
 		return "", nil, err
@@ -169,8 +169,8 @@ func (cs *Clauses) Write(w Writer) (err error) {
 }
 
 func (cs *Clauses) SQL() (string, []interface{}, error) {
-	var buffer = getBuffer()
-	defer putBuffer(buffer)
+	var buffer = NewBuffer()
+	defer buffer.Release()
 
 	if err := cs.Write(buffer); err != nil {
 		return "", nil, err
@@ -231,8 +231,8 @@ func (cs *Conds) Write(w Writer) (err error) {
 }
 
 func (cs *Conds) SQL() (string, []interface{}, error) {
-	var buffer = getBuffer()
-	defer putBuffer(buffer)
+	var buffer = NewBuffer()
+	defer buffer.Release()
 
 	if err := cs.Write(buffer); err != nil {
 		return "", nil, err
@@ -292,8 +292,8 @@ func (sc Set) Write(w Writer) (err error) {
 }
 
 func (sc Set) SQL() (string, []interface{}, error) {
-	var buffer = getBuffer()
-	defer putBuffer(buffer)
+	var buffer = NewBuffer()
+	defer buffer.Release()
 
 	if err := sc.Write(buffer); err != nil {
 		return "", nil, err
@@ -322,8 +322,8 @@ func (ps Parts) Write(w Writer) (err error) {
 }
 
 func (ps Parts) SQL() (string, []interface{}, error) {
-	var buffer = getBuffer()
-	defer putBuffer(buffer)
+	var buffer = NewBuffer()
+	defer buffer.Release()
 
 	if err := ps.Write(buffer); err != nil {
 		return "", nil, err
