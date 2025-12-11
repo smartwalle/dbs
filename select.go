@@ -7,35 +7,35 @@ import (
 )
 
 type SelectBuilder struct {
-	placeholder Placeholder
-	session     Session
-	prefixes    *Clauses
-	options     *Clauses
-	columns     *Clauses
-	tables      *Clauses
-	joins       *Clauses
-	wheres      *Conds
-	groupBys    Parts
-	having      *Clauses
-	orderBys    *Clauses
-	limit       SQLClause
-	offset      SQLClause
-	suffixes    *Clauses
+	dialect  Dialect
+	session  Session
+	prefixes *Clauses
+	options  *Clauses
+	columns  *Clauses
+	tables   *Clauses
+	joins    *Clauses
+	wheres   *Conds
+	groupBys Parts
+	having   *Clauses
+	orderBys *Clauses
+	limit    SQLClause
+	offset   SQLClause
+	suffixes *Clauses
 }
 
 func NewSelectBuilder() *SelectBuilder {
 	var sb = &SelectBuilder{}
-	sb.placeholder = GlobalPlaceholder()
+	sb.dialect = GlobalDialect()
 	return sb
 }
 
-func (sb *SelectBuilder) UsePlaceholder(p Placeholder) *SelectBuilder {
-	sb.placeholder = p
+func (sb *SelectBuilder) UseDialect(dialect Dialect) *SelectBuilder {
+	sb.dialect = dialect
 	return sb
 }
 
-func (sb *SelectBuilder) UseSession(s Session) *SelectBuilder {
-	sb.session = s
+func (sb *SelectBuilder) UseSession(session Session) *SelectBuilder {
+	sb.session = session
 	return sb
 }
 
@@ -247,7 +247,7 @@ func (sb *SelectBuilder) SQL() (string, []interface{}, error) {
 	var buffer = NewBuffer()
 	defer buffer.Release()
 
-	buffer.UsePlaceholder(sb.placeholder)
+	buffer.UseDialect(sb.dialect)
 
 	if err := sb.Write(buffer); err != nil {
 		return "", nil, err

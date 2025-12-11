@@ -7,30 +7,30 @@ import (
 )
 
 type DeleteBuilder struct {
-	placeholder Placeholder
-	session     Session
-	prefixes    *Clauses
-	options     *Clauses
-	table       string
-	wheres      *Conds
-	orderBys    *Clauses
-	limit       SQLClause
-	suffixes    *Clauses
+	dialect  Dialect
+	session  Session
+	prefixes *Clauses
+	options  *Clauses
+	table    string
+	wheres   *Conds
+	orderBys *Clauses
+	limit    SQLClause
+	suffixes *Clauses
 }
 
 func NewDeleteBuilder() *DeleteBuilder {
 	var db = &DeleteBuilder{}
-	db.placeholder = GlobalPlaceholder()
+	db.dialect = GlobalDialect()
 	return db
 }
 
-func (db *DeleteBuilder) UsePlaceholder(p Placeholder) *DeleteBuilder {
-	db.placeholder = p
+func (db *DeleteBuilder) UseDialect(dialect Dialect) *DeleteBuilder {
+	db.dialect = dialect
 	return db
 }
 
-func (db *DeleteBuilder) UseSession(s Session) *DeleteBuilder {
-	db.session = s
+func (db *DeleteBuilder) UseSession(session Session) *DeleteBuilder {
+	db.session = session
 	return db
 }
 
@@ -163,7 +163,7 @@ func (db *DeleteBuilder) SQL() (string, []interface{}, error) {
 	var buffer = NewBuffer()
 	defer buffer.Release()
 
-	buffer.UsePlaceholder(db.placeholder)
+	buffer.UseDialect(db.dialect)
 
 	if err := db.Write(buffer); err != nil {
 		return "", nil, err

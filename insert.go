@@ -7,29 +7,29 @@ import (
 )
 
 type InsertBuilder struct {
-	placeholder Placeholder
-	session     Session
-	prefixes    *Clauses
-	options     *Clauses
-	columns     Parts
-	table       string
-	values      [][]interface{}
-	suffixes    *Clauses
+	dialect  Dialect
+	session  Session
+	prefixes *Clauses
+	options  *Clauses
+	columns  Parts
+	table    string
+	values   [][]interface{}
+	suffixes *Clauses
 }
 
 func NewInsertBuilder() *InsertBuilder {
 	var ib = &InsertBuilder{}
-	ib.placeholder = GlobalPlaceholder()
+	ib.dialect = GlobalDialect()
 	return ib
 }
 
-func (ib *InsertBuilder) UsePlaceholder(p Placeholder) *InsertBuilder {
-	ib.placeholder = p
+func (ib *InsertBuilder) UseDialect(dialect Dialect) *InsertBuilder {
+	ib.dialect = dialect
 	return ib
 }
 
-func (ib *InsertBuilder) UseSession(s Session) *InsertBuilder {
-	ib.session = s
+func (ib *InsertBuilder) UseSession(session Session) *InsertBuilder {
+	ib.session = session
 	return ib
 }
 
@@ -179,7 +179,7 @@ func (ib *InsertBuilder) SQL() (string, []interface{}, error) {
 	var buffer = NewBuffer()
 	defer buffer.Release()
 
-	buffer.UsePlaceholder(ib.placeholder)
+	buffer.UseDialect(ib.dialect)
 
 	if err := ib.Write(buffer); err != nil {
 		return "", nil, err

@@ -7,31 +7,31 @@ import (
 )
 
 type UpdateBuilder struct {
-	placeholder Placeholder
-	session     Session
-	prefixes    *Clauses
-	options     *Clauses
-	table       string
-	sets        []Set
-	wheres      *Conds
-	orderBys    *Clauses
-	limit       SQLClause
-	suffixes    *Clauses
+	dialect  Dialect
+	session  Session
+	prefixes *Clauses
+	options  *Clauses
+	table    string
+	sets     []Set
+	wheres   *Conds
+	orderBys *Clauses
+	limit    SQLClause
+	suffixes *Clauses
 }
 
 func NewUpdateBuilder() *UpdateBuilder {
 	var sb = &UpdateBuilder{}
-	sb.placeholder = GlobalPlaceholder()
+	sb.dialect = GlobalDialect()
 	return sb
 }
 
-func (ub *UpdateBuilder) UsePlaceholder(p Placeholder) *UpdateBuilder {
-	ub.placeholder = p
+func (ub *UpdateBuilder) UseDialect(dialect Dialect) *UpdateBuilder {
+	ub.dialect = dialect
 	return ub
 }
 
-func (ub *UpdateBuilder) UseSession(s Session) *UpdateBuilder {
-	ub.session = s
+func (ub *UpdateBuilder) UseSession(session Session) *UpdateBuilder {
+	ub.session = session
 	return ub
 }
 
@@ -194,7 +194,7 @@ func (ub *UpdateBuilder) SQL() (string, []interface{}, error) {
 	var buffer = NewBuffer()
 	defer buffer.Release()
 
-	buffer.UsePlaceholder(ub.placeholder)
+	buffer.UseDialect(ub.dialect)
 
 	if err := ub.Write(buffer); err != nil {
 		return "", nil, err

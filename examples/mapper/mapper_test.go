@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/lib/pq"
 	"github.com/smartwalle/dbs"
+	"github.com/smartwalle/dbs/postgres"
 	"log"
 	"os"
 	"reflect"
@@ -91,18 +92,18 @@ func NewCreateBuilder() *CreateBuilder {
 	return i
 }
 
-func (i *CreateBuilder) UsePlaceholder(p dbs.Placeholder) *CreateBuilder {
-	i.ib.UsePlaceholder(p)
+func (i *CreateBuilder) UseDialect(dialect dbs.Dialect) *CreateBuilder {
+	i.ib.UseDialect(dialect)
 	return i
 }
 
-func (i *CreateBuilder) UseSession(s dbs.Session) *CreateBuilder {
-	i.ib.UseSession(s)
+func (i *CreateBuilder) UseSession(session dbs.Session) *CreateBuilder {
+	i.ib.UseSession(session)
 	return i
 }
 
 func (i *CreateBuilder) Create(ctx context.Context, entity Entity) (sql.Result, error) {
-	var fieldValues, err = dbs.GetMapper().Encode(entity)
+	var fieldValues, err = dbs.GlobalMapper().Encode(entity)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +130,7 @@ type Entity interface {
 func Test_Encode(t *testing.T) {
 	var create = NewCreateBuilder()
 	create.UseSession(db)
-	create.UsePlaceholder(dbs.DollarPlaceholder())
+	create.UseDialect(postgres.Dialect())
 
 	var mail = Mail{}
 	mail.Email = "qq@qq.com"

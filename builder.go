@@ -7,24 +7,24 @@ import (
 )
 
 type Builder struct {
-	placeholder Placeholder
-	session     Session
-	clauses     *Clauses
+	dialect Dialect
+	session Session
+	clauses *Clauses
 }
 
 func NewBuilder() *Builder {
 	var sb = &Builder{}
-	sb.placeholder = GlobalPlaceholder()
+	sb.dialect = GlobalDialect()
 	return sb
 }
 
-func (rb *Builder) UsePlaceholder(p Placeholder) *Builder {
-	rb.placeholder = p
+func (rb *Builder) UseDialect(dialect Dialect) *Builder {
+	rb.dialect = dialect
 	return rb
 }
 
-func (rb *Builder) UseSession(s Session) *Builder {
-	rb.session = s
+func (rb *Builder) UseSession(session Session) *Builder {
+	rb.session = session
 	return rb
 }
 
@@ -57,7 +57,7 @@ func (rb *Builder) SQL() (string, []interface{}, error) {
 	var buffer = NewBuffer()
 	defer buffer.Release()
 
-	buffer.UsePlaceholder(rb.placeholder)
+	buffer.UseDialect(rb.dialect)
 
 	if err := rb.Write(buffer); err != nil {
 		return "", nil, err
@@ -84,7 +84,7 @@ func scan(ctx context.Context, session Session, clause SQLClause, dest interface
 	}
 	defer rows.Close()
 
-	if err = gMapper.Decode(rows, dest); err != nil && !errors.Is(err, ErrNoRows) {
+	if err = globalMapper.Decode(rows, dest); err != nil && !errors.Is(err, ErrNoRows) {
 		return err
 	}
 	return nil

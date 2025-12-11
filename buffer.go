@@ -14,7 +14,7 @@ const (
 )
 
 type Writer interface {
-	UsePlaceholder(p Placeholder)
+	UseDialect(p Dialect)
 
 	Write(p []byte) (n int, err error)
 
@@ -32,7 +32,7 @@ var bufferPool = sync.Pool{
 		return &Buffer{
 			Buffer:           bytes.NewBuffer(make([]byte, 0, kDefaultBufferSize)),
 			arguments:        make([]interface{}, 0, kDefaultArgsSize),
-			placeholder:      GlobalPlaceholder(),
+			dialect:          GlobalDialect(),
 			placeholderCount: 0,
 		}
 	},
@@ -41,7 +41,7 @@ var bufferPool = sync.Pool{
 type Buffer struct {
 	*bytes.Buffer
 	arguments        []interface{}
-	placeholder      Placeholder
+	dialect          Dialect
 	placeholderCount int
 }
 
@@ -49,7 +49,7 @@ func NewBuffer() *Buffer {
 	var buffer = bufferPool.Get().(*Buffer)
 	buffer.Buffer.Reset()
 	buffer.arguments = buffer.arguments[:0]
-	buffer.placeholder = GlobalPlaceholder()
+	buffer.dialect = GlobalDialect()
 	buffer.placeholderCount = 0
 	return buffer
 }
@@ -58,11 +58,11 @@ func (b *Buffer) Release() {
 	bufferPool.Put(b)
 }
 
-func (b *Buffer) UsePlaceholder(p Placeholder) {
-	if p == nil {
-		p = GlobalPlaceholder()
+func (b *Buffer) UseDialect(dialect Dialect) {
+	if dialect == nil {
+		dialect = GlobalDialect()
 	}
-	b.placeholder = p
+	b.dialect = dialect
 }
 
 func (b *Buffer) WriteArgument(flag uint8, arg interface{}) (err error) {
@@ -72,7 +72,7 @@ func (b *Buffer) WriteArgument(flag uint8, arg interface{}) (err error) {
 
 	if flag&FlagPlaceholder == FlagPlaceholder {
 		b.placeholderCount++
-		if err = b.placeholder.WriteTo(b, b.placeholderCount); err != nil {
+		if err = b.dialect.WritePlaceholder(b, b.placeholderCount); err != nil {
 			return err
 		}
 	}
