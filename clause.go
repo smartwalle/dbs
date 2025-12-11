@@ -201,6 +201,16 @@ func NewConds(sep string, clauses ...SQLClause) *Conds {
 }
 
 func (cs *Conds) Write(w Writer) (err error) {
+	var n = len(cs.clauses)
+	if n == 0 {
+		return nil
+	}
+
+	if n > 1 {
+		if err = w.WriteByte('('); err != nil {
+			return err
+		}
+	}
 	for idx, clause := range cs.clauses {
 		if idx != 0 {
 			if _, err = w.WriteString(cs.sep); err != nil {
@@ -208,6 +218,11 @@ func (cs *Conds) Write(w Writer) (err error) {
 			}
 		}
 		if err = clause.Write(w); err != nil {
+			return err
+		}
+	}
+	if n > 1 {
+		if err = w.WriteByte(')'); err != nil {
 			return err
 		}
 	}
