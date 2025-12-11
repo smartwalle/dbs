@@ -192,8 +192,9 @@ func (cs *Clauses) Append(sql interface{}, args ...interface{}) *Clauses {
 }
 
 type Conds struct {
-	sep     string
-	clauses []SQLClause
+	ignoreBracket bool
+	sep           string
+	clauses       []SQLClause
 }
 
 func NewConds(sep string, clauses ...SQLClause) *Conds {
@@ -206,7 +207,7 @@ func (cs *Conds) Write(w Writer) (err error) {
 		return nil
 	}
 
-	if n > 1 {
+	if n > 1 && !cs.ignoreBracket {
 		if err = w.WriteByte('('); err != nil {
 			return err
 		}
@@ -221,7 +222,7 @@ func (cs *Conds) Write(w Writer) (err error) {
 			return err
 		}
 	}
-	if n > 1 {
+	if n > 1 && !cs.ignoreBracket {
 		if err = w.WriteByte(')'); err != nil {
 			return err
 		}

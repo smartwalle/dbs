@@ -57,7 +57,9 @@ func (db *DeleteBuilder) From(table string) *DeleteBuilder {
 
 func (db *DeleteBuilder) Where(sql interface{}, args ...interface{}) *DeleteBuilder {
 	if db.wheres == nil {
-		db.wheres = NewConds(" AND ")
+		var conds = AND()
+		conds.ignoreBracket = true
+		db.wheres = conds
 	}
 	db.wheres.Append(sql, args...)
 	return db

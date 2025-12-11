@@ -72,7 +72,9 @@ func (ub *UpdateBuilder) SetValues(values map[string]interface{}) *UpdateBuilder
 
 func (ub *UpdateBuilder) Where(sql interface{}, args ...interface{}) *UpdateBuilder {
 	if ub.wheres == nil {
-		ub.wheres = NewConds(" AND ")
+		var conds = AND()
+		conds.ignoreBracket = true
+		ub.wheres = conds
 	}
 	ub.wheres.Append(sql, args...)
 	return ub

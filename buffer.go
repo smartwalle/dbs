@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-const kDefaultArgsSize = 64
+const kDefaultArgsSize = 16
 const kDefaultBufferSize = 1024
 
 const (

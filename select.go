@@ -85,7 +85,9 @@ func (sb *SelectBuilder) Join(sql interface{}, args ...interface{}) *SelectBuild
 
 func (sb *SelectBuilder) Where(sql interface{}, args ...interface{}) *SelectBuilder {
 	if sb.wheres == nil {
-		sb.wheres = NewConds(" AND ")
+		var conds = AND()
+		conds.ignoreBracket = true
+		sb.wheres = conds
 	}
 	sb.wheres.Append(sql, args...)
 	return sb
