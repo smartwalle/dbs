@@ -31,8 +31,12 @@ type Mail struct {
 	Extra     *Extra     `sql:"extra"`
 }
 
-func (m *Mail) TableName(ctx context.Context) string {
+func (Mail) TableName() string {
 	return "mail"
+}
+
+func (Mail) PrimaryKey() string {
+	return "id"
 }
 
 type Extra struct {
@@ -82,65 +86,25 @@ func NewPgx() dbs.Database {
 	return dbs.New(rawDB)
 }
 
-type CreateBuilder struct {
-	ib *dbs.InsertBuilder
-}
-
-func NewCreateBuilder() *CreateBuilder {
-	var i = &CreateBuilder{}
-	i.ib = dbs.NewInsertBuilder()
-	return i
-}
-
-func (i *CreateBuilder) UseDialect(dialect dbs.Dialect) *CreateBuilder {
-	i.ib.UseDialect(dialect)
-	return i
-}
-
-func (i *CreateBuilder) UseSession(session dbs.Session) *CreateBuilder {
-	i.ib.UseSession(session)
-	return i
-}
-
-func (i *CreateBuilder) Create(ctx context.Context, entity Entity) (sql.Result, error) {
-	var fieldValues, err = dbs.GlobalMapper().Encode(entity)
-	if err != nil {
-		return nil, err
-	}
-
-	var columns = make([]string, 0, len(fieldValues))
-	var values = make([]interface{}, 0, len(fieldValues))
-
-	for _, fieldValue := range fieldValues {
-		columns = append(columns, fieldValue.Name)
-		values = append(values, fieldValue.Value)
-	}
-	i.ib.Table(entity.TableName(ctx))
-	i.ib.Columns(columns...)
-	i.ib.Values(values...)
-
-	return i.ib.Exec(ctx)
-}
-
-type Entity interface {
-	// TableName 获取实体对象对应表的名称
-	TableName(ctx context.Context) string
-}
-
 func Test_Encode(t *testing.T) {
-	var create = NewCreateBuilder()
-	create.UseSession(db)
-	create.UseDialect(postgres.Dialect())
+	var repo = dbs.NewRepository[Mail](db)
+	repo.UseDialect(postgres.Dialect())
 
-	var mail = Mail{}
-	mail.Email = "qq@qq.com"
-	mail.UpdatedAt = time.Now()
-	mail.CreatedAt = &mail.UpdatedAt
-	result, err := create.Create(context.Background(), &mail)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(result.LastInsertId())
+	var xxx, er = repo.Select(context.Background(), 100091)
+	t.Log(xxx, er)
+
+	t.Log(repo.Delete(context.Background(), 10025))
+
+	t.Log(repo.Update(context.Background(), 10024, map[string]interface{}{"status": "111"}))
+
+	//var mail = &Mail{}
+	//mail.Email = "qq@qq.com"
+	//mail.UpdatedAt = time.Now()
+	//mail.CreatedAt = &mail.UpdatedAt
+	//_, err := repo.Insert(context.Background(), mail)
+	//if err != nil {
+	//	t.Fatal(err)
+	//}
 }
 
 func Test_Type(t *testing.T) {
