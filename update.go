@@ -62,9 +62,11 @@ func (ub *UpdateBuilder) Set(column string, value interface{}) *UpdateBuilder {
 }
 
 func (ub *UpdateBuilder) SetValues(values map[string]interface{}) *UpdateBuilder {
-	var sets = make([]Set, 0, len(values))
+	var sets = make([]Set, len(values))
+	var idx = 0
 	for key, value := range values {
-		sets = append(sets, NewSet(key, value))
+		sets[idx] = NewSet(key, value)
+		idx++
 	}
 	ub.sets = append(ub.sets, sets...)
 	return ub
