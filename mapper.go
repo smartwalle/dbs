@@ -19,7 +19,7 @@ const (
 )
 
 type Mapper interface {
-	Encode(src interface{}) (values []*FieldValue, err error)
+	Encode(src interface{}) (values []FieldValue, err error)
 
 	Decode(rows *sql.Rows, dest interface{}) error
 }
@@ -38,7 +38,7 @@ func NewMapper(tag string) *mapper {
 	return m
 }
 
-func (m *mapper) Encode(src interface{}) (values []*FieldValue, err error) {
+func (m *mapper) Encode(src interface{}) (values []FieldValue, err error) {
 	var srcValue = reflect.ValueOf(src)
 	var srcType = srcValue.Type()
 
@@ -49,7 +49,7 @@ func (m *mapper) Encode(src interface{}) (values []*FieldValue, err error) {
 		mStruct = m.buildStructMetadata(srcType)
 	}
 
-	values = make([]*FieldValue, 0, len(mStruct.fields))
+	values = make([]FieldValue, 0, len(mStruct.fields))
 	for _, column := range mStruct.columns {
 		var field = mStruct.fields[column]
 		if field == nil {
@@ -60,7 +60,7 @@ func (m *mapper) Encode(src interface{}) (values []*FieldValue, err error) {
 		if field.AutoIncrement && value.IsZero() {
 			continue
 		}
-		values = append(values, &FieldValue{Name: column, Value: value.Interface()})
+		values = append(values, FieldValue{Name: column, Value: value.Interface()})
 	}
 	return values, nil
 }
