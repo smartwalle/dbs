@@ -87,73 +87,73 @@ func TestClause_SQL(t *testing.T) {
 			ExpectArgs: ExpectArgs("12345678901"),
 		},
 		{
-			Clause:     dbs.NewSelectBuilder().From("user").Selects("id,name,age").Where("id = ?", 1),
+			Clause:     dbs.NewSelectBuilder().Table("user").Selects("id,name,age").Where("id = ?", 1),
 			ExpectSQL:  "SELECT id,name,age FROM user WHERE id = ?",
 			ExpectArgs: ExpectArgs(1),
 		},
 		{
-			Clause:     dbs.NewSelectBuilder().From("user").Select("id,name,age").Where("id = ?", 2),
+			Clause:     dbs.NewSelectBuilder().Table("user").Select("id,name,age").Where("id = ?", 2),
 			ExpectSQL:  "SELECT id,name,age FROM user WHERE id = ?",
 			ExpectArgs: ExpectArgs(2),
 		},
 		{
-			Clause:     dbs.NewSelectBuilder().From("user").Selects("id").Selects("name").Selects("age").Where("id = ?", 3),
+			Clause:     dbs.NewSelectBuilder().Table("user").Selects("id").Selects("name").Selects("age").Where("id = ?", 3),
 			ExpectSQL:  "SELECT id,name,age FROM user WHERE id = ?",
 			ExpectArgs: ExpectArgs(3),
 		},
 		{
-			Clause:     dbs.NewSelectBuilder().From("user").Select("id").Select("name").Select("age").Where("id = ?", 4),
+			Clause:     dbs.NewSelectBuilder().Table("user").Select("id").Select("name").Select("age").Where("id = ?", 4),
 			ExpectSQL:  "SELECT id,name,age FROM user WHERE id = ?",
 			ExpectArgs: ExpectArgs(4),
 		},
 		{
-			Clause:     dbs.NewSelectBuilder().From("user").Selects("id,name").Select("age").Where("id = ?", 5),
+			Clause:     dbs.NewSelectBuilder().Table("user").Selects("id,name").Select("age").Where("id = ?", 5),
 			ExpectSQL:  "SELECT id,name,age FROM user WHERE id = ?",
 			ExpectArgs: ExpectArgs(5),
 		},
 		{
-			Clause:     dbs.NewSelectBuilder().From("user").Selects("id,name,age").Where("id > ?", 2).Limit(10),
+			Clause:     dbs.NewSelectBuilder().Table("user").Selects("id,name,age").Where("id > ?", 2).Limit(10),
 			ExpectSQL:  "SELECT id,name,age FROM user WHERE id > ? LIMIT ?",
 			ExpectArgs: ExpectArgs(2, int64(10)),
 		},
 		{
-			Clause:     dbs.NewSelectBuilder().From("user").Selects("id,name,age").Where("id > ?", 2).Limit(10).Offset(11),
+			Clause:     dbs.NewSelectBuilder().Table("user").Selects("id,name,age").Where("id > ?", 2).Limit(10).Offset(11),
 			ExpectSQL:  "SELECT id,name,age FROM user WHERE id > ? LIMIT ? OFFSET ?",
 			ExpectArgs: ExpectArgs(2, int64(10), int64(11)),
 		},
 		{
-			Clause:     dbs.NewSelectBuilder().From("user").Selects("id").Select("IF(gender=?,'男','女') sex", 1).Selects("name,age").Where("id = ?", 10),
+			Clause:     dbs.NewSelectBuilder().Table("user").Selects("id").Select("IF(gender=?,'男','女') sex", 1).Selects("name,age").Where("id = ?", 10),
 			ExpectSQL:  "SELECT id,IF(gender=?,'男','女') sex,name,age FROM user WHERE id = ?",
 			ExpectArgs: ExpectArgs(1, 10),
 		},
 		{
-			Clause:     dbs.NewSelectBuilder().From("user").Selects("id,name,age").Where("id IN (?)", []int{1, 2, 3, 4}),
+			Clause:     dbs.NewSelectBuilder().Table("user").Selects("id,name,age").Where("id IN (?)", []int{1, 2, 3, 4}),
 			ExpectSQL:  "SELECT id,name,age FROM user WHERE id IN (?,?,?,?)",
 			ExpectArgs: ExpectArgs(1, 2, 3, 4),
 		},
 		{
-			Clause:     dbs.NewSelectBuilder().From("user").Selects("id,name,age").Where("id IN (?)", []int{1, 2, 3, 4}).Where("type = ?", 1001),
+			Clause:     dbs.NewSelectBuilder().Table("user").Selects("id,name,age").Where("id IN (?)", []int{1, 2, 3, 4}).Where("type = ?", 1001),
 			ExpectSQL:  "SELECT id,name,age FROM user WHERE id IN (?,?,?,?) AND type = ?",
 			ExpectArgs: ExpectArgs(1, 2, 3, 4, 1001),
 		},
 		{
-			Clause:     dbs.NewSelectBuilder().From("user u").Join("LEFT JOIN book b ON b.user_id = u.id").Selects("u.id,u.name,b.name book_name").Where("u.id = ?", 10),
+			Clause:     dbs.NewSelectBuilder().Table("user u").Join("LEFT JOIN book b ON b.user_id = u.id").Selects("u.id,u.name,b.name book_name").Where("u.id = ?", 10),
 			ExpectSQL:  "SELECT u.id,u.name,b.name book_name FROM user u LEFT JOIN book b ON b.user_id = u.id WHERE u.id = ?",
 			ExpectArgs: ExpectArgs(10),
 		},
 		{
-			Clause:     dbs.NewSelectBuilder().From("user u").Selects("u.id,u.name,u.age").Where("u.id < ?", 100).OrderBy("u.age ASC").OrderBy("u.id ASC,u.updated_time DESC"),
+			Clause:     dbs.NewSelectBuilder().Table("user u").Selects("u.id,u.name,u.age").Where("u.id < ?", 100).OrderBy("u.age ASC").OrderBy("u.id ASC,u.updated_time DESC"),
 			ExpectSQL:  "SELECT u.id,u.name,u.age FROM user u WHERE u.id < ? ORDER BY u.age ASC,u.id ASC,u.updated_time DESC",
 			ExpectArgs: ExpectArgs(100),
 		},
 		{
-			Clause:     dbs.NewSelectBuilder().From("user u").Selects("u.id,u.name,u.age").Where("u.id < ?", 100).OrderBy("FIELD(u.id, ?)", []int{1, 2, 3, 4, 5, 6}),
+			Clause:     dbs.NewSelectBuilder().Table("user u").Selects("u.id,u.name,u.age").Where("u.id < ?", 100).OrderBy("FIELD(u.id, ?)", []int{1, 2, 3, 4, 5, 6}),
 			ExpectSQL:  "SELECT u.id,u.name,u.age FROM user u WHERE u.id < ? ORDER BY FIELD(u.id, ?,?,?,?,?,?)",
 			ExpectArgs: ExpectArgs(100, 1, 2, 3, 4, 5, 6),
 		},
 		{
 			Clause: dbs.NewSelectBuilder().
-				From("user u").
+				Table("user u").
 				Join("LEFT JOIN book b ON b.user_id = u.id").
 				Selects("u.id,u.name,b.name book_name").
 				Where("u.id < ?", 100).
@@ -165,32 +165,32 @@ func TestClause_SQL(t *testing.T) {
 			ExpectArgs: ExpectArgs(100, 31, 32, 33, 1, 2, 3, 4, 5, 6, int64(10), int64(20)),
 		},
 		{
-			Clause:     dbs.NewSelectBuilder().From("user u").Selects("u.id,u.name,u.age").Where("u.id < ?", 100).Limit(10).Offset(10).Count(),
+			Clause:     dbs.NewSelectBuilder().Table("user u").Selects("u.id,u.name,u.age").Where("u.id < ?", 100).Limit(10).Offset(10).Count(),
 			ExpectSQL:  "SELECT COUNT(1) FROM user u WHERE u.id < ?",
 			ExpectArgs: ExpectArgs(100),
 		},
 		{
-			Clause:     dbs.NewSelectBuilder().From("user u").Selects("u.id,u.name,u.age").Where("u.id < ?", 100).Limit(10).Offset(10).GroupBy("u.age").Count(),
+			Clause:     dbs.NewSelectBuilder().Table("user u").Selects("u.id,u.name,u.age").Where("u.id < ?", 100).Limit(10).Offset(10).GroupBy("u.age").Count(),
 			ExpectSQL:  "SELECT COUNT(1) FROM (SELECT u.id,u.name,u.age FROM user u WHERE u.id < ? GROUP BY u.age) embed_count_table",
 			ExpectArgs: ExpectArgs(100),
 		},
 		{
-			Clause:     dbs.NewSelectBuilder().From("user u").Selects("u.id,u.name,u.age").Where("u.id < ?", 100).Limit(10).Offset(10).GroupBy("u.age").EmbedCount("1"),
+			Clause:     dbs.NewSelectBuilder().Table("user u").Selects("u.id,u.name,u.age").Where("u.id < ?", 100).Limit(10).Offset(10).GroupBy("u.age").EmbedCount("1"),
 			ExpectSQL:  "SELECT COUNT(1) FROM (SELECT 1 FROM user u WHERE u.id < ? GROUP BY u.age) embed_count_table",
 			ExpectArgs: ExpectArgs(100),
 		},
 		{
-			Clause:     dbs.NewSelectBuilder().From("user u").Selects("u.age,count(1) age_count").Where("u.id < ?", 100).Limit(10).Offset(10).GroupBy("u.age").Having("age_count > ?", 10).Count(),
+			Clause:     dbs.NewSelectBuilder().Table("user u").Selects("u.age,count(1) age_count").Where("u.id < ?", 100).Limit(10).Offset(10).GroupBy("u.age").Having("age_count > ?", 10).Count(),
 			ExpectSQL:  "SELECT COUNT(1) FROM (SELECT u.age,count(1) age_count FROM user u WHERE u.id < ? GROUP BY u.age HAVING age_count > ?) embed_count_table",
 			ExpectArgs: ExpectArgs(100, 10),
 		},
 		{
-			Clause:     dbs.NewSelectBuilder().From("user u").Selects("u.age,count(1) age_count").Where("u.id < ?", 100).Limit(10).Offset(10).GroupBy("u.age").Having("age_count > ?", 10).EmbedCount("count(1) age_count"),
+			Clause:     dbs.NewSelectBuilder().Table("user u").Selects("u.age,count(1) age_count").Where("u.id < ?", 100).Limit(10).Offset(10).GroupBy("u.age").Having("age_count > ?", 10).EmbedCount("count(1) age_count"),
 			ExpectSQL:  "SELECT COUNT(1) FROM (SELECT count(1) age_count FROM user u WHERE u.id < ? GROUP BY u.age HAVING age_count > ?) embed_count_table",
 			ExpectArgs: ExpectArgs(100, 10),
 		},
 		{
-			Clause:     dbs.NewSelectBuilder().From("user u").Select("distinct u.name").Where("u.id < ?", 100).Limit(10).Offset(10).EmbedCount(),
+			Clause:     dbs.NewSelectBuilder().Table("user u").Select("distinct u.name").Where("u.id < ?", 100).Limit(10).Offset(10).EmbedCount(),
 			ExpectSQL:  "SELECT COUNT(1) FROM (SELECT distinct u.name FROM user u WHERE u.id < ?) embed_count_table",
 			ExpectArgs: ExpectArgs(100),
 		},
@@ -225,15 +225,15 @@ func TestClause_SQL(t *testing.T) {
 			ExpectArgs: ExpectArgs(10, 100),
 		},
 		{
-			Clause:     dbs.NewDeleteBuilder().From("user").Where("id = ?", 100),
+			Clause:     dbs.NewDeleteBuilder().Table("user").Where("id = ?", 100),
 			ExpectSQL:  "DELETE FROM user WHERE id = ?",
 			ExpectArgs: ExpectArgs(100),
 		},
 		{
-			Clause: dbs.NewSelectBuilder().From(
+			Clause: dbs.NewSelectBuilder().Table(
 				"(? UNION ALL ?) t",
-				dbs.NewSelectBuilder().From("student s").Selects("s.id,s.name").Where("s.id < ?", 100),
-				dbs.NewSelectBuilder().From("teacher t").Selects("t.id,t.name").Where("t.id < ?", 1000),
+				dbs.NewSelectBuilder().Table("student s").Selects("s.id,s.name").Where("s.id < ?", 100),
+				dbs.NewSelectBuilder().Table("teacher t").Selects("t.id,t.name").Where("t.id < ?", 1000),
 			).Selects("t.id,t.name"),
 			ExpectSQL:  "SELECT t.id,t.name FROM (SELECT s.id,s.name FROM student s WHERE s.id < ? UNION ALL SELECT t.id,t.name FROM teacher t WHERE t.id < ?) t",
 			ExpectArgs: ExpectArgs(100, 1000),

@@ -67,7 +67,7 @@ func (sb *SelectBuilder) Select(sql interface{}, args ...interface{}) *SelectBui
 	return sb
 }
 
-func (sb *SelectBuilder) From(table string, args ...interface{}) *SelectBuilder {
+func (sb *SelectBuilder) Table(table string, args ...interface{}) *SelectBuilder {
 	if sb.tables == nil {
 		sb.tables = NewClauses(',')
 	}
@@ -292,7 +292,7 @@ func (sb *SelectBuilder) EmbedCount(columns ...string) *SelectBuilder {
 
 	var nsb = NewSelectBuilder()
 	nsb.Selects("COUNT(1)")
-	nsb.From("(?) embed_count_table", &temp)
+	nsb.Table("(?) embed_count_table", &temp)
 	return nsb
 }
 

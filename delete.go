@@ -50,7 +50,7 @@ func (db *DeleteBuilder) Option(sql interface{}, args ...interface{}) *DeleteBui
 	return db
 }
 
-func (db *DeleteBuilder) From(table string) *DeleteBuilder {
+func (db *DeleteBuilder) Table(table string) *DeleteBuilder {
 	db.table = table
 	return db
 }
