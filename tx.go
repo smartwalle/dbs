@@ -84,6 +84,14 @@ func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *s
 	return row
 }
 
+func (tx *Tx) Commit() error {
+	return tx.tx.Commit()
+}
+
+func (tx *Tx) Rollback() error {
+	return tx.tx.Rollback()
+}
+
 func (tx *Tx) Context(ctx context.Context) context.Context {
 	return context.WithValue(ctx, txSessionKey{}, tx)
 }
@@ -94,12 +102,4 @@ func Transaction(ctx context.Context) *Tx {
 		return tx
 	}
 	return nil
-}
-
-func (tx *Tx) Commit() error {
-	return tx.tx.Commit()
-}
-
-func (tx *Tx) Rollback() error {
-	return tx.tx.Rollback()
 }
