@@ -23,7 +23,7 @@ type Session interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
-type sessionKey struct{}
+type txSessionKey struct{}
 
 type Database interface {
 	Session
@@ -86,7 +86,7 @@ func (db *DB) PingContext(ctx context.Context) error {
 }
 
 func (db *DB) Session(ctx context.Context) Session {
-	var session, ok = ctx.Value(sessionKey{}).(Session)
+	var session, ok = ctx.Value(txSessionKey{}).(Session)
 	if ok && session != nil {
 		return session
 	}
@@ -336,8 +336,16 @@ func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *s
 	return row
 }
 
-func (tx *Tx) WithContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, sessionKey{}, tx)
+func (tx *Tx) Context(ctx context.Context) context.Context {
+	return context.WithValue(ctx, txSessionKey{}, tx)
+}
+
+func TxFromContext(ctx context.Context) *Tx {
+	var tx, ok = ctx.Value(txSessionKey{}).(*Tx)
+	if ok && tx != nil {
+		return tx
+	}
+	return nil
 }
 
 func (tx *Tx) Commit() error {

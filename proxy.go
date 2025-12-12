@@ -58,7 +58,7 @@ func (p *Proxy) Slaves() []Database {
 }
 
 func (p *Proxy) Session(ctx context.Context) Session {
-	var session, ok = ctx.Value(sessionKey{}).(Session)
+	var session, ok = ctx.Value(txSessionKey{}).(Session)
 	if ok && session != nil {
 		return session
 	}
