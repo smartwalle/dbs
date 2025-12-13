@@ -11,23 +11,41 @@ type Entity interface {
 	PrimaryKey() string
 }
 
-type Repository[E Entity] struct {
+type Repositoy[E Entity] interface {
+	UseDialect(dialect Dialect)
+
+	Insert(ctx context.Context, entity *E) (sql.Result, error)
+
+	Delete(ctx context.Context, id interface{}) (sql.Result, error)
+
+	Update(ctx context.Context, id interface{}, values map[string]interface{}) (sql.Result, error)
+
+	Find(ctx context.Context, id interface{}, columns string) (*E, error)
+
+	FindOne(ctx context.Context, columns string, conds string, args ...interface{}) (*E, error)
+
+	FindList(ctx context.Context, columns string, conds string, args ...interface{}) ([]*E, error)
+
+	Transaction(ctx context.Context, fn func(ctx context.Context) error, opts ...*sql.TxOptions) error
+}
+
+type repository[E Entity] struct {
 	entity  E
 	dialect Dialect
 	db      Database
 }
 
-func NewRepository[E Entity](db Database) *Repository[E] {
-	var r = &Repository[E]{}
+func NewRepository[E Entity](db Database) Repositoy[E] {
+	var r = &repository[E]{}
 	r.db = db
 	return r
 }
 
-func (r *Repository[E]) UseDialect(dialect Dialect) {
+func (r *repository[E]) UseDialect(dialect Dialect) {
 	r.dialect = dialect
 }
 
-func (r *Repository[E]) Insert(ctx context.Context, entity *E) (sql.Result, error) {
+func (r *repository[E]) Insert(ctx context.Context, entity *E) (sql.Result, error) {
 	var fieldValues, err = GlobalMapper().Encode(entity)
 	if err != nil {
 		return nil, err
@@ -46,20 +64,20 @@ func (r *Repository[E]) Insert(ctx context.Context, entity *E) (sql.Result, erro
 	return ib.Exec(ctx)
 }
 
-func (r *Repository[E]) Delete(ctx context.Context, id interface{}) (sql.Result, error) {
+func (r *repository[E]) Delete(ctx context.Context, id interface{}) (sql.Result, error) {
 	var rb = r.DeleteBuilder(ctx)
 	rb.Where(r.entity.PrimaryKey()+" = ?", id)
 	return rb.Exec(ctx)
 }
 
-func (r *Repository[E]) Update(ctx context.Context, id interface{}, values map[string]interface{}) (sql.Result, error) {
+func (r *repository[E]) Update(ctx context.Context, id interface{}, values map[string]interface{}) (sql.Result, error) {
 	var ub = r.UpdateBuilder(ctx)
 	ub.SetValues(values)
 	ub.Where(r.entity.PrimaryKey()+" = ?", id)
 	return ub.Exec(ctx)
 }
 
-func (r *Repository[E]) Find(ctx context.Context, id interface{}, columns string) (*E, error) {
+func (r *repository[E]) Find(ctx context.Context, id interface{}, columns string) (*E, error) {
 	var sb = r.SelectBuilder(ctx)
 	sb.Selects(columns)
 	sb.Limit(1)
@@ -72,7 +90,7 @@ func (r *Repository[E]) Find(ctx context.Context, id interface{}, columns string
 	return entity, nil
 }
 
-func (r *Repository[E]) FindOne(ctx context.Context, columns string, conds string, args ...interface{}) (*E, error) {
+func (r *repository[E]) FindOne(ctx context.Context, columns string, conds string, args ...interface{}) (*E, error) {
 	var sb = r.SelectBuilder(ctx)
 	sb.Selects(columns)
 	sb.Limit(1)
@@ -85,7 +103,7 @@ func (r *Repository[E]) FindOne(ctx context.Context, columns string, conds strin
 	return entity, nil
 }
 
-func (r *Repository[E]) FindList(ctx context.Context, columns string, conds string, args ...interface{}) ([]*E, error) {
+func (r *repository[E]) FindList(ctx context.Context, columns string, conds string, args ...interface{}) ([]*E, error) {
 	var sb = r.SelectBuilder(ctx)
 	sb.Selects(columns)
 	sb.Where(conds, args...)
@@ -97,7 +115,7 @@ func (r *Repository[E]) FindList(ctx context.Context, columns string, conds stri
 	return entityList, nil
 }
 
-func (r *Repository[E]) InsertBuilder(ctx context.Context) *InsertBuilder {
+func (r *repository[E]) InsertBuilder(ctx context.Context) *InsertBuilder {
 	var ib = NewInsertBuilder()
 	ib.UseDialect(r.dialect)
 	ib.UseSession(r.db.Session(ctx))
@@ -106,7 +124,7 @@ func (r *Repository[E]) InsertBuilder(ctx context.Context) *InsertBuilder {
 	return ib
 }
 
-func (r *Repository[E]) DeleteBuilder(ctx context.Context) *DeleteBuilder {
+func (r *repository[E]) DeleteBuilder(ctx context.Context) *DeleteBuilder {
 	var rb = NewDeleteBuilder()
 	rb.UseDialect(r.dialect)
 	rb.UseSession(r.db.Session(ctx))
@@ -115,7 +133,7 @@ func (r *Repository[E]) DeleteBuilder(ctx context.Context) *DeleteBuilder {
 	return rb
 }
 
-func (r *Repository[E]) UpdateBuilder(ctx context.Context) *UpdateBuilder {
+func (r *repository[E]) UpdateBuilder(ctx context.Context) *UpdateBuilder {
 	var ub = NewUpdateBuilder()
 	ub.UseDialect(r.dialect)
 	ub.UseSession(r.db.Session(ctx))
@@ -124,7 +142,7 @@ func (r *Repository[E]) UpdateBuilder(ctx context.Context) *UpdateBuilder {
 	return ub
 }
 
-func (r *Repository[E]) SelectBuilder(ctx context.Context) *SelectBuilder {
+func (r *repository[E]) SelectBuilder(ctx context.Context) *SelectBuilder {
 	var sb = NewSelectBuilder()
 	sb.UseDialect(r.dialect)
 	sb.UseSession(r.db.Session(ctx))
@@ -133,7 +151,7 @@ func (r *Repository[E]) SelectBuilder(ctx context.Context) *SelectBuilder {
 	return sb
 }
 
-func (r *Repository[E]) Transaction(ctx context.Context, fn func(ctx context.Context) error, opts ...*sql.TxOptions) (err error) {
+func (r *repository[E]) Transaction(ctx context.Context, fn func(ctx context.Context) error, opts ...*sql.TxOptions) (err error) {
 	var tx = Transaction(ctx)
 	if tx == nil {
 		var opt *sql.TxOptions
