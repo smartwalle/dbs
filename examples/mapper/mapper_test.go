@@ -6,6 +6,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/lib/pq"
@@ -60,7 +61,7 @@ func (a *Extra) Scan(value interface{}) error {
 var db dbs.Database
 
 func TestMain(m *testing.M) {
-	db = NewPgx()
+	db = NewMySQL()
 
 	var code = m.Run()
 	db.Close()
@@ -73,6 +74,7 @@ func NewPostgres() dbs.Database {
 		log.Println("连接数据库出错：", err)
 		os.Exit(-1)
 	}
+	dbs.UseDialect(postgres.Dialect())
 	return dbs.New(rawDB)
 }
 
@@ -83,28 +85,71 @@ func NewPgx() dbs.Database {
 		os.Exit(-1)
 	}
 	rawDB := stdlib.OpenDB(*config)
+	dbs.UseDialect(postgres.Dialect())
 	return dbs.New(rawDB)
 }
 
-func Test_Encode(t *testing.T) {
+func NewMySQL() dbs.Database {
+	rawDB, err := sql.Open("mysql", "root:yangfeng@tcp(127.0.0.1:3306)/test?parseTime=true")
+	if err != nil {
+		log.Println("连接数据库出错：", err)
+		os.Exit(-1)
+	}
+	dbs.UseDialect(dbs.DefaultDialect())
+	return dbs.New(rawDB)
+}
+
+func TestRepository_Find(t *testing.T) {
 	var repo = dbs.NewRepository[Mail](db)
-	repo.UseDialect(postgres.Dialect())
+	var mail, err = repo.Find(context.Background(), 11, "*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(mail)
+}
 
-	var xxx, er = repo.Select(context.Background(), 100091)
-	t.Log(xxx, er)
+func TestRepository_FindList(t *testing.T) {
+	var repo = dbs.NewRepository[Mail](db)
+	var mails, err = repo.FindList(context.Background(), "*", "id > ?", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(mails)
+}
 
-	t.Log(repo.Delete(context.Background(), 10025))
+func TestRepository_Insert(t *testing.T) {
+	var repo = dbs.NewRepository[Mail](db)
 
-	t.Log(repo.Update(context.Background(), 10024, map[string]interface{}{"status": "111"}))
+	var mail = &Mail{}
+	mail.Email = "qq@qq.com"
+	mail.UpdatedAt = time.Now()
+	mail.CreatedAt = &mail.UpdatedAt
+	_, err := repo.Insert(context.Background(), mail)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
 
-	//var mail = &Mail{}
-	//mail.Email = "qq@qq.com"
-	//mail.UpdatedAt = time.Now()
-	//mail.CreatedAt = &mail.UpdatedAt
-	//_, err := repo.Insert(context.Background(), mail)
-	//if err != nil {
-	//	t.Fatal(err)
-	//}
+func TestRepository_Transaction(t *testing.T) {
+	var repo = dbs.NewRepository[Mail](db)
+
+	var err = repo.Transaction(context.Background(), func(ctx context.Context) error {
+		var mail = &Mail{}
+		mail.Email = "qq1@qq.com"
+		mail.UpdatedAt = time.Now()
+		mail.CreatedAt = &mail.UpdatedAt
+		mail.Extra = &Extra{
+			Age:  100112,
+			City: "eeee",
+		}
+		if _, nErr := repo.Insert(ctx, mail); nErr != nil {
+			return nErr
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func Test_Type(t *testing.T) {
