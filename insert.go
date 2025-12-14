@@ -23,6 +23,17 @@ func NewInsertBuilder() *InsertBuilder {
 	return ib
 }
 
+func (ib *InsertBuilder) Reset() {
+	ib.dialect = nil
+	ib.session = nil
+	ib.prefixes.reset()
+	ib.options.reset()
+	ib.columns = ib.columns[:0]
+	ib.table = ""
+	ib.values = ib.values[:0]
+	ib.suffixes.reset()
+}
+
 func (ib *InsertBuilder) UseDialect(dialect Dialect) *InsertBuilder {
 	ib.dialect = dialect
 	return ib

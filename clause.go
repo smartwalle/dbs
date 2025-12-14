@@ -182,6 +182,12 @@ func (cs *Clauses) valid() bool {
 	return cs != nil && len(cs.clauses) > 0
 }
 
+func (cs *Clauses) reset() {
+	if cs != nil {
+		cs.clauses = cs.clauses[:0]
+	}
+}
+
 func (cs *Clauses) Append(sql interface{}, args ...interface{}) *Clauses {
 	if raw, ok := sql.(SQLClause); ok {
 		cs.clauses = append(cs.clauses, raw)
@@ -242,6 +248,12 @@ func (cs *Conds) SQL() (string, []interface{}, error) {
 
 func (cs *Conds) valid() bool {
 	return cs != nil && len(cs.clauses) > 0
+}
+
+func (cs *Conds) reset() {
+	if cs != nil {
+		cs.clauses = cs.clauses[:0]
+	}
 }
 
 func (cs *Conds) Append(sql interface{}, args ...interface{}) *Conds {

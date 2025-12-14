@@ -24,6 +24,18 @@ func NewDeleteBuilder() *DeleteBuilder {
 	return db
 }
 
+func (rb *DeleteBuilder) Reset() {
+	rb.dialect = nil
+	rb.session = nil
+	rb.prefixes.reset()
+	rb.options.reset()
+	rb.table = ""
+	rb.wheres.reset()
+	rb.orderBys.reset()
+	rb.limit = nil
+	rb.suffixes.reset()
+}
+
 func (db *DeleteBuilder) UseDialect(dialect Dialect) *DeleteBuilder {
 	db.dialect = dialect
 	return db

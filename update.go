@@ -25,6 +25,19 @@ func NewUpdateBuilder() *UpdateBuilder {
 	return sb
 }
 
+func (ub *UpdateBuilder) Reset() {
+	ub.dialect = nil
+	ub.session = nil
+	ub.prefixes.reset()
+	ub.options.reset()
+	ub.table = ""
+	ub.sets = ub.sets[:0]
+	ub.wheres.reset()
+	ub.orderBys.reset()
+	ub.limit = nil
+	ub.suffixes.reset()
+}
+
 func (ub *UpdateBuilder) UseDialect(dialect Dialect) *UpdateBuilder {
 	ub.dialect = dialect
 	return ub

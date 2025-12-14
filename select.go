@@ -29,6 +29,23 @@ func NewSelectBuilder() *SelectBuilder {
 	return sb
 }
 
+func (sb *SelectBuilder) Reset() {
+	sb.dialect = nil
+	sb.session = nil
+	sb.prefixes.reset()
+	sb.options.reset()
+	sb.columns.reset()
+	sb.tables.reset()
+	sb.joins.reset()
+	sb.wheres.reset()
+	sb.groupBys = sb.groupBys[:0]
+	sb.having.reset()
+	sb.orderBys.reset()
+	sb.limit = nil
+	sb.offset = nil
+	sb.suffixes.reset()
+}
+
 func (sb *SelectBuilder) UseDialect(dialect Dialect) *SelectBuilder {
 	sb.dialect = dialect
 	return sb
@@ -256,44 +273,12 @@ func (sb *SelectBuilder) SQL() (string, []interface{}, error) {
 }
 
 func (sb *SelectBuilder) Count() *SelectBuilder {
-	if len(sb.groupBys) > 0 {
-		return sb.EmbedCount()
-	}
-
 	var temp = *sb
 	temp.limit = nil
 	temp.offset = nil
 	temp.orderBys = nil
 	temp.columns = NewClauses(',', SQL("COUNT(1)"))
 	return &temp
-}
-
-// EmbedCount 把待统计行数的查询语句嵌入到另一个查询语句中进行行数的统计
-//
-// 适用于有 GROUP BY 或 DISTINCT 的查询语句
-//
-// 如：
-//
-// 统计出每一个年龄对应的用户数量：
-//
-// SELECT u.age,COUNT(1) age_count FROM user u GROUP BY u.age
-//
-// 然后需要统计共有多少行数据：
-//
-// SELECT COUNT(1) FROM (SELECT u.age,COUNT(1) age_count FROM user u GROUP BY u.age) embed_count_table。
-func (sb *SelectBuilder) EmbedCount(columns ...string) *SelectBuilder {
-	var temp = *sb
-	temp.limit = nil
-	temp.offset = nil
-	temp.orderBys = nil
-	if len(columns) > 0 {
-		temp.columns = NewClauses(',', Parts(columns))
-	}
-
-	var nsb = NewSelectBuilder()
-	nsb.Selects("COUNT(1)")
-	nsb.Table("(?) embed_count_table", &temp)
-	return nsb
 }
 
 func (sb *SelectBuilder) Scan(ctx context.Context, dest interface{}) error {

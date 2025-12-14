@@ -18,6 +18,12 @@ func NewBuilder() *Builder {
 	return sb
 }
 
+func (rb *Builder) Reset() {
+	rb.dialect = nil
+	rb.session = nil
+	rb.clauses.reset()
+}
+
 func (rb *Builder) UseDialect(dialect Dialect) *Builder {
 	rb.dialect = dialect
 	return rb
