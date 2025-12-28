@@ -16,6 +16,7 @@ const (
 	kNoTag         = "-"
 	kTag           = "sql"
 	kAutoIncrement = "auto_increment"
+	kTagSeparator  = ";"
 )
 
 type Mapper interface {
@@ -515,7 +516,7 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 				}
 			}
 
-			var tagValues = strings.Split(tag, ";")
+			var tagValues = strings.Split(tag, kTagSeparator)
 			var tagMap = make(map[string]bool)
 			for _, tagValue := range tagValues {
 				tagMap[strings.ToLower(tagValue)] = true

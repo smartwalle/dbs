@@ -1,6 +1,7 @@
 package dbs
 
 import (
+	"database/sql/driver"
 	"reflect"
 	"strings"
 )
@@ -86,6 +87,14 @@ func buildArgument(w Writer, arg interface{}) (err error) {
 	switch raw := arg.(type) {
 	case SQLClause:
 		if err = raw.Write(w); err != nil {
+			return err
+		}
+	case driver.Valuer:
+		var value driver.Value
+		if value, err = raw.Value(); err != nil {
+			return err
+		}
+		if err = w.WriteArgument(FlagPlaceholder|FlagArgument, value); err != nil {
 			return err
 		}
 	default:
