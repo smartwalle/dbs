@@ -26,7 +26,7 @@ type Repositoy[E Entity] interface {
 
 	SelectBuilder(ctx context.Context) *SelectBuilder
 
-	Insert(ctx context.Context, entity *E) (sql.Result, error)
+	Create(ctx context.Context, entity *E) (sql.Result, error)
 
 	Delete(ctx context.Context, id interface{}) (sql.Result, error)
 
@@ -101,7 +101,7 @@ func (r *repository[E]) SelectBuilder(ctx context.Context) *SelectBuilder {
 	return sb
 }
 
-func (r *repository[E]) Insert(ctx context.Context, entity *E) (sql.Result, error) {
+func (r *repository[E]) Create(ctx context.Context, entity *E) (sql.Result, error) {
 	var fieldValues, err = GlobalMapper().Encode(entity)
 	if err != nil {
 		return nil, err

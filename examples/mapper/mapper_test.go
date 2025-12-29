@@ -124,7 +124,7 @@ func TestRepository_Insert(t *testing.T) {
 	mail.Email = "qq@qq.com"
 	mail.UpdatedAt = time.Now()
 	mail.CreatedAt = &mail.UpdatedAt
-	_, err := repo.Insert(context.Background(), mail)
+	_, err := repo.Create(context.Background(), mail)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +142,7 @@ func TestRepository_Transaction(t *testing.T) {
 			Age:  100112,
 			City: "eeee",
 		}
-		if _, nErr := repo.Insert(ctx, mail); nErr != nil {
+		if _, nErr := repo.Create(ctx, mail); nErr != nil {
 			return nErr
 		}
 		return nil
