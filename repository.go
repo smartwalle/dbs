@@ -188,7 +188,7 @@ func (r *repository[E]) Transaction(ctx context.Context, fn func(ctx context.Con
 			}
 		}()
 
-		if err = fn(tx.Context(ctx)); err != nil {
+		if err = fn(tx.ToContext(ctx)); err != nil {
 			return err
 		}
 		return tx.Commit()
