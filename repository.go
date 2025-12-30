@@ -133,46 +133,43 @@ func (r *repository[E]) Update(ctx context.Context, id interface{}, values map[s
 	return ub.Exec(ctx)
 }
 
-func (r *repository[E]) Find(ctx context.Context, id interface{}, columns string) (*E, error) {
+func (r *repository[E]) Find(ctx context.Context, id interface{}, columns string) (entity *E, err error) {
 	var sb = r.SelectBuilder(ctx)
 	sb.Selects(columns)
 	sb.Limit(1)
 	sb.Where(r.entity.PrimaryKey()+" = ?", id)
 
-	var entity *E
-	if err := sb.Scan(ctx, &entity); err != nil {
+	if err = sb.Scan(ctx, &entity); err != nil {
 		return nil, err
 	}
 	return entity, nil
 }
 
-func (r *repository[E]) FindOne(ctx context.Context, columns string, conds string, args ...interface{}) (*E, error) {
+func (r *repository[E]) FindOne(ctx context.Context, columns string, conds string, args ...interface{}) (entity *E, err error) {
 	var sb = r.SelectBuilder(ctx)
 	sb.Selects(columns)
 	sb.Limit(1)
 	sb.Where(conds, args...)
 
-	var entity *E
-	if err := sb.Scan(ctx, &entity); err != nil {
+	if err = sb.Scan(ctx, &entity); err != nil {
 		return nil, err
 	}
 	return entity, nil
 }
 
-func (r *repository[E]) FindList(ctx context.Context, columns string, conds string, args ...interface{}) ([]*E, error) {
+func (r *repository[E]) FindList(ctx context.Context, columns string, conds string, args ...interface{}) (entityList []*E, err error) {
 	var sb = r.SelectBuilder(ctx)
 	sb.Selects(columns)
 	sb.Where(conds, args...)
 
-	var entityList []*E
-	if err := sb.Scan(ctx, &entityList); err != nil {
+	if err = sb.Scan(ctx, &entityList); err != nil {
 		return nil, err
 	}
 	return entityList, nil
 }
 
 func (r *repository[E]) Transaction(ctx context.Context, fn func(ctx context.Context) error, opts ...*sql.TxOptions) (err error) {
-	var tx = Transaction(ctx)
+	var tx = TxFromContext(ctx)
 	if tx == nil {
 		var opt *sql.TxOptions
 		if len(opts) > 0 {

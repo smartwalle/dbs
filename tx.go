@@ -96,7 +96,7 @@ func (tx *Tx) ToContext(ctx context.Context) context.Context {
 	return context.WithValue(ctx, txSessionKey{}, tx)
 }
 
-func Transaction(ctx context.Context) *Tx {
+func TxFromContext(ctx context.Context) *Tx {
 	var tx, ok = ctx.Value(txSessionKey{}).(*Tx)
 	if ok && tx != nil {
 		return tx
