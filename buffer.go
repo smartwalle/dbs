@@ -32,7 +32,7 @@ var bufferPool = sync.Pool{
 		return &Buffer{
 			Buffer:           bytes.NewBuffer(make([]byte, 0, kDefaultBufferSize)),
 			arguments:        make([]interface{}, 0, kDefaultArgsSize),
-			dialect:          GlobalDialect(),
+			dialect:          GetDialect(),
 			placeholderCount: 0,
 		}
 	},
@@ -49,7 +49,7 @@ func NewBuffer() *Buffer {
 	var buffer = bufferPool.Get().(*Buffer)
 	buffer.Buffer.Reset()
 	buffer.arguments = buffer.arguments[:0]
-	buffer.dialect = GlobalDialect()
+	buffer.dialect = GetDialect()
 	buffer.placeholderCount = 0
 	return buffer
 }
@@ -60,7 +60,7 @@ func (b *Buffer) Release() {
 
 func (b *Buffer) UseDialect(dialect Dialect) {
 	if dialect == nil {
-		dialect = GlobalDialect()
+		dialect = GetDialect()
 	}
 	b.dialect = dialect
 }

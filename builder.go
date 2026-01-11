@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 )
 
 type Builder struct {
@@ -14,7 +15,7 @@ type Builder struct {
 
 func NewBuilder() *Builder {
 	var sb = &Builder{}
-	sb.dialect = GlobalDialect()
+	sb.dialect = GetDialect()
 	return sb
 }
 
@@ -79,36 +80,43 @@ func (rb *Builder) Exec(ctx context.Context) (sql.Result, error) {
 	return exec(ctx, rb.session, rb)
 }
 
-func scan(ctx context.Context, session Session, clause SQLClause, dest interface{}) error {
-	rows, err := query(ctx, session, clause)
+func scan(ctx context.Context, session Session, clause SQLClause, dest interface{}) (err error) {
+	var query string
+	var args []interface{}
+	var rowsAffected int
+	var beginTime = time.Now()
+	defer func() {
+		GetLogger().Trace(ctx, beginTime, query, args, int64(rowsAffected), err)
+	}()
+
+	if query, args, err = clause.SQL(); err != nil {
+		return err
+	}
+
+	var rows *sql.Rows
+	rows, err = session.QueryContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
-	if err = globalMapper.Decode(rows, dest); err != nil && !errors.Is(err, ErrNoRows) {
+	if rowsAffected, err = GetMapper().Decode(rows, dest); err != nil && !errors.Is(err, ErrNoRows) {
 		return err
 	}
 	return nil
 }
 
-func query(ctx context.Context, session Session, clause SQLClause) (*sql.Rows, error) {
-	sql, args, err := clause.SQL()
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := session.QueryContext(ctx, sql, args...)
-	if err != nil {
-		return nil, err
-	}
-	return rows, nil
-}
-
 func exec(ctx context.Context, session Session, clause SQLClause) (result sql.Result, err error) {
-	sql, args, err := clause.SQL()
-	if err != nil {
+	var query string
+	var args []interface{}
+	var beginTime = time.Now()
+	defer func() {
+		var rowsAffected, _ = result.RowsAffected()
+		GetLogger().Trace(ctx, beginTime, query, args, rowsAffected, err)
+	}()
+
+	if query, args, err = clause.SQL(); err != nil {
 		return nil, err
 	}
-	return session.ExecContext(ctx, sql, args...)
+	return session.ExecContext(ctx, query, args...)
 }

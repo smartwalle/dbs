@@ -19,10 +19,22 @@ const (
 	kTagSeparator  = ";"
 )
 
+var _mapper Mapper = NewMapper(kTag)
+
+func UseMapper(mapper Mapper) {
+	if mapper != nil {
+		_mapper = mapper
+	}
+}
+
+func GetMapper() Mapper {
+	return _mapper
+}
+
 type Mapper interface {
 	Encode(src interface{}) (values []FieldValue, err error)
 
-	Decode(rows *sql.Rows, dest interface{}) error
+	Decode(rows *sql.Rows, dest interface{}) (int, error)
 }
 
 type mapper struct {
@@ -66,41 +78,49 @@ func (m *mapper) Encode(src interface{}) (values []FieldValue, err error) {
 	return values, nil
 }
 
-func (m *mapper) Decode(rows *sql.Rows, dest interface{}) error {
+func (m *mapper) Decode(rows *sql.Rows, dest interface{}) (rowsAffected int, err error) {
 	if rows == nil {
-		return sql.ErrNoRows
+		return rowsAffected, sql.ErrNoRows
 	}
 
 	if err := rows.Err(); err != nil {
-		return err
+		return rowsAffected, err
 	}
 
 	columns, err := rows.ColumnTypes()
 	if err != nil {
-		return err
+		return rowsAffected, err
 	}
 
 	if !rows.Next() {
-		return sql.ErrNoRows
+		return rowsAffected, sql.ErrNoRows
 	}
 
 	var destValue = reflect.ValueOf(dest)
 	var destType = destValue.Type()
 
 	if destValue.Kind() != reflect.Ptr {
-		return errors.New("must pass a pointer")
+		return rowsAffected, errors.New("must pass a pointer")
 	}
 
 	if destValue.IsNil() {
-		return errors.New("nil pointer passed")
+		return rowsAffected, errors.New("nil pointer passed")
 	}
 
 	destType, destValue = base(destType, destValue)
 
 	if destType.Kind() == reflect.Slice {
-		return m.scanSlice(rows, columns, dest, destType, destValue)
+		if err = m.scanSlice(rows, columns, dest, destType, destValue); err != nil {
+			return 0, err
+		}
+		rowsAffected = destValue.Len()
+	} else {
+		if err = m.scanOne(rows, columns, dest, destType, destValue); err != nil {
+			return 0, err
+		}
+		rowsAffected = 1
 	}
-	return m.scanOne(rows, columns, dest, destType, destValue)
+	return rowsAffected, nil
 }
 
 func (m *mapper) prepare(destType reflect.Type, columns []*sql.ColumnType) (fields []*fieldMetadata, values []interface{}) {

@@ -24,7 +24,7 @@ type SelectBuilder struct {
 
 func NewSelectBuilder() *SelectBuilder {
 	var sb = &SelectBuilder{}
-	sb.dialect = GlobalDialect()
+	sb.dialect = GetDialect()
 	return sb
 }
 

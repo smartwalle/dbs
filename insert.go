@@ -19,7 +19,7 @@ type InsertBuilder struct {
 
 func NewInsertBuilder() *InsertBuilder {
 	var ib = &InsertBuilder{}
-	ib.dialect = GlobalDialect()
+	ib.dialect = GetDialect()
 	return ib
 }
 

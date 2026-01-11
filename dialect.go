@@ -6,17 +6,17 @@ type Dialect interface {
 
 var defaultDialect = &dialect{}
 
-var globalDialect Dialect = defaultDialect
+var _dialect Dialect = defaultDialect
 
 func UseDialect(dialect Dialect) {
 	if dialect == nil {
 		dialect = defaultDialect
 	}
-	globalDialect = dialect
+	_dialect = dialect
 }
 
-func GlobalDialect() Dialect {
-	return globalDialect
+func GetDialect() Dialect {
+	return _dialect
 }
 
 func DefaultDialect() Dialect {

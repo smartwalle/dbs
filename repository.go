@@ -102,7 +102,7 @@ func (r *repository[E]) SelectBuilder(ctx context.Context) *SelectBuilder {
 }
 
 func (r *repository[E]) Create(ctx context.Context, entity *E) (sql.Result, error) {
-	var fieldValues, err = GlobalMapper().Encode(entity)
+	var fieldValues, err = GetMapper().Encode(entity)
 	if err != nil {
 		return nil, err
 	}

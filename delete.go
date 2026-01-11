@@ -20,20 +20,20 @@ type DeleteBuilder struct {
 
 func NewDeleteBuilder() *DeleteBuilder {
 	var db = &DeleteBuilder{}
-	db.dialect = GlobalDialect()
+	db.dialect = GetDialect()
 	return db
 }
 
-func (rb *DeleteBuilder) Reset() {
-	rb.dialect = nil
-	rb.session = nil
-	rb.prefixes.reset()
-	rb.options.reset()
-	rb.table = ""
-	rb.wheres.reset()
-	rb.orderBys.reset()
-	rb.limit = nil
-	rb.suffixes.reset()
+func (db *DeleteBuilder) Reset() {
+	db.dialect = nil
+	db.session = nil
+	db.prefixes.reset()
+	db.options.reset()
+	db.table = ""
+	db.wheres.reset()
+	db.orderBys.reset()
+	db.limit = nil
+	db.suffixes.reset()
 }
 
 func (db *DeleteBuilder) UseDialect(dialect Dialect) *DeleteBuilder {

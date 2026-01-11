@@ -21,7 +21,7 @@ type UpdateBuilder struct {
 
 func NewUpdateBuilder() *UpdateBuilder {
 	var sb = &UpdateBuilder{}
-	sb.dialect = GlobalDialect()
+	sb.dialect = GetDialect()
 	return sb
 }
 
