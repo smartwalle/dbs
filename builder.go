@@ -86,7 +86,7 @@ func scan(ctx context.Context, session Session, clause SQLClause, dest interface
 	var rowsAffected int
 	var beginTime = time.Now()
 	defer func() {
-		GetLogger().Trace(ctx, beginTime, query, args, int64(rowsAffected), err)
+		GetLogger().Trace(ctx, 4, beginTime, query, args, int64(rowsAffected), err)
 	}()
 
 	if query, args, err = clause.SQL(); err != nil {
@@ -112,7 +112,7 @@ func exec(ctx context.Context, session Session, clause SQLClause) (result sql.Re
 	var beginTime = time.Now()
 	defer func() {
 		var rowsAffected, _ = result.RowsAffected()
-		GetLogger().Trace(ctx, beginTime, query, args, rowsAffected, err)
+		GetLogger().Trace(ctx, 4, beginTime, query, args, rowsAffected, err)
 	}()
 
 	if query, args, err = clause.SQL(); err != nil {

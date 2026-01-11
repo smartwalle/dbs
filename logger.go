@@ -19,5 +19,5 @@ func GetLogger() Logger {
 }
 
 type Logger interface {
-	Trace(ctx context.Context, begin time.Time, sql string, args []interface{}, rowsAffected int64, err error)
+	Trace(ctx context.Context, skip int, begin time.Time, sql string, args []interface{}, rowsAffected int64, err error)
 }

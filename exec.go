@@ -11,7 +11,7 @@ func Query[T any](ctx context.Context, session Session, query string, args ...in
 	var rowsAffected int
 	var beginTime = time.Now()
 	defer func() {
-		GetLogger().Trace(ctx, beginTime, query, args, int64(rowsAffected), err)
+		GetLogger().Trace(ctx, 3, beginTime, query, args, int64(rowsAffected), err)
 	}()
 
 	rows, err := session.QueryContext(ctx, query, args...)
@@ -30,7 +30,7 @@ func Exec(ctx context.Context, session Session, query string, args ...interface{
 	var beginTime = time.Now()
 	defer func() {
 		var rowsAffected, _ = result.RowsAffected()
-		GetLogger().Trace(ctx, beginTime, query, args, rowsAffected, err)
+		GetLogger().Trace(ctx, 3, beginTime, query, args, rowsAffected, err)
 	}()
 	return session.ExecContext(ctx, query, args...)
 }
