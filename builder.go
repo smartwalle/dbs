@@ -75,10 +75,6 @@ func (rb *Builder) Scan(ctx context.Context, dest interface{}) error {
 	return scan(ctx, rb.session, rb, dest)
 }
 
-func (rb *Builder) Query(ctx context.Context) (*sql.Rows, error) {
-	return query(ctx, rb.session, rb)
-}
-
 func (rb *Builder) Exec(ctx context.Context) (sql.Result, error) {
 	return exec(ctx, rb.session, rb)
 }

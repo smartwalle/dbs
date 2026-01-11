@@ -187,10 +187,6 @@ func (db *DeleteBuilder) Scan(ctx context.Context, dest interface{}) error {
 	return scan(ctx, db.session, db, dest)
 }
 
-func (db *DeleteBuilder) Query(ctx context.Context) (*sql.Rows, error) {
-	return query(ctx, db.session, db)
-}
-
 func (db *DeleteBuilder) Exec(ctx context.Context) (sql.Result, error) {
 	return exec(ctx, db.session, db)
 }

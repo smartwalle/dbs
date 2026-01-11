@@ -2,7 +2,6 @@ package dbs
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 )
 
@@ -283,8 +282,4 @@ func (sb *SelectBuilder) Count() *SelectBuilder {
 
 func (sb *SelectBuilder) Scan(ctx context.Context, dest interface{}) error {
 	return scan(ctx, sb.session, sb, dest)
-}
-
-func (sb *SelectBuilder) Query(ctx context.Context) (*sql.Rows, error) {
-	return query(ctx, sb.session, sb)
 }

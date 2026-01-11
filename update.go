@@ -221,10 +221,6 @@ func (ub *UpdateBuilder) Scan(ctx context.Context, dest interface{}) error {
 	return scan(ctx, ub.session, ub, dest)
 }
 
-func (ub *UpdateBuilder) Query(ctx context.Context) (*sql.Rows, error) {
-	return query(ctx, ub.session, ub)
-}
-
 func (ub *UpdateBuilder) Exec(ctx context.Context) (sql.Result, error) {
 	return exec(ctx, ub.session, ub)
 }

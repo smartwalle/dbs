@@ -202,10 +202,6 @@ func (ib *InsertBuilder) Scan(ctx context.Context, dest interface{}) error {
 	return scan(ctx, ib.session, ib, dest)
 }
 
-func (ib *InsertBuilder) Query(ctx context.Context) (*sql.Rows, error) {
-	return query(ctx, ib.session, ib)
-}
-
 func (ib *InsertBuilder) Exec(ctx context.Context) (sql.Result, error) {
 	return exec(ctx, ib.session, ib)
 }
