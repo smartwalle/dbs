@@ -40,8 +40,8 @@ func (tx *Tx) PrepareContext(ctx context.Context, query string) (*sql.Stmt, erro
 	return tx.tx.PrepareContext(ctx, query)
 }
 
-func (tx *Tx) Statement(ctx context.Context, query string) (*sql.Stmt, error) {
-	var stmt, err = tx.db.statement(ctx, query)
+func (tx *Tx) statement(ctx context.Context, query string) (*sql.Stmt, error) {
+	var stmt, err = tx.db.prepareStatement(ctx, tx, true, query, query)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func (tx *Tx) Exec(query string, args ...interface{}) (sql.Result, error) {
 }
 
 func (tx *Tx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	stmt, err := tx.Statement(ctx, query)
+	stmt, err := tx.statement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func (tx *Tx) Query(query string, args ...interface{}) (*sql.Rows, error) {
 }
 
 func (tx *Tx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	stmt, err := tx.Statement(ctx, query)
+	stmt, err := tx.statement(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (tx *Tx) QueryRow(query string, args ...any) *sql.Row {
 }
 
 func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
-	stmt, err := tx.Statement(ctx, query)
+	stmt, err := tx.statement(ctx, query)
 	if err != nil {
 		return nil
 	}

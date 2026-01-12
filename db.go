@@ -147,11 +147,15 @@ func (db *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, erro
 //
 //	db.QueryContext(ctx, "key", "参数1", "参数2")
 func (db *DB) PrepareStatement(ctx context.Context, key, query string) error {
-	_, err := db.prepareStatement(ctx, key, query)
+	_, err := db.prepareStatement(ctx, db.db, false, key, query)
 	return err
 }
 
-func (db *DB) prepareStatement(ctx context.Context, key, query string) (*sql.Stmt, error) {
+type Preparer interface {
+	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
+}
+
+func (db *DB) prepareStatement(ctx context.Context, preparer Preparer, inTransaction bool, key, query string) (*sql.Stmt, error) {
 	db.mu.RLock()
 	if stmt, exists := db.stmts[key]; exists {
 		db.mu.RUnlock()
@@ -162,6 +166,9 @@ func (db *DB) prepareStatement(ctx context.Context, key, query string) (*sql.Stm
 		return stmt.stmt, nil
 	}
 	db.mu.RUnlock()
+	if inTransaction {
+		return preparer.PrepareContext(ctx, query)
+	}
 
 	db.mu.Lock()
 	if stmt, exists := db.stmts[key]; exists {
@@ -179,7 +186,7 @@ func (db *DB) prepareStatement(ctx context.Context, key, query string) (*sql.Stm
 
 	defer close(stmt.done)
 
-	nStmt, err := db.db.PrepareContext(ctx, query)
+	nStmt, err := preparer.PrepareContext(ctx, query)
 	if err != nil {
 		stmt.err = err
 		db.mu.Lock()
@@ -220,7 +227,7 @@ func (db *DB) removeStatement(key string, stmt *sql.Stmt) {
 //   - 缓存中若存在，则直接返回；
 //   - 缓存中不存在，则根据 query 参数创建一个预处理语句并将其缓存；
 func (db *DB) statement(ctx context.Context, query string) (*sql.Stmt, error) {
-	return db.prepareStatement(ctx, query, query)
+	return db.prepareStatement(ctx, db.db, false, query, query)
 }
 
 func (db *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
