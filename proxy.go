@@ -16,6 +16,7 @@ type Proxy struct {
 	slaves         []Database
 	numberOfSlaves int
 	slaveOffset    uint32
+	dialect        Dialect
 	logger         Logger
 	mapper         Mapper
 }
@@ -59,6 +60,16 @@ func (p *Proxy) Slave() Database {
 
 func (p *Proxy) Slaves() []Database {
 	return p.slaves
+}
+
+func (p *Proxy) Dialect() Dialect {
+	return p.dialect
+}
+
+func (p *Proxy) UseDialect(dialect Dialect) {
+	if dialect != nil {
+		p.dialect = dialect
+	}
 }
 
 func (p *Proxy) Logger() Logger {

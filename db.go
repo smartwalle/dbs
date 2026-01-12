@@ -10,6 +10,8 @@ var ErrNoRows = sql.ErrNoRows
 var ErrTxDone = sql.ErrTxDone
 
 type Session interface {
+	Dialect() Dialect
+
 	Logger() Logger
 	Mapper() Mapper
 
@@ -56,11 +58,12 @@ func Open(driver, url string, maxOpen, maxIdle int) (*DB, error) {
 }
 
 type DB struct {
-	db     *sql.DB
-	mu     *sync.RWMutex
-	stmts  map[string]*Stmt
-	logger Logger
-	mapper Mapper
+	db      *sql.DB
+	mu      *sync.RWMutex
+	stmts   map[string]*Stmt
+	dialect Dialect
+	logger  Logger
+	mapper  Mapper
 }
 
 func New(db *sql.DB) *DB {
@@ -83,6 +86,16 @@ func (db *DB) Ping() error {
 
 func (db *DB) PingContext(ctx context.Context) error {
 	return db.db.PingContext(ctx)
+}
+
+func (db *DB) Dialect() Dialect {
+	return db.dialect
+}
+
+func (db *DB) UseDialect(dialect Dialect) {
+	if dialect != nil {
+		db.dialect = dialect
+	}
 }
 
 func (db *DB) Logger() Logger {

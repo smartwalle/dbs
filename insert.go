@@ -19,7 +19,6 @@ type InsertBuilder struct {
 
 func NewInsertBuilder() *InsertBuilder {
 	var ib = &InsertBuilder{}
-	ib.dialect = GetDialect()
 	return ib
 }
 
@@ -41,6 +40,9 @@ func (ib *InsertBuilder) UseDialect(dialect Dialect) *InsertBuilder {
 
 func (ib *InsertBuilder) UseSession(session Session) *InsertBuilder {
 	ib.session = session
+	if ib.session != nil {
+		ib.dialect = ib.session.Dialect()
+	}
 	return ib
 }
 

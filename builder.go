@@ -15,7 +15,6 @@ type Builder struct {
 
 func NewBuilder() *Builder {
 	var sb = &Builder{}
-	sb.dialect = GetDialect()
 	return sb
 }
 
@@ -32,6 +31,9 @@ func (rb *Builder) UseDialect(dialect Dialect) *Builder {
 
 func (rb *Builder) UseSession(session Session) *Builder {
 	rb.session = session
+	if rb.session != nil {
+		rb.dialect = rb.session.Dialect()
+	}
 	return rb
 }
 

@@ -14,6 +14,10 @@ func (tx *Tx) Tx() *sql.Tx {
 	return tx.tx
 }
 
+func (tx *Tx) Dialect() Dialect {
+	return tx.db.Dialect()
+}
+
 func (tx *Tx) Logger() Logger {
 	return tx.db.Logger()
 }

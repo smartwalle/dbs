@@ -24,7 +24,6 @@ type SelectBuilder struct {
 
 func NewSelectBuilder() *SelectBuilder {
 	var sb = &SelectBuilder{}
-	sb.dialect = GetDialect()
 	return sb
 }
 
@@ -52,6 +51,9 @@ func (sb *SelectBuilder) UseDialect(dialect Dialect) *SelectBuilder {
 
 func (sb *SelectBuilder) UseSession(session Session) *SelectBuilder {
 	sb.session = session
+	if sb.session != nil {
+		sb.dialect = sb.session.Dialect()
+	}
 	return sb
 }
 

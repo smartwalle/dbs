@@ -21,7 +21,6 @@ type UpdateBuilder struct {
 
 func NewUpdateBuilder() *UpdateBuilder {
 	var sb = &UpdateBuilder{}
-	sb.dialect = GetDialect()
 	return sb
 }
 
@@ -45,6 +44,9 @@ func (ub *UpdateBuilder) UseDialect(dialect Dialect) *UpdateBuilder {
 
 func (ub *UpdateBuilder) UseSession(session Session) *UpdateBuilder {
 	ub.session = session
+	if ub.session != nil {
+		ub.dialect = ub.session.Dialect()
+	}
 	return ub
 }
 

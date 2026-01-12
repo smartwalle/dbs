@@ -20,7 +20,6 @@ type DeleteBuilder struct {
 
 func NewDeleteBuilder() *DeleteBuilder {
 	var db = &DeleteBuilder{}
-	db.dialect = GetDialect()
 	return db
 }
 
@@ -43,6 +42,9 @@ func (db *DeleteBuilder) UseDialect(dialect Dialect) *DeleteBuilder {
 
 func (db *DeleteBuilder) UseSession(session Session) *DeleteBuilder {
 	db.session = session
+	if db.session != nil {
+		db.dialect = db.session.Dialect()
+	}
 	return db
 }
 

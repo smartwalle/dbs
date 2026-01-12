@@ -10,6 +10,7 @@ type Shard struct {
 	sharding       func(value interface{}) uint32
 	shards         []Database
 	numberOfShards int
+	dialect        Dialect
 	logger         Logger
 	mapper         Mapper
 }
@@ -39,6 +40,16 @@ func (s *Shard) Shard(ctx context.Context) Database {
 
 func (s *Shard) Shards() []Database {
 	return s.shards
+}
+
+func (s *Shard) Dialect() Dialect {
+	return s.dialect
+}
+
+func (s *Shard) UseDialect(dialect Dialect) {
+	if dialect != nil {
+		s.dialect = dialect
+	}
 }
 
 func (s *Shard) Logger() Logger {

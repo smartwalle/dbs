@@ -74,8 +74,9 @@ func NewPostgres() dbs.Database {
 		log.Println("连接数据库出错：", err)
 		os.Exit(-1)
 	}
-	dbs.UseDialect(postgres.Dialect())
-	return dbs.New(rawDB)
+	var ndb = dbs.New(rawDB)
+	ndb.UseDialect(postgres.Dialect())
+	return ndb
 }
 
 func NewPgx() dbs.Database {
@@ -85,8 +86,9 @@ func NewPgx() dbs.Database {
 		os.Exit(-1)
 	}
 	rawDB := stdlib.OpenDB(*config)
-	dbs.UseDialect(postgres.Dialect())
-	return dbs.New(rawDB)
+	var ndb = dbs.New(rawDB)
+	ndb.UseDialect(postgres.Dialect())
+	return ndb
 }
 
 func NewMySQL() dbs.Database {
@@ -95,8 +97,8 @@ func NewMySQL() dbs.Database {
 		log.Println("连接数据库出错：", err)
 		os.Exit(-1)
 	}
-	dbs.UseDialect(dbs.DefaultDialect())
-	return dbs.New(rawDB)
+	var ndb = dbs.New(rawDB)
+	return ndb
 }
 
 func TestRepository_Find(t *testing.T) {
