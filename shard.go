@@ -10,6 +10,8 @@ type Shard struct {
 	sharding       func(value interface{}) uint32
 	shards         []Database
 	numberOfShards int
+	logger         Logger
+	mapper         Mapper
 }
 
 type shardKey struct{}
@@ -24,6 +26,8 @@ func NewShard(sharding func(value interface{}) uint32, shards ...Database) *Shar
 	ndb.sharding = sharding
 	ndb.shards = shards
 	ndb.numberOfShards = len(shards)
+	ndb.logger = NewLogger()
+	ndb.mapper = NewMapper(kTagSQL)
 	return ndb
 }
 
@@ -35,6 +39,24 @@ func (s *Shard) Shard(ctx context.Context) Database {
 
 func (s *Shard) Shards() []Database {
 	return s.shards
+}
+
+func (s *Shard) Logger() Logger {
+	return s.logger
+}
+
+func (s *Shard) UseLogger(logger Logger) {
+	s.logger = logger
+}
+
+func (s *Shard) Mapper() Mapper {
+	return s.mapper
+}
+
+func (s *Shard) UseMapper(mapper Mapper) {
+	if mapper != nil {
+		s.mapper = mapper
+	}
 }
 
 func (s *Shard) Session(ctx context.Context) Session {

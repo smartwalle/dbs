@@ -13,23 +13,11 @@ import (
 )
 
 const (
-	kNoTag         = "-"
-	kTag           = "sql"
-	kAutoIncrement = "auto_increment"
-	kTagSeparator  = ";"
+	kTagDisable       = "-"
+	kTagSQL           = "sql"
+	kTagAutoIncrement = "auto_increment"
+	kTagSeparator     = ";"
 )
-
-var _mapper Mapper = NewMapper(kTag)
-
-func UseMapper(mapper Mapper) {
-	if mapper != nil {
-		_mapper = mapper
-	}
-}
-
-func GetMapper() Mapper {
-	return _mapper
-}
 
 type Mapper interface {
 	Encode(src interface{}) (values []FieldValue, err error)
@@ -512,7 +500,7 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 			var fieldStruct = current.Type.Field(i)
 
 			var tag = fieldStruct.Tag.Get(m.tag)
-			if tag == kNoTag {
+			if tag == kTagDisable {
 				continue
 			}
 
@@ -552,7 +540,7 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 			field.Index = append(current.Index, i)
 			field.Type = fieldStruct.Type
 			field.ValuePool = getValuePool(field.Type)
-			field.AutoIncrement = tagMap[kAutoIncrement]
+			field.AutoIncrement = tagMap[kTagAutoIncrement]
 			fields[fieldName] = field
 			columns = append(columns, fieldName)
 		}

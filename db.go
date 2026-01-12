@@ -10,6 +10,9 @@ var ErrNoRows = sql.ErrNoRows
 var ErrTxDone = sql.ErrTxDone
 
 type Session interface {
+	Logger() Logger
+	Mapper() Mapper
+
 	Prepare(query string) (*sql.Stmt, error)
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
 
@@ -52,18 +55,22 @@ func Open(driver, url string, maxOpen, maxIdle int) (*DB, error) {
 	return New(db), err
 }
 
+type DB struct {
+	db     *sql.DB
+	mu     *sync.RWMutex
+	stmts  map[string]*Stmt
+	logger Logger
+	mapper Mapper
+}
+
 func New(db *sql.DB) *DB {
 	var ndb = &DB{}
 	ndb.db = db
 	ndb.mu = &sync.RWMutex{}
 	ndb.stmts = make(map[string]*Stmt)
+	ndb.logger = NewLogger()
+	ndb.mapper = NewMapper(kTagSQL)
 	return ndb
-}
-
-type DB struct {
-	db    *sql.DB
-	mu    *sync.RWMutex
-	stmts map[string]*Stmt
 }
 
 func (db *DB) DB() *sql.DB {
@@ -76,6 +83,26 @@ func (db *DB) Ping() error {
 
 func (db *DB) PingContext(ctx context.Context) error {
 	return db.db.PingContext(ctx)
+}
+
+func (db *DB) Logger() Logger {
+	return db.logger
+}
+
+func (db *DB) UseLogger(logger Logger) {
+	if logger != nil {
+		db.logger = logger
+	}
+}
+
+func (db *DB) Mapper() Mapper {
+	return db.mapper
+}
+
+func (db *DB) UseMapper(mapper Mapper) {
+	if mapper != nil {
+		db.mapper = mapper
+	}
 }
 
 func (db *DB) Session(ctx context.Context) Session {

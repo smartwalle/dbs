@@ -11,7 +11,7 @@ func Query[T any](ctx context.Context, session Session, query string, args ...in
 	var rowsAffected int
 	var beginTime = time.Now()
 	defer func() {
-		GetLogger().Trace(ctx, 3, beginTime, query, args, int64(rowsAffected), err)
+		session.Logger().Trace(ctx, 3, beginTime, query, args, int64(rowsAffected), err)
 	}()
 
 	rows, err := session.QueryContext(ctx, query, args...)
@@ -20,7 +20,7 @@ func Query[T any](ctx context.Context, session Session, query string, args ...in
 	}
 	defer rows.Close()
 
-	if rowsAffected, err = GetMapper().Decode(rows, &dest); err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if rowsAffected, err = session.Mapper().Decode(rows, &dest); err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return dest, err
 	}
 	return dest, nil
@@ -29,8 +29,11 @@ func Query[T any](ctx context.Context, session Session, query string, args ...in
 func Exec(ctx context.Context, session Session, query string, args ...interface{}) (result sql.Result, err error) {
 	var beginTime = time.Now()
 	defer func() {
-		var rowsAffected, _ = result.RowsAffected()
-		GetLogger().Trace(ctx, 3, beginTime, query, args, rowsAffected, err)
+		var rowsAffected int64
+		if result != nil {
+			rowsAffected, _ = result.RowsAffected()
+		}
+		session.Logger().Trace(ctx, 3, beginTime, query, args, rowsAffected, err)
 	}()
 	return session.ExecContext(ctx, query, args...)
 }

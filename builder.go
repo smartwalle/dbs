@@ -86,7 +86,7 @@ func scan(ctx context.Context, session Session, clause SQLClause, dest interface
 	var rowsAffected int
 	var beginTime = time.Now()
 	defer func() {
-		GetLogger().Trace(ctx, 4, beginTime, query, args, int64(rowsAffected), err)
+		session.Logger().Trace(ctx, 4, beginTime, query, args, int64(rowsAffected), err)
 	}()
 
 	if query, args, err = clause.SQL(); err != nil {
@@ -100,7 +100,7 @@ func scan(ctx context.Context, session Session, clause SQLClause, dest interface
 	}
 	defer rows.Close()
 
-	if rowsAffected, err = GetMapper().Decode(rows, dest); err != nil && !errors.Is(err, ErrNoRows) {
+	if rowsAffected, err = session.Mapper().Decode(rows, dest); err != nil && !errors.Is(err, ErrNoRows) {
 		return err
 	}
 	return nil
@@ -111,8 +111,11 @@ func exec(ctx context.Context, session Session, clause SQLClause) (result sql.Re
 	var args []interface{}
 	var beginTime = time.Now()
 	defer func() {
-		var rowsAffected, _ = result.RowsAffected()
-		GetLogger().Trace(ctx, 4, beginTime, query, args, rowsAffected, err)
+		var rowsAffected int64
+		if result != nil {
+			rowsAffected, _ = result.RowsAffected()
+		}
+		session.Logger().Trace(ctx, 4, beginTime, query, args, rowsAffected, err)
 	}()
 
 	if query, args, err = clause.SQL(); err != nil {

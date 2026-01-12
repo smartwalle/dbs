@@ -124,6 +124,7 @@ func TestRepository_Insert(t *testing.T) {
 	mail.Email = "qq@qq.com"
 	mail.UpdatedAt = time.Now()
 	mail.CreatedAt = &mail.UpdatedAt
+	mail.Extra = &Extra{}
 	_, err := repo.Create(context.Background(), mail)
 	if err != nil {
 		t.Fatal(err)

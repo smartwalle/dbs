@@ -14,6 +14,14 @@ func (tx *Tx) Tx() *sql.Tx {
 	return tx.tx
 }
 
+func (tx *Tx) Logger() Logger {
+	return tx.db.Logger()
+}
+
+func (tx *Tx) Mapper() Mapper {
+	return tx.db.Mapper()
+}
+
 // Prepare 作用同 sql.Tx 的 Prepare 方法。
 //
 // 本方法返回的 sql.Stmt 不会被缓存，不再使用之后需要调用其 Close 方法将其关闭。

@@ -16,6 +16,8 @@ type Proxy struct {
 	slaves         []Database
 	numberOfSlaves int
 	slaveOffset    uint32
+	logger         Logger
+	mapper         Mapper
 }
 
 type masterKey struct{}
@@ -42,6 +44,8 @@ func NewProxy(master Database, slaves ...Database) *Proxy {
 	ndb.master = master
 	ndb.slaves = slaves
 	ndb.numberOfSlaves = len(slaves)
+	ndb.logger = NewLogger()
+	ndb.mapper = NewMapper(kTagSQL)
 	return ndb
 }
 
@@ -55,6 +59,26 @@ func (p *Proxy) Slave() Database {
 
 func (p *Proxy) Slaves() []Database {
 	return p.slaves
+}
+
+func (p *Proxy) Logger() Logger {
+	return p.logger
+}
+
+func (p *Proxy) UseLogger(logger Logger) {
+	if logger != nil {
+		p.logger = logger
+	}
+}
+
+func (p *Proxy) Mapper() Mapper {
+	return p.mapper
+}
+
+func (p *Proxy) UseMapper(mapper Mapper) {
+	if mapper != nil {
+		p.mapper = mapper
+	}
 }
 
 func (p *Proxy) Session(ctx context.Context) Session {
