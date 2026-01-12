@@ -279,6 +279,9 @@ func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *s
 }
 
 func (db *DB) Close() error {
+	db.mu.Lock()
+	db.stmts = make(map[string]*Stmt)
+	db.mu.Unlock()
 	return db.db.Close()
 }
 
