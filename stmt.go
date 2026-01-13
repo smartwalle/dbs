@@ -117,16 +117,8 @@ func (s *Stmts) Mapper() Mapper {
 	return s.session.Mapper()
 }
 
-func (s *Stmts) Prepare(query string) (*sql.Stmt, error) {
-	return s.PrepareContext(context.Background(), query)
-}
-
 func (s *Stmts) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
 	return s.session.PrepareContext(ctx, query)
-}
-
-func (s *Stmts) Exec(query string, args ...interface{}) (sql.Result, error) {
-	return s.ExecContext(context.Background(), query, args...)
 }
 
 func (s *Stmts) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
@@ -141,10 +133,6 @@ func (s *Stmts) ExecContext(ctx context.Context, query string, args ...interface
 	return result, err
 }
 
-func (s *Stmts) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	return s.QueryContext(context.Background(), query, args...)
-}
-
 func (s *Stmts) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
 	stmt, err := s.statement(ctx, query)
 	if err != nil {
@@ -155,10 +143,6 @@ func (s *Stmts) QueryContext(ctx context.Context, query string, args ...interfac
 		s.removeStatement(query, stmt)
 	}
 	return rows, err
-}
-
-func (s *Stmts) QueryRow(query string, args ...any) *sql.Row {
-	return s.QueryRowContext(context.Background(), query, args...)
 }
 
 func (s *Stmts) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
