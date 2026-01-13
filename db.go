@@ -3,6 +3,7 @@ package dbs
 import (
 	"context"
 	"database/sql"
+	"github.com/smartwalle/dbs/internal"
 )
 
 var ErrNoRows = sql.ErrNoRows
@@ -26,8 +27,6 @@ type Session interface {
 type Preparer interface {
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
 }
-
-type txSessionKey struct{}
 
 type Database interface {
 	Session
@@ -114,7 +113,7 @@ func (db *DB) UseMapper(mapper Mapper) {
 }
 
 func (db *DB) Session(ctx context.Context) Session {
-	var session, ok = ctx.Value(txSessionKey{}).(Session)
+	var session, ok = ctx.Value(internal.TxSessionKey{}).(Session)
 	if ok && session != nil {
 		return session
 	}

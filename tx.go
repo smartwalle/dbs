@@ -3,6 +3,7 @@ package dbs
 import (
 	"context"
 	"database/sql"
+	"github.com/smartwalle/dbs/internal"
 )
 
 type Tx struct {
@@ -55,11 +56,11 @@ func (tx *Tx) Rollback() error {
 }
 
 func (tx *Tx) ToContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, txSessionKey{}, tx)
+	return context.WithValue(ctx, internal.TxSessionKey{}, tx)
 }
 
 func TxFromContext(ctx context.Context) *Tx {
-	var tx, ok = ctx.Value(txSessionKey{}).(*Tx)
+	var tx, ok = ctx.Value(internal.TxSessionKey{}).(*Tx)
 	if ok && tx != nil {
 		return tx
 	}

@@ -3,6 +3,7 @@ package dbs
 import (
 	"context"
 	"database/sql"
+	"github.com/smartwalle/dbs/internal"
 )
 
 // Shard 维护一组数据库连接信息，用于实现简单的分片操作。
@@ -71,7 +72,7 @@ func (s *Shard) UseMapper(mapper Mapper) {
 }
 
 func (s *Shard) Session(ctx context.Context) Session {
-	var session, ok = ctx.Value(txSessionKey{}).(Session)
+	var session, ok = ctx.Value(internal.TxSessionKey{}).(Session)
 	if ok && session != nil {
 		return session
 	}
