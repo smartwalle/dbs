@@ -3,7 +3,6 @@ package dbs
 import (
 	"context"
 	"database/sql"
-	"sync"
 )
 
 var ErrNoRows = sql.ErrNoRows
@@ -15,9 +14,17 @@ type Session interface {
 	Logger() Logger
 	Mapper() Mapper
 
+	Preparer
+
+	Executor
+}
+
+type Preparer interface {
 	Prepare(query string) (*sql.Stmt, error)
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
+}
 
+type Executor interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 
@@ -58,19 +65,17 @@ func Open(driver, url string, maxOpen, maxIdle int) (*DB, error) {
 }
 
 type DB struct {
-	db      *sql.DB
-	mu      *sync.RWMutex
-	stmts   map[string]*Stmt
-	dialect Dialect
-	logger  Logger
-	mapper  Mapper
+	db       *sql.DB
+	executor Executor
+	dialect  Dialect
+	logger   Logger
+	mapper   Mapper
 }
 
 func New(db *sql.DB) *DB {
 	var ndb = &DB{}
 	ndb.db = db
-	ndb.mu = &sync.RWMutex{}
-	ndb.stmts = make(map[string]*Stmt)
+	ndb.executor = db
 	ndb.logger = NewLogger()
 	ndb.mapper = NewMapper(kTagSQL)
 	return ndb
@@ -126,108 +131,12 @@ func (db *DB) Session(ctx context.Context) Session {
 	return db
 }
 
-// Prepare 作用同 sql.DB 的 Prepare 方法。
-//
-// 本方法返回的 sql.Stmt 不会被缓存，不再使用之后需要调用其 Close 方法将其关闭。
 func (db *DB) Prepare(query string) (*sql.Stmt, error) {
 	return db.db.PrepareContext(context.Background(), query)
 }
 
-// PrepareContext 作用同 sql.DB 的 PrepareContext 方法。
-//
-// 本方法返回的 sql.Stmt 不会被缓存，不再使用之后需要调用其 Close 方法将其关闭。
 func (db *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
 	return db.db.PrepareContext(ctx, query)
-}
-
-// PrepareStatement 使用参数 query 创建一个预处理语句(sql.Stmt)并将其缓存，后续可以使用 key 使用该预处理语句。
-//
-//	var db = dbs.New(...)
-//	db.PrepareStatement(ctx, "key", "SELECT ...")
-//
-//	db.QueryContext(ctx, "key", "参数1", "参数2")
-func (db *DB) PrepareStatement(ctx context.Context, key, query string) error {
-	_, err := db.prepareStatement(ctx, db.db, false, key, query)
-	return err
-}
-
-type Preparer interface {
-	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
-}
-
-func (db *DB) prepareStatement(ctx context.Context, preparer Preparer, inTransaction bool, key, query string) (*sql.Stmt, error) {
-	db.mu.RLock()
-	if stmt, exists := db.stmts[key]; exists {
-		db.mu.RUnlock()
-		<-stmt.done
-		if stmt.err != nil {
-			return nil, stmt.err
-		}
-		return stmt.stmt, nil
-	}
-	db.mu.RUnlock()
-	if inTransaction {
-		return preparer.PrepareContext(ctx, query)
-	}
-
-	db.mu.Lock()
-	if stmt, exists := db.stmts[key]; exists {
-		db.mu.Unlock()
-		<-stmt.done
-		if stmt.err != nil {
-			return nil, stmt.err
-		}
-		return stmt.stmt, nil
-	}
-
-	var stmt = &Stmt{done: make(chan struct{})}
-	db.stmts[key] = stmt
-	db.mu.Unlock()
-
-	defer close(stmt.done)
-
-	nStmt, err := preparer.PrepareContext(ctx, query)
-	if err != nil {
-		stmt.err = err
-		db.mu.Lock()
-		delete(db.stmts, key)
-		db.mu.Unlock()
-		return nil, err
-	}
-	db.mu.Lock()
-	stmt.stmt = nStmt
-	db.mu.Unlock()
-	return nStmt, nil
-}
-
-// RevokeStatement 废弃已缓存的预处理语句(sql.Stmt)。
-func (db *DB) RevokeStatement(key string) {
-	db.mu.RLock()
-	var stmt, exists = db.stmts[key]
-	db.mu.RUnlock()
-
-	if exists {
-		<-stmt.done
-		db.removeStatement(key, stmt.stmt)
-	}
-}
-
-func (db *DB) removeStatement(key string, stmt *sql.Stmt) {
-	db.mu.Lock()
-	if stmt != nil {
-		go stmt.Close()
-	}
-	delete(db.stmts, key)
-	db.mu.Unlock()
-}
-
-// statement 使用参数 query 获取已经缓存的预处理语句(sql.Stmt)。
-//
-// 两种情况：
-//   - 缓存中若存在，则直接返回；
-//   - 缓存中不存在，则根据 query 参数创建一个预处理语句并将其缓存；
-func (db *DB) statement(ctx context.Context, query string) (*sql.Stmt, error) {
-	return db.prepareStatement(ctx, db.db, false, query, query)
 }
 
 func (db *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
@@ -235,15 +144,7 @@ func (db *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
 }
 
 func (db *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	stmt, err := db.statement(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-	result, err := stmt.ExecContext(ctx, args...)
-	if err != nil {
-		db.removeStatement(query, stmt)
-	}
-	return result, err
+	return db.executor.ExecContext(ctx, query, args...)
 }
 
 func (db *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
@@ -251,15 +152,7 @@ func (db *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
 }
 
 func (db *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	stmt, err := db.statement(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-	rows, err := stmt.QueryContext(ctx, args...)
-	if err != nil {
-		db.removeStatement(query, stmt)
-	}
-	return rows, err
+	return db.executor.QueryContext(ctx, query, args...)
 }
 
 func (db *DB) QueryRow(query string, args ...any) *sql.Row {
@@ -267,21 +160,10 @@ func (db *DB) QueryRow(query string, args ...any) *sql.Row {
 }
 
 func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
-	stmt, err := db.statement(ctx, query)
-	if err != nil {
-		return nil
-	}
-	row := stmt.QueryRowContext(ctx, args...)
-	if row.Err() != nil {
-		db.removeStatement(query, stmt)
-	}
-	return row
+	return db.executor.QueryRowContext(ctx, query, args...)
 }
 
 func (db *DB) Close() error {
-	db.mu.Lock()
-	db.stmts = make(map[string]*Stmt)
-	db.mu.Unlock()
 	return db.db.Close()
 }
 
