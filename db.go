@@ -16,18 +16,14 @@ type Session interface {
 
 	Preparer
 
-	Exec(query string, args ...interface{}) (sql.Result, error)
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 
-	Query(query string, args ...interface{}) (*sql.Rows, error)
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 
-	QueryRow(query string, args ...any) *sql.Row
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
 type Preparer interface {
-	Prepare(query string) (*sql.Stmt, error)
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
 }
 
@@ -40,7 +36,7 @@ type Database interface {
 
 	Session(ctx context.Context) Session
 
-	Begin() (*Tx, error)
+	Begin(ctx context.Context) (*Tx, error)
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error)
 }
 
@@ -125,32 +121,16 @@ func (db *DB) Session(ctx context.Context) Session {
 	return db
 }
 
-func (db *DB) Prepare(query string) (*sql.Stmt, error) {
-	return db.db.PrepareContext(context.Background(), query)
-}
-
 func (db *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
 	return db.db.PrepareContext(ctx, query)
-}
-
-func (db *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
-	return db.ExecContext(context.Background(), query, args...)
 }
 
 func (db *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
 	return db.db.ExecContext(ctx, query, args...)
 }
 
-func (db *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	return db.QueryContext(context.Background(), query, args...)
-}
-
 func (db *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
 	return db.db.QueryContext(ctx, query, args...)
-}
-
-func (db *DB) QueryRow(query string, args ...any) *sql.Row {
-	return db.QueryRowContext(context.Background(), query, args...)
 }
 
 func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
@@ -161,8 +141,8 @@ func (db *DB) Close() error {
 	return db.db.Close()
 }
 
-func (db *DB) Begin() (*Tx, error) {
-	return db.BeginTx(context.Background(), nil)
+func (db *DB) Begin(ctx context.Context) (*Tx, error) {
+	return db.BeginTx(ctx, nil)
 }
 
 func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {

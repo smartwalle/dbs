@@ -26,10 +26,6 @@ func (tx *Tx) Mapper() Mapper {
 	return tx.db.Mapper()
 }
 
-func (tx *Tx) Prepare(query string) (*sql.Stmt, error) {
-	return tx.PrepareContext(context.Background(), query)
-}
-
 func (tx *Tx) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
 	return tx.tx.PrepareContext(ctx, query)
 }
@@ -38,24 +34,12 @@ func (tx *Tx) StmtContext(ctx context.Context, stmt *sql.Stmt) *sql.Stmt {
 	return tx.tx.StmtContext(ctx, stmt)
 }
 
-func (tx *Tx) Exec(query string, args ...interface{}) (sql.Result, error) {
-	return tx.ExecContext(context.Background(), query, args...)
-}
-
 func (tx *Tx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
 	return tx.tx.ExecContext(ctx, query, args...)
 }
 
-func (tx *Tx) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	return tx.QueryContext(context.Background(), query, args...)
-}
-
 func (tx *Tx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
 	return tx.tx.QueryContext(ctx, query, args...)
-}
-
-func (tx *Tx) QueryRow(query string, args ...any) *sql.Row {
-	return tx.QueryRowContext(context.Background(), query, args...)
 }
 
 func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {

@@ -78,32 +78,16 @@ func (s *Shard) Session(ctx context.Context) Session {
 	return s
 }
 
-func (s *Shard) Prepare(query string) (*sql.Stmt, error) {
-	return s.PrepareContext(context.Background(), query)
-}
-
 func (s *Shard) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
 	return s.Shard(ctx).PrepareContext(ctx, query)
-}
-
-func (s *Shard) Exec(query string, args ...interface{}) (sql.Result, error) {
-	return s.ExecContext(context.Background(), query, args...)
 }
 
 func (s *Shard) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
 	return s.Shard(ctx).ExecContext(ctx, query, args...)
 }
 
-func (s *Shard) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	return s.QueryContext(context.Background(), query, args...)
-}
-
 func (s *Shard) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
 	return s.Shard(ctx).QueryContext(ctx, query, args...)
-}
-
-func (s *Shard) QueryRow(query string, args ...any) *sql.Row {
-	return s.QueryRowContext(context.Background(), query, args...)
 }
 
 func (s *Shard) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
@@ -119,8 +103,8 @@ func (s *Shard) Close() error {
 	return nil
 }
 
-func (s *Shard) Begin() (*Tx, error) {
-	return s.BeginTx(context.Background(), nil)
+func (s *Shard) Begin(ctx context.Context) (*Tx, error) {
+	return s.BeginTx(ctx, nil)
 }
 
 func (s *Shard) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
