@@ -12,8 +12,6 @@ type Entity interface {
 }
 
 type Repositoy[E Entity] interface {
-	UseDialect(dialect Dialect)
-
 	TableName() string
 
 	Database() Database
@@ -42,19 +40,14 @@ type Repositoy[E Entity] interface {
 }
 
 type repository[E Entity] struct {
-	entity  E
-	dialect Dialect
-	db      Database
+	entity E
+	db     Database
 }
 
 func NewRepository[E Entity](db Database) Repositoy[E] {
 	var r = &repository[E]{}
 	r.db = db
 	return r
-}
-
-func (r *repository[E]) UseDialect(dialect Dialect) {
-	r.dialect = dialect
 }
 
 func (r *repository[E]) TableName() string {
@@ -67,36 +60,28 @@ func (r *repository[E]) Database() Database {
 
 func (r *repository[E]) InsertBuilder(ctx context.Context) *InsertBuilder {
 	var ib = NewInsertBuilder()
-	ib.UseDialect(r.dialect)
 	ib.UseSession(r.Database().Session(ctx))
-
 	ib.Table(r.TableName())
 	return ib
 }
 
 func (r *repository[E]) DeleteBuilder(ctx context.Context) *DeleteBuilder {
 	var rb = NewDeleteBuilder()
-	rb.UseDialect(r.dialect)
 	rb.UseSession(r.Database().Session(ctx))
-
 	rb.Table(r.TableName())
 	return rb
 }
 
 func (r *repository[E]) UpdateBuilder(ctx context.Context) *UpdateBuilder {
 	var ub = NewUpdateBuilder()
-	ub.UseDialect(r.dialect)
 	ub.UseSession(r.Database().Session(ctx))
-
 	ub.Table(r.TableName())
 	return ub
 }
 
 func (r *repository[E]) SelectBuilder(ctx context.Context) *SelectBuilder {
 	var sb = NewSelectBuilder()
-	sb.UseDialect(r.dialect)
 	sb.UseSession(r.Database().Session(ctx))
-
 	sb.Table(r.TableName())
 	return sb
 }
