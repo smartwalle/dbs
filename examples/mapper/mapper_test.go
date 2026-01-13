@@ -74,6 +74,8 @@ func NewPostgres() dbs.Database {
 		log.Println("连接数据库出错：", err)
 		os.Exit(-1)
 	}
+	rawDB.SetMaxOpenConns(10)
+	rawDB.SetMaxIdleConns(10)
 	var ndb = dbs.New(rawDB)
 	ndb.UseDialect(postgres.Dialect())
 	return ndb
@@ -87,6 +89,8 @@ func NewPgx() dbs.Database {
 	}
 	rawDB := stdlib.OpenDB(*config)
 	var ndb = dbs.New(rawDB)
+	rawDB.SetMaxOpenConns(10)
+	rawDB.SetMaxIdleConns(10)
 	ndb.UseDialect(postgres.Dialect())
 	return ndb
 }
@@ -97,17 +101,21 @@ func NewMySQL() dbs.Database {
 		log.Println("连接数据库出错：", err)
 		os.Exit(-1)
 	}
+	rawDB.SetMaxOpenConns(10)
+	rawDB.SetMaxIdleConns(10)
 	var ndb = dbs.New(rawDB)
 	return ndb
 }
 
 func TestRepository_Find(t *testing.T) {
 	var repo = dbs.NewRepository[Mail](db)
-	var mail, err = repo.Find(context.Background(), 11, "*")
-	if err != nil {
-		t.Fatal(err)
+	for i := 0; i < 100; i++ {
+		var _, err = repo.Find(context.Background(), 11, "*")
+		if err != nil {
+			t.Fatal(err)
+		}
+		//t.Log(mail)
 	}
-	t.Log(mail)
 }
 
 func TestRepository_FindList(t *testing.T) {
