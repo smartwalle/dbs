@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/lib/pq"
 	"github.com/smartwalle/dbs"
-	"github.com/smartwalle/dbs/postgres"
+	"github.com/smartwalle/dbs/dialect/postgres"
 	"log"
 	"os"
 	"reflect"
