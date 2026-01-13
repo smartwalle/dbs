@@ -14,17 +14,9 @@ type Session interface {
 	Logger() Logger
 	Mapper() Mapper
 
-	Preparer
-
-	Executor
-}
-
-type Preparer interface {
 	Prepare(query string) (*sql.Stmt, error)
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
-}
 
-type Executor interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 
@@ -65,17 +57,15 @@ func Open(driver, url string, maxOpen, maxIdle int) (*DB, error) {
 }
 
 type DB struct {
-	db       *sql.DB
-	executor Executor
-	dialect  Dialect
-	logger   Logger
-	mapper   Mapper
+	db      *sql.DB
+	dialect Dialect
+	logger  Logger
+	mapper  Mapper
 }
 
 func New(db *sql.DB) *DB {
 	var ndb = &DB{}
 	ndb.db = db
-	ndb.executor = db
 	ndb.logger = NewLogger()
 	ndb.mapper = NewMapper(kTagSQL)
 	return ndb
@@ -144,7 +134,7 @@ func (db *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
 }
 
 func (db *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	return db.executor.ExecContext(ctx, query, args...)
+	return db.db.ExecContext(ctx, query, args...)
 }
 
 func (db *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
@@ -152,7 +142,7 @@ func (db *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
 }
 
 func (db *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	return db.executor.QueryContext(ctx, query, args...)
+	return db.db.QueryContext(ctx, query, args...)
 }
 
 func (db *DB) QueryRow(query string, args ...any) *sql.Row {
@@ -160,7 +150,7 @@ func (db *DB) QueryRow(query string, args ...any) *sql.Row {
 }
 
 func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
-	return db.executor.QueryRowContext(ctx, query, args...)
+	return db.db.QueryRowContext(ctx, query, args...)
 }
 
 func (db *DB) Close() error {
