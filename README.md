@@ -141,7 +141,7 @@ err := db.Transaction(context.Background(), func(ctx context.Context) error {
 ```go
 // 1. 定义实体
 type User struct {
-    Id   int    `sql:"id"`
+    Id   int    `sql:"id;auto_increment"`
     Name string `sql:"name"`
 }
 
