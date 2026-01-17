@@ -407,11 +407,15 @@ func scanIntoStruct(rows *sql.Rows, columns []*sql.ColumnType, fields []*fieldMe
 			var value = reflect.ValueOf(values[idx]).Elem().Elem()
 			if value.IsValid() {
 				fieldByIndex(destValue, fields[idx].Index).Set(value)
+			} else {
+				fieldByIndex(destValue, fields[idx].Index).Set(reflect.Zero(fields[idx].Type))
 			}
 		} else if len(columns) == 1 && !isScanner {
 			var value = reflect.ValueOf(values[idx]).Elem().Elem()
 			if value.IsValid() {
 				destValue.Set(value)
+			} else {
+				destValue.Set(reflect.Zero(destValue.Type()))
 			}
 		}
 	}
