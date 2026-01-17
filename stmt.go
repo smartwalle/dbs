@@ -148,7 +148,7 @@ func (s *Stmts) QueryContext(ctx context.Context, query string, args ...interfac
 func (s *Stmts) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
 	stmt, err := s.statement(ctx, query)
 	if err != nil {
-		return nil
+		return s.session.QueryRowContext(ctx, query, args...)
 	}
 	row := stmt.QueryRowContext(ctx, args...)
 	if row.Err() != nil {
