@@ -302,6 +302,20 @@ func (sb *SelectBuilder) SQL() (string, []interface{}, error) {
 }
 
 func (sb *SelectBuilder) Count() *SelectBuilder {
+	if len(sb.groupBys) > 0 || sb.having.valid() {
+		var sub = sb.Clone()
+		sub.orderBys = nil
+		sub.limit = nil
+		sub.offset = nil
+
+		var nsb = NewSelectBuilder()
+		nsb.dialect = sb.dialect
+		nsb.session = sb.session
+		nsb.From("(?) AS count_query", sub)
+		nsb.Columns("COUNT(1)")
+		return nsb
+	}
+
 	var nsb = sb.Clone()
 	nsb.limit = nil
 	nsb.offset = nil
