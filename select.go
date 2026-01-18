@@ -93,6 +93,10 @@ func (sb *SelectBuilder) Table(table string, args ...interface{}) *SelectBuilder
 	return sb
 }
 
+func (sb *SelectBuilder) From(table string, args ...interface{}) *SelectBuilder {
+	return sb.Table(table, args...)
+}
+
 func (sb *SelectBuilder) Join(sql interface{}, args ...interface{}) *SelectBuilder {
 	if sb.joins == nil {
 		sb.joins = NewClauses(' ')
