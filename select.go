@@ -104,6 +104,11 @@ func (sb *SelectBuilder) Select(sql interface{}, args ...interface{}) *SelectBui
 	return sb
 }
 
+func (sb *SelectBuilder) Columns(columns ...string) *SelectBuilder {
+	sb.columns = NewClauses(',', Parts(columns))
+	return sb
+}
+
 func (sb *SelectBuilder) Table(table string, args ...interface{}) *SelectBuilder {
 	if sb.tables == nil {
 		sb.tables = NewClauses(',')
@@ -301,7 +306,7 @@ func (sb *SelectBuilder) Count() *SelectBuilder {
 	nsb.limit = nil
 	nsb.offset = nil
 	nsb.orderBys = nil
-	nsb.columns = NewClauses(',', SQL("COUNT(1)"))
+	nsb.Columns("COUNT(1)")
 	return nsb
 }
 
