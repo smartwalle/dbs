@@ -27,6 +27,25 @@ func NewSelectBuilder() *SelectBuilder {
 	return sb
 }
 
+func (sb *SelectBuilder) Clone() *SelectBuilder {
+	var nsb = &SelectBuilder{}
+	nsb.dialect = sb.dialect
+	nsb.session = sb.session
+	nsb.prefixes = sb.prefixes.Clone()
+	nsb.options = sb.options.Clone()
+	nsb.columns = sb.columns.Clone()
+	nsb.tables = sb.tables.Clone()
+	nsb.joins = sb.joins.Clone()
+	nsb.wheres = sb.wheres.Clone()
+	nsb.groupBys = sb.groupBys.Clone()
+	nsb.having = sb.having.Clone()
+	nsb.orderBys = sb.orderBys.Clone()
+	nsb.limit = sb.limit
+	nsb.offset = sb.offset
+	nsb.suffixes = sb.suffixes.Clone()
+	return nsb
+}
+
 func (sb *SelectBuilder) Reset() {
 	sb.dialect = nil
 	sb.session = nil
@@ -278,12 +297,12 @@ func (sb *SelectBuilder) SQL() (string, []interface{}, error) {
 }
 
 func (sb *SelectBuilder) Count() *SelectBuilder {
-	var temp = *sb
-	temp.limit = nil
-	temp.offset = nil
-	temp.orderBys = nil
-	temp.columns = NewClauses(',', SQL("COUNT(1)"))
-	return &temp
+	var nsb = sb.Clone()
+	nsb.limit = nil
+	nsb.offset = nil
+	nsb.orderBys = nil
+	nsb.columns = NewClauses(',', SQL("COUNT(1)"))
+	return nsb
 }
 
 func (sb *SelectBuilder) Scan(ctx context.Context, dest interface{}) error {

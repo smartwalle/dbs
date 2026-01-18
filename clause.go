@@ -25,6 +25,27 @@ func SQL(sql interface{}, args ...interface{}) Clause {
 	return NewClause(sql, args...)
 }
 
+func (c Clause) Clone() Clause {
+	var nc = Clause{}
+	if raw, ok := c.sql.(SQLClause); ok {
+		nc.sql = clone(raw)
+	} else {
+		nc.sql = c.sql
+	}
+	if len(c.args) > 0 {
+		nc.args = make([]interface{}, len(c.args))
+		for i, arg := range c.args {
+			switch raw := arg.(type) {
+			case SQLClause:
+				nc.args[i] = clone(raw)
+			default:
+				nc.args[i] = arg
+			}
+		}
+	}
+	return nc
+}
+
 func (c Clause) Write(w Writer) (err error) {
 	var args = c.args
 	switch raw := c.sql.(type) {
@@ -163,6 +184,21 @@ func NewClauses(sep byte, clauses ...SQLClause) *Clauses {
 	return &Clauses{sep: sep, clauses: clauses}
 }
 
+func (cs *Clauses) Clone() *Clauses {
+	if cs == nil {
+		return nil
+	}
+	var ncs = &Clauses{}
+	ncs.sep = cs.sep
+	if len(cs.clauses) > 0 {
+		ncs.clauses = make([]SQLClause, len(cs.clauses))
+		for i, c := range cs.clauses {
+			ncs.clauses[i] = clone(c)
+		}
+	}
+	return ncs
+}
+
 func (cs *Clauses) Write(w Writer) (err error) {
 	for idx, clause := range cs.clauses {
 		if idx != 0 {
@@ -214,6 +250,22 @@ type Conds struct {
 
 func NewConds(sep string, clauses ...SQLClause) *Conds {
 	return &Conds{sep: sep, clauses: clauses}
+}
+
+func (cs *Conds) Clone() *Conds {
+	if cs == nil {
+		return nil
+	}
+	var ncs = &Conds{}
+	ncs.ignoreBracket = cs.ignoreBracket
+	ncs.sep = cs.sep
+	if len(cs.clauses) > 0 {
+		ncs.clauses = make([]SQLClause, len(cs.clauses))
+		for i, c := range cs.clauses {
+			ncs.clauses[i] = clone(c)
+		}
+	}
+	return ncs
 }
 
 func (cs *Conds) Write(w Writer) (err error) {
@@ -291,6 +343,17 @@ func NewSet(column string, value interface{}) Set {
 	return Set{column: column, value: value}
 }
 
+func (sc Set) Clone() Set {
+	var nsc = Set{}
+	nsc.column = sc.column
+	if raw, ok := sc.value.(SQLClause); ok {
+		nsc.value = clone(raw)
+	} else {
+		nsc.value = sc.value
+	}
+	return nsc
+}
+
 func (sc Set) Write(w Writer) (err error) {
 	if _, err = w.WriteString(sc.column); err != nil {
 		return err
@@ -324,6 +387,12 @@ func (sc Set) SQL() (string, []interface{}, error) {
 
 type Parts []string
 
+func (ps Parts) Clone() Parts {
+	var ncps = make([]string, len(ps))
+	copy(ncps, ps)
+	return ncps
+}
+
 func (ps Parts) Write(w Writer) (err error) {
 	for idx, s := range ps {
 		if len(s) == 0 {
@@ -350,4 +419,24 @@ func (ps Parts) SQL() (string, []interface{}, error) {
 		return "", nil, err
 	}
 	return buffer.String(), buffer.Arguments(), nil
+}
+
+func clone(clause SQLClause) SQLClause {
+	if clause == nil {
+		return nil
+	}
+	switch raw := clause.(type) {
+	case *Clauses:
+		return raw.Clone()
+	case *Conds:
+		return raw.Clone()
+	case Clause:
+		return raw.Clone()
+	case Set:
+		return raw.Clone()
+	case Parts:
+		return raw.Clone()
+	default:
+		return clause
+	}
 }
