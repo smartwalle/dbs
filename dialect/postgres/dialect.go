@@ -1,8 +1,9 @@
 package postgres
 
 import (
-	"github.com/smartwalle/dbs"
 	"strconv"
+
+	"github.com/smartwalle/dbs"
 )
 
 var _dialect = &dialect{}

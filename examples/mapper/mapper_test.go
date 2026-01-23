@@ -6,17 +6,18 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
+	"log"
+	"os"
+	"reflect"
+	"testing"
+	"time"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/lib/pq"
 	"github.com/smartwalle/dbs"
 	"github.com/smartwalle/dbs/dialect/postgres"
-	"log"
-	"os"
-	"reflect"
-	"testing"
-	"time"
 )
 
 type Base struct {
