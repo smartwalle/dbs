@@ -3,6 +3,7 @@ package dbs
 import (
 	"context"
 	"database/sql"
+
 	"github.com/smartwalle/dbs/internal"
 )
 

@@ -1,8 +1,9 @@
 package dbs_test
 
 import (
-	"github.com/smartwalle/dbs"
 	"testing"
+
+	"github.com/smartwalle/dbs"
 )
 
 func TestExplain(t *testing.T) {

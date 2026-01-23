@@ -1,9 +1,10 @@
 package dbs_test
 
 import (
-	"github.com/smartwalle/dbs"
 	"sync"
 	"testing"
+
+	"github.com/smartwalle/dbs"
 )
 
 func TestSelectBuilder(t *testing.T) {

@@ -1,8 +1,9 @@
 package dbs_test
 
 import (
-	"github.com/smartwalle/dbs"
 	"testing"
+
+	"github.com/smartwalle/dbs"
 )
 
 func TestInsertBuilder(t *testing.T) {
