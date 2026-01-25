@@ -26,15 +26,15 @@ type Repositoy[E Entity] interface {
 
 	Create(ctx context.Context, entity *E) (sql.Result, error)
 
-	Delete(ctx context.Context, id interface{}) (sql.Result, error)
+	Delete(ctx context.Context, id any) (sql.Result, error)
 
-	Update(ctx context.Context, id interface{}, values map[string]interface{}) (sql.Result, error)
+	Update(ctx context.Context, id any, values map[string]any) (sql.Result, error)
 
-	Find(ctx context.Context, id interface{}, columns string) (*E, error)
+	Find(ctx context.Context, id any, columns string) (*E, error)
 
-	FindOne(ctx context.Context, columns string, conds string, args ...interface{}) (*E, error)
+	FindOne(ctx context.Context, columns string, conds string, args ...any) (*E, error)
 
-	FindList(ctx context.Context, columns string, conds string, args ...interface{}) ([]*E, error)
+	FindList(ctx context.Context, columns string, conds string, args ...any) ([]*E, error)
 
 	Transaction(ctx context.Context, fn func(ctx context.Context) error, opts ...*sql.TxOptions) error
 }
@@ -92,7 +92,7 @@ func (r *repository[E]) Create(ctx context.Context, entity *E) (sql.Result, erro
 		return nil, err
 	}
 	var columns = make([]string, len(fieldValues))
-	var values = make([]interface{}, len(fieldValues))
+	var values = make([]any, len(fieldValues))
 
 	for idx, fieldValue := range fieldValues {
 		columns[idx] = fieldValue.Name
@@ -105,20 +105,20 @@ func (r *repository[E]) Create(ctx context.Context, entity *E) (sql.Result, erro
 	return ib.Exec(ctx)
 }
 
-func (r *repository[E]) Delete(ctx context.Context, id interface{}) (sql.Result, error) {
+func (r *repository[E]) Delete(ctx context.Context, id any) (sql.Result, error) {
 	var rb = r.DeleteBuilder(ctx)
 	rb.Where(r.entity.PrimaryKey()+" = ?", id)
 	return rb.Exec(ctx)
 }
 
-func (r *repository[E]) Update(ctx context.Context, id interface{}, values map[string]interface{}) (sql.Result, error) {
+func (r *repository[E]) Update(ctx context.Context, id any, values map[string]any) (sql.Result, error) {
 	var ub = r.UpdateBuilder(ctx)
 	ub.SetValues(values)
 	ub.Where(r.entity.PrimaryKey()+" = ?", id)
 	return ub.Exec(ctx)
 }
 
-func (r *repository[E]) Find(ctx context.Context, id interface{}, columns string) (entity *E, err error) {
+func (r *repository[E]) Find(ctx context.Context, id any, columns string) (entity *E, err error) {
 	var sb = r.SelectBuilder(ctx)
 	sb.Selects(columns)
 	sb.Limit(1)
@@ -130,7 +130,7 @@ func (r *repository[E]) Find(ctx context.Context, id interface{}, columns string
 	return entity, nil
 }
 
-func (r *repository[E]) FindOne(ctx context.Context, columns string, conds string, args ...interface{}) (entity *E, err error) {
+func (r *repository[E]) FindOne(ctx context.Context, columns string, conds string, args ...any) (entity *E, err error) {
 	var sb = r.SelectBuilder(ctx)
 	sb.Selects(columns)
 	sb.Limit(1)
@@ -142,7 +142,7 @@ func (r *repository[E]) FindOne(ctx context.Context, columns string, conds strin
 	return entity, nil
 }
 
-func (r *repository[E]) FindList(ctx context.Context, columns string, conds string, args ...interface{}) (entityList []*E, err error) {
+func (r *repository[E]) FindList(ctx context.Context, columns string, conds string, args ...any) (entityList []*E, err error) {
 	var sb = r.SelectBuilder(ctx)
 	sb.Selects(columns)
 	sb.Where(conds, args...)

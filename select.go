@@ -76,7 +76,7 @@ func (sb *SelectBuilder) UseSession(session Session) *SelectBuilder {
 	return sb
 }
 
-func (sb *SelectBuilder) Prefix(sql interface{}, args ...interface{}) *SelectBuilder {
+func (sb *SelectBuilder) Prefix(sql any, args ...any) *SelectBuilder {
 	if sb.prefixes == nil {
 		sb.prefixes = NewClauses(' ')
 	}
@@ -84,7 +84,7 @@ func (sb *SelectBuilder) Prefix(sql interface{}, args ...interface{}) *SelectBui
 	return sb
 }
 
-func (sb *SelectBuilder) Option(sql interface{}, args ...interface{}) *SelectBuilder {
+func (sb *SelectBuilder) Option(sql any, args ...any) *SelectBuilder {
 	if sb.options == nil {
 		sb.options = NewClauses(' ')
 	}
@@ -96,7 +96,7 @@ func (sb *SelectBuilder) Selects(columns ...string) *SelectBuilder {
 	return sb.Select(Parts(columns))
 }
 
-func (sb *SelectBuilder) Select(sql interface{}, args ...interface{}) *SelectBuilder {
+func (sb *SelectBuilder) Select(sql any, args ...any) *SelectBuilder {
 	if sb.columns == nil {
 		sb.columns = NewClauses(',')
 	}
@@ -109,7 +109,7 @@ func (sb *SelectBuilder) Columns(columns ...string) *SelectBuilder {
 	return sb
 }
 
-func (sb *SelectBuilder) Table(table string, args ...interface{}) *SelectBuilder {
+func (sb *SelectBuilder) Table(table string, args ...any) *SelectBuilder {
 	if sb.tables == nil {
 		sb.tables = NewClauses(',')
 	}
@@ -117,11 +117,11 @@ func (sb *SelectBuilder) Table(table string, args ...interface{}) *SelectBuilder
 	return sb
 }
 
-func (sb *SelectBuilder) From(table string, args ...interface{}) *SelectBuilder {
+func (sb *SelectBuilder) From(table string, args ...any) *SelectBuilder {
 	return sb.Table(table, args...)
 }
 
-func (sb *SelectBuilder) Join(sql interface{}, args ...interface{}) *SelectBuilder {
+func (sb *SelectBuilder) Join(sql any, args ...any) *SelectBuilder {
 	if sb.joins == nil {
 		sb.joins = NewClauses(' ')
 	}
@@ -129,7 +129,7 @@ func (sb *SelectBuilder) Join(sql interface{}, args ...interface{}) *SelectBuild
 	return sb
 }
 
-func (sb *SelectBuilder) Where(sql interface{}, args ...interface{}) *SelectBuilder {
+func (sb *SelectBuilder) Where(sql any, args ...any) *SelectBuilder {
 	if sb.wheres == nil {
 		var conds = AND()
 		conds.ignoreBracket = true
@@ -144,7 +144,7 @@ func (sb *SelectBuilder) GroupBy(groupBys ...string) *SelectBuilder {
 	return sb
 }
 
-func (sb *SelectBuilder) Having(sql interface{}, args ...interface{}) *SelectBuilder {
+func (sb *SelectBuilder) Having(sql any, args ...any) *SelectBuilder {
 	if sb.having == nil {
 		sb.having = NewClauses(' ')
 	}
@@ -152,7 +152,7 @@ func (sb *SelectBuilder) Having(sql interface{}, args ...interface{}) *SelectBui
 	return sb
 }
 
-func (sb *SelectBuilder) OrderBy(sql interface{}, args ...interface{}) *SelectBuilder {
+func (sb *SelectBuilder) OrderBy(sql any, args ...any) *SelectBuilder {
 	if sb.orderBys == nil {
 		sb.orderBys = NewClauses(',')
 	}
@@ -170,7 +170,7 @@ func (sb *SelectBuilder) Offset(offset int64) *SelectBuilder {
 	return sb
 }
 
-func (sb *SelectBuilder) Suffix(sql interface{}, args ...interface{}) *SelectBuilder {
+func (sb *SelectBuilder) Suffix(sql any, args ...any) *SelectBuilder {
 	if sb.suffixes == nil {
 		sb.suffixes = NewClauses(' ')
 	}
@@ -289,7 +289,7 @@ func (sb *SelectBuilder) Write(w Writer) (err error) {
 	return nil
 }
 
-func (sb *SelectBuilder) SQL() (string, []interface{}, error) {
+func (sb *SelectBuilder) SQL() (string, []any, error) {
 	var buffer = NewBuffer()
 	defer buffer.Release()
 

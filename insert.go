@@ -13,7 +13,7 @@ type InsertBuilder struct {
 	options  *Clauses
 	columns  Parts
 	table    string
-	values   [][]interface{}
+	values   [][]any
 	suffixes *Clauses
 }
 
@@ -46,7 +46,7 @@ func (ib *InsertBuilder) UseSession(session Session) *InsertBuilder {
 	return ib
 }
 
-func (ib *InsertBuilder) Prefix(sql interface{}, args ...interface{}) *InsertBuilder {
+func (ib *InsertBuilder) Prefix(sql any, args ...any) *InsertBuilder {
 	if ib.prefixes == nil {
 		ib.prefixes = NewClauses(' ')
 	}
@@ -54,7 +54,7 @@ func (ib *InsertBuilder) Prefix(sql interface{}, args ...interface{}) *InsertBui
 	return ib
 }
 
-func (ib *InsertBuilder) Option(sql interface{}, args ...interface{}) *InsertBuilder {
+func (ib *InsertBuilder) Option(sql any, args ...any) *InsertBuilder {
 	if ib.options == nil {
 		ib.options = NewClauses(' ')
 	}
@@ -72,12 +72,12 @@ func (ib *InsertBuilder) Table(table string) *InsertBuilder {
 	return ib
 }
 
-func (ib *InsertBuilder) Values(values ...interface{}) *InsertBuilder {
+func (ib *InsertBuilder) Values(values ...any) *InsertBuilder {
 	ib.values = append(ib.values, values)
 	return ib
 }
 
-func (ib *InsertBuilder) Suffix(sql interface{}, args ...interface{}) *InsertBuilder {
+func (ib *InsertBuilder) Suffix(sql any, args ...any) *InsertBuilder {
 	if ib.suffixes == nil {
 		ib.suffixes = NewClauses(' ')
 	}
@@ -188,7 +188,7 @@ func (ib *InsertBuilder) Write(w Writer) (err error) {
 	return nil
 }
 
-func (ib *InsertBuilder) SQL() (string, []interface{}, error) {
+func (ib *InsertBuilder) SQL() (string, []any, error) {
 	var buffer = NewBuffer()
 	defer buffer.Release()
 

@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func Query[T any](ctx context.Context, session Session, query string, args ...interface{}) (dest T, err error) {
+func Query[T any](ctx context.Context, session Session, query string, args ...any) (dest T, err error) {
 	var rowsAffected int
 	var beginTime = time.Now()
 	defer func() {
@@ -26,7 +26,7 @@ func Query[T any](ctx context.Context, session Session, query string, args ...in
 	return dest, nil
 }
 
-func Exec(ctx context.Context, session Session, query string, args ...interface{}) (result sql.Result, err error) {
+func Exec(ctx context.Context, session Session, query string, args ...any) (result sql.Result, err error) {
 	var beginTime = time.Now()
 	defer func() {
 		var rowsAffected int64

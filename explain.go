@@ -27,7 +27,7 @@ func ExplainToBuffer(buffer *bytes.Buffer, clause SQLClause) (err error) {
 	return ExplainSQLToBuffer(buffer, sql, args)
 }
 
-func ExplainSQL(sql string, args []interface{}) (string, error) {
+func ExplainSQL(sql string, args []any) (string, error) {
 	var buffer = bytes.NewBuffer(make([]byte, 0, kDefaultBufferSize))
 	if err := ExplainSQLToBuffer(buffer, sql, args); err != nil {
 		return "", err
@@ -35,7 +35,7 @@ func ExplainSQL(sql string, args []interface{}) (string, error) {
 	return buffer.String(), nil
 }
 
-func ExplainSQLToBuffer(buffer *bytes.Buffer, sql string, args []interface{}) (err error) {
+func ExplainSQLToBuffer(buffer *bytes.Buffer, sql string, args []any) (err error) {
 	for len(sql) > 0 && len(args) > 0 {
 		var pos = strings.IndexByte(sql, '?')
 		if pos == -1 {
@@ -61,7 +61,7 @@ func ExplainSQLToBuffer(buffer *bytes.Buffer, sql string, args []interface{}) (e
 	return nil
 }
 
-func explainArgument(buffer *bytes.Buffer, arg interface{}) (err error) {
+func explainArgument(buffer *bytes.Buffer, arg any) (err error) {
 	switch raw := arg.(type) {
 	case time.Time:
 		if err = buffer.WriteByte('\''); err != nil {

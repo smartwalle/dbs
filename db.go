@@ -18,9 +18,9 @@ type Session interface {
 
 	Preparer
 
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 
-	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
@@ -125,11 +125,11 @@ func (db *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, erro
 	return db.db.PrepareContext(ctx, query)
 }
 
-func (db *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (db *DB) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	return db.db.ExecContext(ctx, query, args...)
 }
 
-func (db *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+func (db *DB) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
 	return db.db.QueryContext(ctx, query, args...)
 }
 

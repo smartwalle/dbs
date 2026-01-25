@@ -6,11 +6,11 @@ import (
 	"github.com/smartwalle/dbs"
 )
 
-func ExpectArgs(args ...interface{}) []interface{} {
+func ExpectArgs(args ...any) []any {
 	return args
 }
 
-func checkClause(t *testing.T, clause dbs.SQLClause, expectSQL string, expectArgs []interface{}) {
+func checkClause(t *testing.T, clause dbs.SQLClause, expectSQL string, expectArgs []any) {
 	sql, args, err := clause.SQL()
 	if err != nil {
 		t.Fatal("生成 SQL 语句发生错误:", err)
@@ -35,7 +35,7 @@ func TestClause_SQL(t *testing.T) {
 	var tests = []struct {
 		Clause     dbs.SQLClause
 		ExpectSQL  string
-		ExpectArgs []interface{}
+		ExpectArgs []any
 	}{
 		{
 			Clause:     dbs.SQL("id = ?", 1),
@@ -53,7 +53,7 @@ func TestClause_SQL(t *testing.T) {
 			ExpectArgs: ExpectArgs(1, 2),
 		},
 		{
-			Clause:     dbs.SQL("id IN (?)", []interface{}{1, 2, 3}),
+			Clause:     dbs.SQL("id IN (?)", []any{1, 2, 3}),
 			ExpectSQL:  "id IN (?,?,?)",
 			ExpectArgs: ExpectArgs(1, 2, 3),
 		},
@@ -68,7 +68,7 @@ func TestClause_SQL(t *testing.T) {
 			ExpectArgs: ExpectArgs(2),
 		},
 		{
-			Clause:     dbs.SQL("enable = (?)", dbs.SQL("id IN (?)", []interface{}{1, 2, 3})),
+			Clause:     dbs.SQL("enable = (?)", dbs.SQL("id IN (?)", []any{1, 2, 3})),
 			ExpectSQL:  "enable = (id IN (?,?,?))",
 			ExpectArgs: ExpectArgs(1, 2, 3),
 		},

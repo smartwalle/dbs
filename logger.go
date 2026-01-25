@@ -8,7 +8,7 @@ import (
 )
 
 type Logger interface {
-	Trace(ctx context.Context, skip int, begin time.Time, sql string, args []interface{}, rowsAffected int64, err error)
+	Trace(ctx context.Context, skip int, begin time.Time, sql string, args []any, rowsAffected int64, err error)
 }
 
 func NewLogger() *logger {
@@ -18,7 +18,7 @@ func NewLogger() *logger {
 type logger struct {
 }
 
-func (logger) Trace(ctx context.Context, skip int, begin time.Time, sql string, args []interface{}, rowsAffected int64, err error) {
+func (logger) Trace(ctx context.Context, skip int, begin time.Time, sql string, args []any, rowsAffected int64, err error) {
 	var elapsedTime = time.Since(begin)
 
 	_, file, line, _ := runtime.Caller(skip)

@@ -81,11 +81,11 @@ func (db *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, erro
 	return db.master.PrepareContext(ctx, query)
 }
 
-func (db *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (db *DB) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	return db.master.ExecContext(ctx, query, args...)
 }
 
-func (db *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+func (db *DB) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
 	var master, _ = ctx.Value(masterKey{}).(bool)
 	if master || db.slave == nil {
 		return db.master.QueryContext(ctx, query, args...)

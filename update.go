@@ -50,7 +50,7 @@ func (ub *UpdateBuilder) UseSession(session Session) *UpdateBuilder {
 	return ub
 }
 
-func (ub *UpdateBuilder) Prefix(sql interface{}, args ...interface{}) *UpdateBuilder {
+func (ub *UpdateBuilder) Prefix(sql any, args ...any) *UpdateBuilder {
 	if ub.prefixes == nil {
 		ub.prefixes = NewClauses(' ')
 	}
@@ -58,7 +58,7 @@ func (ub *UpdateBuilder) Prefix(sql interface{}, args ...interface{}) *UpdateBui
 	return ub
 }
 
-func (ub *UpdateBuilder) Option(sql interface{}, args ...interface{}) *UpdateBuilder {
+func (ub *UpdateBuilder) Option(sql any, args ...any) *UpdateBuilder {
 	if ub.options == nil {
 		ub.options = NewClauses(' ')
 	}
@@ -71,12 +71,12 @@ func (ub *UpdateBuilder) Table(table string) *UpdateBuilder {
 	return ub
 }
 
-func (ub *UpdateBuilder) Set(column string, value interface{}) *UpdateBuilder {
+func (ub *UpdateBuilder) Set(column string, value any) *UpdateBuilder {
 	ub.sets = append(ub.sets, NewSet(column, value))
 	return ub
 }
 
-func (ub *UpdateBuilder) SetValues(values map[string]interface{}) *UpdateBuilder {
+func (ub *UpdateBuilder) SetValues(values map[string]any) *UpdateBuilder {
 	var sets = make([]Set, len(values))
 	var idx = 0
 	for key, value := range values {
@@ -87,7 +87,7 @@ func (ub *UpdateBuilder) SetValues(values map[string]interface{}) *UpdateBuilder
 	return ub
 }
 
-func (ub *UpdateBuilder) Where(sql interface{}, args ...interface{}) *UpdateBuilder {
+func (ub *UpdateBuilder) Where(sql any, args ...any) *UpdateBuilder {
 	if ub.wheres == nil {
 		var conds = AND()
 		conds.ignoreBracket = true
@@ -97,7 +97,7 @@ func (ub *UpdateBuilder) Where(sql interface{}, args ...interface{}) *UpdateBuil
 	return ub
 }
 
-func (ub *UpdateBuilder) OrderBy(sql interface{}, args ...interface{}) *UpdateBuilder {
+func (ub *UpdateBuilder) OrderBy(sql any, args ...any) *UpdateBuilder {
 	if ub.orderBys == nil {
 		ub.orderBys = NewClauses(',')
 	}
@@ -110,7 +110,7 @@ func (ub *UpdateBuilder) Limit(limit int64) *UpdateBuilder {
 	return ub
 }
 
-func (ub *UpdateBuilder) Suffix(sql interface{}, args ...interface{}) *UpdateBuilder {
+func (ub *UpdateBuilder) Suffix(sql any, args ...any) *UpdateBuilder {
 	if ub.suffixes == nil {
 		ub.suffixes = NewClauses(' ')
 	}
@@ -207,7 +207,7 @@ func (ub *UpdateBuilder) Write(w Writer) (err error) {
 	return nil
 }
 
-func (ub *UpdateBuilder) SQL() (string, []interface{}, error) {
+func (ub *UpdateBuilder) SQL() (string, []any, error) {
 	var buffer = NewBuffer()
 	defer buffer.Release()
 

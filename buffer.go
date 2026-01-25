@@ -22,16 +22,16 @@ type Writer interface {
 
 	WriteString(s string) (n int, err error)
 
-	WriteArgument(flag uint8, arg interface{}) (err error)
+	WriteArgument(flag uint8, arg any) (err error)
 
-	Arguments() []interface{}
+	Arguments() []any
 }
 
 var bufferPool = sync.Pool{
 	New: func() interface{} {
 		return &Buffer{
 			Buffer:           bytes.NewBuffer(make([]byte, 0, kDefaultBufferSize)),
-			arguments:        make([]interface{}, 0, kDefaultArgsSize),
+			arguments:        make([]any, 0, kDefaultArgsSize),
 			placeholderCount: 0,
 		}
 	},
@@ -39,7 +39,7 @@ var bufferPool = sync.Pool{
 
 type Buffer struct {
 	*bytes.Buffer
-	arguments        []interface{}
+	arguments        []any
 	dialect          Dialect
 	placeholderCount int
 }
@@ -61,7 +61,7 @@ func (b *Buffer) UseDialect(dialect Dialect) {
 	b.dialect = dialect
 }
 
-func (b *Buffer) WriteArgument(flag uint8, arg interface{}) (err error) {
+func (b *Buffer) WriteArgument(flag uint8, arg any) (err error) {
 	if flag&FlagArgument == FlagArgument {
 		b.arguments = append(b.arguments, arg)
 	}
@@ -81,8 +81,8 @@ func (b *Buffer) WriteArgument(flag uint8, arg interface{}) (err error) {
 	return nil
 }
 
-func (b *Buffer) Arguments() []interface{} {
-	var args = make([]interface{}, len(b.arguments))
+func (b *Buffer) Arguments() []any {
+	var args = make([]any, len(b.arguments))
 	copy(args, b.arguments)
 	return args
 }

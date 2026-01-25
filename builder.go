@@ -37,7 +37,7 @@ func (rb *Builder) UseSession(session Session) *Builder {
 	return rb
 }
 
-func (rb *Builder) Append(sql interface{}, args ...interface{}) *Builder {
+func (rb *Builder) Append(sql any, args ...any) *Builder {
 	if rb.clauses == nil {
 		rb.clauses = NewClauses(' ')
 	}
@@ -45,7 +45,7 @@ func (rb *Builder) Append(sql interface{}, args ...interface{}) *Builder {
 	return rb
 }
 
-func (rb *Builder) Raw(sql string, args ...interface{}) *Builder {
+func (rb *Builder) Raw(sql string, args ...any) *Builder {
 	if rb.clauses == nil {
 		rb.clauses = NewClauses(' ')
 	}
@@ -62,7 +62,7 @@ func (rb *Builder) Write(w Writer) (err error) {
 	return nil
 }
 
-func (rb *Builder) SQL() (string, []interface{}, error) {
+func (rb *Builder) SQL() (string, []any, error) {
 	var buffer = NewBuffer()
 	defer buffer.Release()
 
@@ -84,7 +84,7 @@ func (rb *Builder) Exec(ctx context.Context) (sql.Result, error) {
 
 func scan(ctx context.Context, session Session, clause SQLClause, dest interface{}) (err error) {
 	var query string
-	var args []interface{}
+	var args []any
 	var rowsAffected int
 	var beginTime = time.Now()
 	defer func() {
@@ -110,7 +110,7 @@ func scan(ctx context.Context, session Session, clause SQLClause, dest interface
 
 func exec(ctx context.Context, session Session, clause SQLClause) (result sql.Result, err error) {
 	var query string
-	var args []interface{}
+	var args []any
 	var beginTime = time.Now()
 	defer func() {
 		var rowsAffected int64

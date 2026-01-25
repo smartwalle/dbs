@@ -36,11 +36,11 @@ func (tx *Tx) StmtContext(ctx context.Context, stmt *sql.Stmt) *sql.Stmt {
 	return tx.tx.StmtContext(ctx, stmt)
 }
 
-func (tx *Tx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (tx *Tx) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	return tx.tx.ExecContext(ctx, query, args...)
 }
 
-func (tx *Tx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+func (tx *Tx) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
 	return tx.tx.QueryContext(ctx, query, args...)
 }
 

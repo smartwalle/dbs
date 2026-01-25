@@ -48,7 +48,7 @@ func (db *DeleteBuilder) UseSession(session Session) *DeleteBuilder {
 	return db
 }
 
-func (db *DeleteBuilder) Prefix(sql interface{}, args ...interface{}) *DeleteBuilder {
+func (db *DeleteBuilder) Prefix(sql any, args ...any) *DeleteBuilder {
 	if db.prefixes == nil {
 		db.prefixes = NewClauses(' ')
 	}
@@ -56,7 +56,7 @@ func (db *DeleteBuilder) Prefix(sql interface{}, args ...interface{}) *DeleteBui
 	return db
 }
 
-func (db *DeleteBuilder) Option(sql interface{}, args ...interface{}) *DeleteBuilder {
+func (db *DeleteBuilder) Option(sql any, args ...any) *DeleteBuilder {
 	if db.options == nil {
 		db.options = NewClauses(' ')
 	}
@@ -69,7 +69,7 @@ func (db *DeleteBuilder) Table(table string) *DeleteBuilder {
 	return db
 }
 
-func (db *DeleteBuilder) Where(sql interface{}, args ...interface{}) *DeleteBuilder {
+func (db *DeleteBuilder) Where(sql any, args ...any) *DeleteBuilder {
 	if db.wheres == nil {
 		var conds = AND()
 		conds.ignoreBracket = true
@@ -79,7 +79,7 @@ func (db *DeleteBuilder) Where(sql interface{}, args ...interface{}) *DeleteBuil
 	return db
 }
 
-func (db *DeleteBuilder) OrderBy(sql interface{}, args ...interface{}) *DeleteBuilder {
+func (db *DeleteBuilder) OrderBy(sql any, args ...any) *DeleteBuilder {
 	if db.orderBys == nil {
 		db.orderBys = NewClauses(',')
 	}
@@ -92,7 +92,7 @@ func (db *DeleteBuilder) Limit(limit int64) *DeleteBuilder {
 	return db
 }
 
-func (db *DeleteBuilder) Suffix(sql interface{}, args ...interface{}) *DeleteBuilder {
+func (db *DeleteBuilder) Suffix(sql any, args ...any) *DeleteBuilder {
 	if db.suffixes == nil {
 		db.suffixes = NewClauses(' ')
 	}
@@ -173,7 +173,7 @@ func (db *DeleteBuilder) Write(w Writer) (err error) {
 	return nil
 }
 
-func (db *DeleteBuilder) SQL() (string, []interface{}, error) {
+func (db *DeleteBuilder) SQL() (string, []any, error) {
 	var buffer = NewBuffer()
 	defer buffer.Release()
 
@@ -185,7 +185,7 @@ func (db *DeleteBuilder) SQL() (string, []interface{}, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
-func (db *DeleteBuilder) Scan(ctx context.Context, dest interface{}) error {
+func (db *DeleteBuilder) Scan(ctx context.Context, dest any) error {
 	return scan(ctx, db.session, db, dest)
 }
 

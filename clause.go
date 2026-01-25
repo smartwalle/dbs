@@ -9,19 +9,19 @@ import (
 type SQLClause interface {
 	Write(w Writer) error
 
-	SQL() (string, []interface{}, error)
+	SQL() (string, []any, error)
 }
 
 type Clause struct {
-	sql  interface{}
-	args []interface{}
+	sql  any
+	args []any
 }
 
-func NewClause(sql interface{}, args ...interface{}) Clause {
+func NewClause(sql any, args ...any) Clause {
 	return Clause{sql: sql, args: args}
 }
 
-func SQL(sql interface{}, args ...interface{}) Clause {
+func SQL(sql any, args ...any) Clause {
 	return NewClause(sql, args...)
 }
 
@@ -33,7 +33,7 @@ func (c Clause) Clone() Clause {
 		nc.sql = c.sql
 	}
 	if len(c.args) > 0 {
-		nc.args = make([]interface{}, len(c.args))
+		nc.args = make([]any, len(c.args))
 		for i, arg := range c.args {
 			switch raw := arg.(type) {
 			case SQLClause:
@@ -94,7 +94,7 @@ func (c Clause) Write(w Writer) (err error) {
 	return nil
 }
 
-func (c Clause) SQL() (string, []interface{}, error) {
+func (c Clause) SQL() (string, []any, error) {
 	var buffer = NewBuffer()
 	defer buffer.Release()
 
@@ -104,7 +104,7 @@ func (c Clause) SQL() (string, []interface{}, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
-func buildArgument(w Writer, arg interface{}) (err error) {
+func buildArgument(w Writer, arg any) (err error) {
 	switch raw := arg.(type) {
 	case SQLClause:
 		if err = raw.Write(w); err != nil {
@@ -141,7 +141,7 @@ func buildArgument(w Writer, arg interface{}) (err error) {
 	return nil
 }
 
-func buildClause(w Writer, sql string, args []interface{}) ([]interface{}, error) {
+func buildClause(w Writer, sql string, args []any) ([]any, error) {
 	var err error
 
 	for len(sql) > 0 {
@@ -213,7 +213,7 @@ func (cs *Clauses) Write(w Writer) (err error) {
 	return nil
 }
 
-func (cs *Clauses) SQL() (string, []interface{}, error) {
+func (cs *Clauses) SQL() (string, []any, error) {
 	var buffer = NewBuffer()
 	defer buffer.Release()
 
@@ -233,7 +233,7 @@ func (cs *Clauses) reset() {
 	}
 }
 
-func (cs *Clauses) Append(sql interface{}, args ...interface{}) *Clauses {
+func (cs *Clauses) Append(sql any, args ...any) *Clauses {
 	if raw, ok := sql.(SQLClause); ok {
 		cs.clauses = append(cs.clauses, raw)
 	} else {
@@ -297,7 +297,7 @@ func (cs *Conds) Write(w Writer) (err error) {
 	return nil
 }
 
-func (cs *Conds) SQL() (string, []interface{}, error) {
+func (cs *Conds) SQL() (string, []any, error) {
 	var buffer = NewBuffer()
 	defer buffer.Release()
 
@@ -317,7 +317,7 @@ func (cs *Conds) reset() {
 	}
 }
 
-func (cs *Conds) Append(sql interface{}, args ...interface{}) *Conds {
+func (cs *Conds) Append(sql any, args ...any) *Conds {
 	if raw, ok := sql.(SQLClause); ok {
 		cs.clauses = append(cs.clauses, raw)
 	} else {
@@ -336,10 +336,10 @@ func OR(clauses ...SQLClause) *Conds {
 
 type Set struct {
 	column string
-	value  interface{}
+	value  any
 }
 
-func NewSet(column string, value interface{}) Set {
+func NewSet(column string, value any) Set {
 	return Set{column: column, value: value}
 }
 
@@ -375,7 +375,7 @@ func (sc Set) Write(w Writer) (err error) {
 	return nil
 }
 
-func (sc Set) SQL() (string, []interface{}, error) {
+func (sc Set) SQL() (string, []any, error) {
 	var buffer = NewBuffer()
 	defer buffer.Release()
 
@@ -411,7 +411,7 @@ func (ps Parts) Write(w Writer) (err error) {
 	return nil
 }
 
-func (ps Parts) SQL() (string, []interface{}, error) {
+func (ps Parts) SQL() (string, []any, error) {
 	var buffer = NewBuffer()
 	defer buffer.Release()
 

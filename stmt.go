@@ -121,7 +121,7 @@ func (s *Stmts) PrepareContext(ctx context.Context, query string) (*sql.Stmt, er
 	return s.session.PrepareContext(ctx, query)
 }
 
-func (s *Stmts) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (s *Stmts) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	stmt, err := s.statement(ctx, query)
 	if err != nil {
 		return nil, err
@@ -133,7 +133,7 @@ func (s *Stmts) ExecContext(ctx context.Context, query string, args ...interface
 	return result, err
 }
 
-func (s *Stmts) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+func (s *Stmts) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
 	stmt, err := s.statement(ctx, query)
 	if err != nil {
 		return nil, err
