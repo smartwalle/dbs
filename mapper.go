@@ -20,9 +20,9 @@ const (
 )
 
 type Mapper interface {
-	Encode(src interface{}) (values []FieldValue, err error)
+	Encode(src any) (values []FieldValue, err error)
 
-	Decode(rows *sql.Rows, dest interface{}) (int, error)
+	Decode(rows *sql.Rows, dest any) (int, error)
 }
 
 type mapper struct {
@@ -39,7 +39,7 @@ func NewMapper(tag string) *mapper {
 	return m
 }
 
-func (m *mapper) Encode(src interface{}) (values []FieldValue, err error) {
+func (m *mapper) Encode(src any) (values []FieldValue, err error) {
 	var srcValue = reflect.ValueOf(src)
 	var srcType = srcValue.Type()
 
@@ -66,7 +66,7 @@ func (m *mapper) Encode(src interface{}) (values []FieldValue, err error) {
 	return values, nil
 }
 
-func (m *mapper) Decode(rows *sql.Rows, dest interface{}) (rowsAffected int, err error) {
+func (m *mapper) Decode(rows *sql.Rows, dest any) (rowsAffected int, err error) {
 	if rows == nil {
 		return rowsAffected, sql.ErrNoRows
 	}
@@ -111,27 +111,27 @@ func (m *mapper) Decode(rows *sql.Rows, dest interface{}) (rowsAffected int, err
 	return rowsAffected, nil
 }
 
-func (m *mapper) prepare(destType reflect.Type, columns []*sql.ColumnType) (fields []*fieldMetadata, values []interface{}) {
+func (m *mapper) prepare(destType reflect.Type, columns []*sql.ColumnType) (fields []*fieldMetadata, values []any) {
 	var mStruct, ok = m.getStructMetadata(destType)
 	if !ok {
 		mStruct = m.buildStructMetadata(destType)
 	}
 	fields = make([]*fieldMetadata, len(columns))
-	values = make([]interface{}, len(columns))
+	values = make([]any, len(columns))
 	for idx, column := range columns {
 		var field = mStruct.Field(column.Name())
 		if field != nil {
 			fields[idx] = field
 			values[idx] = field.ValuePool.Get()
 		} else {
-			var val interface{}
+			var val any
 			values[idx] = &val
 		}
 	}
 	return fields, values
 }
 
-func (m *mapper) scanOne(rows *sql.Rows, columns []*sql.ColumnType, dest interface{}, destType reflect.Type, destValue reflect.Value) error {
+func (m *mapper) scanOne(rows *sql.Rows, columns []*sql.ColumnType, dest any, destType reflect.Type, destValue reflect.Value) error {
 	switch destType.Kind() {
 	case reflect.Struct:
 		var fields, values = m.prepare(destType, columns)
@@ -189,7 +189,7 @@ func (m *mapper) scanOne(rows *sql.Rows, columns []*sql.ColumnType, dest interfa
 			case reflect.String:
 				return scanIntoMap[string](rows, true, columns, dest)
 			case reflect.Interface:
-				return scanIntoMap[interface{}](rows, false, columns, dest)
+				return scanIntoMap[any](rows, false, columns, dest)
 			}
 		}
 		return fmt.Errorf("map[%s]%s is unsupported", destType.Key().Kind(), destType.Elem().Kind())
@@ -199,7 +199,7 @@ func (m *mapper) scanOne(rows *sql.Rows, columns []*sql.ColumnType, dest interfa
 	return nil
 }
 
-func (m *mapper) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest interface{}, destType reflect.Type, destValue reflect.Value) error {
+func (m *mapper) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest any, destType reflect.Type, destValue reflect.Value) error {
 	// 获取 slice 元素类型
 	destType = destType.Elem()
 
@@ -303,7 +303,7 @@ func (m *mapper) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest inter
 			case reflect.String:
 				return scanIntoMaps[string](rows, true, columns, dest)
 			case reflect.Interface:
-				return scanIntoMaps[interface{}](rows, false, columns, dest)
+				return scanIntoMaps[any](rows, false, columns, dest)
 			}
 		}
 		return fmt.Errorf("[]map[%s]%s is unsupported", destType.Key().Kind(), destType.Elem().Kind())
@@ -313,7 +313,7 @@ func (m *mapper) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest inter
 	return nil
 }
 
-func scanIntoMap[T any](rows *sql.Rows, specificType bool, columns []*sql.ColumnType, dest interface{}) error {
+func scanIntoMap[T any](rows *sql.Rows, specificType bool, columns []*sql.ColumnType, dest any) error {
 	var mapValue, ok = dest.(*map[string]T)
 	if !ok {
 		return fmt.Errorf("%+v is unsupported", dest)
@@ -324,7 +324,7 @@ func scanIntoMap[T any](rows *sql.Rows, specificType bool, columns []*sql.Column
 	return scanIntoMapValue[T](rows, specificType, columns, *mapValue)
 }
 
-func scanIntoMaps[T any](rows *sql.Rows, specificType bool, columns []*sql.ColumnType, dest interface{}) error {
+func scanIntoMaps[T any](rows *sql.Rows, specificType bool, columns []*sql.ColumnType, dest any) error {
 	var mapValues, ok = dest.(*[]map[string]T)
 	if !ok {
 		return fmt.Errorf("%+v is unsupported", dest)
@@ -349,7 +349,7 @@ func scanIntoMaps[T any](rows *sql.Rows, specificType bool, columns []*sql.Colum
 }
 
 func scanIntoMapValue[T any](rows *sql.Rows, specificType bool, columns []*sql.ColumnType, mapValue map[string]T) error {
-	var values = make([]interface{}, len(columns))
+	var values = make([]any, len(columns))
 	for idx, column := range columns {
 		if !specificType && column.ScanType() != nil {
 			values[idx] = reflect.New(reflect.PointerTo(column.ScanType())).Interface()
@@ -381,7 +381,7 @@ func scanIntoMapValue[T any](rows *sql.Rows, specificType bool, columns []*sql.C
 	return nil
 }
 
-func scanIntoStruct(rows *sql.Rows, columns []*sql.ColumnType, fields []*fieldMetadata, values []interface{}, destValue reflect.Value) error {
+func scanIntoStruct(rows *sql.Rows, columns []*sql.ColumnType, fields []*fieldMetadata, values []any, destValue reflect.Value) error {
 	var isScanner = false
 	if len(columns) == 1 && fields[0] == nil {
 		switch destValue.Addr().Interface().(type) {
@@ -588,5 +588,5 @@ func getValuePool(reflectType reflect.Type) *sync.Pool {
 
 type FieldValue struct {
 	Name  string
-	Value interface{}
+	Value any
 }
