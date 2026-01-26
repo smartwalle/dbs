@@ -8,7 +8,7 @@ import (
 	"github.com/smartwalle/dbs/internal"
 )
 
-// DB 维护一个 master 节点和多个 slave 节点的数据库连接信息，用于实现读写分离操作。
+// DB 维护一个 master 节点和一个 slave 节点的数据库连接信息，用于实现读写分离操作。
 //
 //	执行写（默认为调用 ExecContext() 方法执行的操作）的操作在 master 节点上执行。
 //
