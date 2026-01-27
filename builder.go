@@ -74,7 +74,7 @@ func (rb *Builder) SQL() (string, []any, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
-func (rb *Builder) Scan(ctx context.Context, dest interface{}) error {
+func (rb *Builder) Scan(ctx context.Context, dest any) error {
 	return scan(ctx, rb.session, rb, dest)
 }
 
@@ -82,7 +82,7 @@ func (rb *Builder) Exec(ctx context.Context) (sql.Result, error) {
 	return exec(ctx, rb.session, rb)
 }
 
-func scan(ctx context.Context, session Session, clause SQLClause, dest interface{}) (err error) {
+func scan(ctx context.Context, session Session, clause SQLClause, dest any) (err error) {
 	var query string
 	var args []any
 	var rowsAffected int
@@ -90,7 +90,7 @@ func scan(ctx context.Context, session Session, clause SQLClause, dest interface
 	if logger != nil {
 		var beginTime = time.Now()
 		defer func() {
-			session.Logger().Trace(ctx, 4, beginTime, query, args, int64(rowsAffected), err)
+			logger.Trace(ctx, 4, beginTime, query, args, int64(rowsAffected), err)
 		}()
 	}
 
@@ -122,7 +122,7 @@ func exec(ctx context.Context, session Session, clause SQLClause) (result sql.Re
 			if result != nil {
 				rowsAffected, _ = result.RowsAffected()
 			}
-			session.Logger().Trace(ctx, 4, beginTime, query, args, rowsAffected, err)
+			logger.Trace(ctx, 4, beginTime, query, args, rowsAffected, err)
 		}()
 	}
 

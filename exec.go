@@ -13,7 +13,7 @@ func Query[T any](ctx context.Context, session Session, query string, args ...an
 	if logger != nil {
 		var beginTime = time.Now()
 		defer func() {
-			session.Logger().Trace(ctx, 3, beginTime, query, args, int64(rowsAffected), err)
+			logger.Trace(ctx, 3, beginTime, query, args, int64(rowsAffected), err)
 		}()
 	}
 
@@ -38,7 +38,7 @@ func Exec(ctx context.Context, session Session, query string, args ...any) (resu
 			if result != nil {
 				rowsAffected, _ = result.RowsAffected()
 			}
-			session.Logger().Trace(ctx, 3, beginTime, query, args, rowsAffected, err)
+			logger.Trace(ctx, 3, beginTime, query, args, rowsAffected, err)
 		}()
 	}
 	return session.ExecContext(ctx, query, args...)
