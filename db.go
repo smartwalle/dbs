@@ -5,6 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/smartwalle/dbs/internal"
+	"github.com/smartwalle/dbs/logger"
 )
 
 var ErrNoRows = sql.ErrNoRows
@@ -66,7 +67,7 @@ type DB struct {
 func New(db *sql.DB) *DB {
 	var ndb = &DB{}
 	ndb.db = db
-	ndb.logger = NewLogger()
+	ndb.logger = logger.New()
 	ndb.mapper = NewMapper(kTagSQL)
 	return ndb
 }
@@ -98,9 +99,7 @@ func (db *DB) Logger() Logger {
 }
 
 func (db *DB) UseLogger(logger Logger) {
-	if logger != nil {
-		db.logger = logger
-	}
+	db.logger = logger
 }
 
 func (db *DB) Mapper() Mapper {

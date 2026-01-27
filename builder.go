@@ -86,10 +86,13 @@ func scan(ctx context.Context, session Session, clause SQLClause, dest interface
 	var query string
 	var args []any
 	var rowsAffected int
-	var beginTime = time.Now()
-	defer func() {
-		session.Logger().Trace(ctx, 4, beginTime, query, args, int64(rowsAffected), err)
-	}()
+	var logger = session.Logger()
+	if logger != nil {
+		var beginTime = time.Now()
+		defer func() {
+			session.Logger().Trace(ctx, 4, beginTime, query, args, int64(rowsAffected), err)
+		}()
+	}
 
 	if query, args, err = clause.SQL(); err != nil {
 		return err
@@ -111,14 +114,17 @@ func scan(ctx context.Context, session Session, clause SQLClause, dest interface
 func exec(ctx context.Context, session Session, clause SQLClause) (result sql.Result, err error) {
 	var query string
 	var args []any
-	var beginTime = time.Now()
-	defer func() {
-		var rowsAffected int64
-		if result != nil {
-			rowsAffected, _ = result.RowsAffected()
-		}
-		session.Logger().Trace(ctx, 4, beginTime, query, args, rowsAffected, err)
-	}()
+	var logger = session.Logger()
+	if logger != nil {
+		var beginTime = time.Now()
+		defer func() {
+			var rowsAffected int64
+			if result != nil {
+				rowsAffected, _ = result.RowsAffected()
+			}
+			session.Logger().Trace(ctx, 4, beginTime, query, args, rowsAffected, err)
+		}()
+	}
 
 	if query, args, err = clause.SQL(); err != nil {
 		return nil, err
