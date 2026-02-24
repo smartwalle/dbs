@@ -219,8 +219,12 @@ func (ub *UpdateBuilder) SQL() (string, []any, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
-func (ub *UpdateBuilder) Scan(ctx context.Context, dest interface{}) error {
+func (ub *UpdateBuilder) Scan(ctx context.Context, dest any) error {
 	return scan(ctx, ub.session, ub, dest)
+}
+
+func (ub *UpdateBuilder) ScanRow(ctx context.Context, dest ...any) error {
+	return scanRow(ctx, ub.session, ub, dest...)
 }
 
 func (ub *UpdateBuilder) Exec(ctx context.Context) (sql.Result, error) {

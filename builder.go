@@ -78,6 +78,10 @@ func (rb *Builder) Scan(ctx context.Context, dest any) error {
 	return scan(ctx, rb.session, rb, dest)
 }
 
+func (rb *Builder) ScanRow(ctx context.Context, dest ...any) error {
+	return scanRow(ctx, rb.session, rb, dest...)
+}
+
 func (rb *Builder) Exec(ctx context.Context) (sql.Result, error) {
 	return exec(ctx, rb.session, rb)
 }
@@ -108,6 +112,35 @@ func scan(ctx context.Context, session Session, clause SQLClause, dest any) (err
 	if rowsAffected, err = session.Mapper().Decode(rows, dest); err != nil && !errors.Is(err, ErrNoRows) {
 		return err
 	}
+	return nil
+}
+
+func scanRow(ctx context.Context, session Session, clause SQLClause, dest ...any) (err error) {
+	var query string
+	var args []any
+	var rowsAffected int
+	var logger = session.Logger()
+	if logger != nil {
+		var beginTime = time.Now()
+		defer func() {
+			logger.Trace(ctx, 4, beginTime, query, args, int64(rowsAffected), err)
+		}()
+	}
+
+	if query, args, err = clause.SQL(); err != nil {
+		return err
+	}
+
+	var row = session.QueryRowContext(ctx, query, args...)
+	err = row.Err()
+	if err != nil {
+		return err
+	}
+
+	if err = row.Scan(dest...); err != nil {
+		return err
+	}
+	rowsAffected = 1
 	return nil
 }
 

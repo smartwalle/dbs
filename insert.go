@@ -200,8 +200,12 @@ func (ib *InsertBuilder) SQL() (string, []any, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
-func (ib *InsertBuilder) Scan(ctx context.Context, dest interface{}) error {
+func (ib *InsertBuilder) Scan(ctx context.Context, dest any) error {
 	return scan(ctx, ib.session, ib, dest)
+}
+
+func (ib *InsertBuilder) ScanRow(ctx context.Context, dest ...any) error {
+	return scanRow(ctx, ib.session, ib, dest...)
 }
 
 func (ib *InsertBuilder) Exec(ctx context.Context) (sql.Result, error) {

@@ -324,6 +324,10 @@ func (sb *SelectBuilder) Count() *SelectBuilder {
 	return nsb
 }
 
-func (sb *SelectBuilder) Scan(ctx context.Context, dest interface{}) error {
+func (sb *SelectBuilder) Scan(ctx context.Context, dest any) error {
 	return scan(ctx, sb.session, sb, dest)
+}
+
+func (sb *SelectBuilder) ScanRow(ctx context.Context, dest ...any) error {
+	return scanRow(ctx, sb.session, sb, dest...)
 }

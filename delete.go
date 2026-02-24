@@ -189,6 +189,10 @@ func (db *DeleteBuilder) Scan(ctx context.Context, dest any) error {
 	return scan(ctx, db.session, db, dest)
 }
 
+func (db *DeleteBuilder) ScanRow(ctx context.Context, dest ...any) error {
+	return scanRow(ctx, db.session, db, dest...)
+}
+
 func (db *DeleteBuilder) Exec(ctx context.Context) (sql.Result, error) {
 	return exec(ctx, db.session, db)
 }
