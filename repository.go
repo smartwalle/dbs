@@ -11,7 +11,7 @@ type Entity interface {
 	PrimaryKey() string
 }
 
-type Repositoy[E Entity] interface {
+type Repository[E Entity] interface {
 	TableName() string
 
 	Database() Database
@@ -44,7 +44,7 @@ type repository[E Entity] struct {
 	db     Database
 }
 
-func NewRepository[E Entity](db Database) Repositoy[E] {
+func NewRepository[E Entity](db Database) Repository[E] {
 	var r = &repository[E]{}
 	r.db = db
 	return r
