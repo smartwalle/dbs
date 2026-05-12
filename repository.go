@@ -32,9 +32,11 @@ type Repository[E Entity] interface {
 
 	Find(ctx context.Context, id any, columns string) (*E, error)
 
-	FindOne(ctx context.Context, columns string, conds string, args ...any) (*E, error)
+	FindOne(ctx context.Context, columns, conds string, args ...any) (*E, error)
 
-	FindList(ctx context.Context, columns string, conds string, args ...any) ([]*E, error)
+	FindList(ctx context.Context, columns, conds string, args ...any) ([]*E, error)
+
+	FindOrderedList(ctx context.Context, columns, orderBy, conds string, args ...any) (entityList []*E, err error)
 
 	Transaction(ctx context.Context, fn func(ctx context.Context) error, opts ...*sql.TxOptions) error
 }
@@ -142,9 +144,21 @@ func (r *repository[E]) FindOne(ctx context.Context, columns string, conds strin
 	return entity, nil
 }
 
-func (r *repository[E]) FindList(ctx context.Context, columns string, conds string, args ...any) (entityList []*E, err error) {
+func (r *repository[E]) FindList(ctx context.Context, columns, conds string, args ...any) (entityList []*E, err error) {
 	var sb = r.SelectBuilder(ctx)
 	sb.Selects(columns)
+	sb.Where(conds, args...)
+
+	if err = sb.Scan(ctx, &entityList); err != nil {
+		return nil, err
+	}
+	return entityList, nil
+}
+
+func (r *repository[E]) FindOrderedList(ctx context.Context, columns, orderBy, conds string, args ...any) (entityList []*E, err error) {
+	var sb = r.SelectBuilder(ctx)
+	sb.Selects(columns)
+	sb.OrderBy(orderBy)
 	sb.Where(conds, args...)
 
 	if err = sb.Scan(ctx, &entityList); err != nil {
