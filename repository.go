@@ -180,7 +180,7 @@ func (r *repository[E]) Transaction(ctx context.Context, fn func(ctx context.Con
 		}
 		defer func() {
 			if err != nil {
-				tx.Rollback()
+				_ = tx.Rollback()
 			}
 		}()
 
