@@ -56,7 +56,7 @@ func (tx *Tx) Rollback() error {
 	return tx.tx.Rollback()
 }
 
-func (tx *Tx) ToContext(ctx context.Context) context.Context {
+func (tx *Tx) WithContext(ctx context.Context) context.Context {
 	return context.WithValue(ctx, internal.TxSessionKey{}, tx)
 }
 

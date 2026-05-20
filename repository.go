@@ -5,6 +5,10 @@ import (
 	"database/sql"
 )
 
+const (
+	repositoryDepth = 5
+)
+
 type Entity interface {
 	TableName() string
 
@@ -104,20 +108,20 @@ func (r *repository[E]) Create(ctx context.Context, entity *E) (sql.Result, erro
 	var ib = r.InsertBuilder(ctx)
 	ib.Columns(columns...)
 	ib.Values(values...)
-	return ib.Exec(ctx)
+	return ib.Exec(withDepth(ctx, repositoryDepth))
 }
 
 func (r *repository[E]) Delete(ctx context.Context, id any) (sql.Result, error) {
 	var rb = r.DeleteBuilder(ctx)
 	rb.Where(r.entity.PrimaryKey()+" = ?", id)
-	return rb.Exec(ctx)
+	return rb.Exec(withDepth(ctx, repositoryDepth))
 }
 
 func (r *repository[E]) Update(ctx context.Context, id any, values map[string]any) (sql.Result, error) {
 	var ub = r.UpdateBuilder(ctx)
 	ub.SetValues(values)
 	ub.Where(r.entity.PrimaryKey()+" = ?", id)
-	return ub.Exec(ctx)
+	return ub.Exec(withDepth(ctx, repositoryDepth))
 }
 
 func (r *repository[E]) Find(ctx context.Context, id any, columns string) (entity *E, err error) {
@@ -126,7 +130,7 @@ func (r *repository[E]) Find(ctx context.Context, id any, columns string) (entit
 	sb.Limit(1)
 	sb.Where(r.entity.PrimaryKey()+" = ?", id)
 
-	if err = sb.Scan(ctx, &entity); err != nil {
+	if err = sb.Scan(withDepth(ctx, repositoryDepth), &entity); err != nil {
 		return nil, err
 	}
 	return entity, nil
@@ -138,7 +142,7 @@ func (r *repository[E]) FindOne(ctx context.Context, columns string, conds strin
 	sb.Limit(1)
 	sb.Where(conds, args...)
 
-	if err = sb.Scan(ctx, &entity); err != nil {
+	if err = sb.Scan(withDepth(ctx, repositoryDepth), &entity); err != nil {
 		return nil, err
 	}
 	return entity, nil
@@ -149,7 +153,7 @@ func (r *repository[E]) FindList(ctx context.Context, columns, conds string, arg
 	sb.Selects(columns)
 	sb.Where(conds, args...)
 
-	if err = sb.Scan(ctx, &entityList); err != nil {
+	if err = sb.Scan(withDepth(ctx, repositoryDepth), &entityList); err != nil {
 		return nil, err
 	}
 	return entityList, nil
@@ -161,7 +165,7 @@ func (r *repository[E]) FindOrderedList(ctx context.Context, columns, orderBy, c
 	sb.OrderBy(orderBy)
 	sb.Where(conds, args...)
 
-	if err = sb.Scan(ctx, &entityList); err != nil {
+	if err = sb.Scan(withDepth(ctx, repositoryDepth), &entityList); err != nil {
 		return nil, err
 	}
 	return entityList, nil
@@ -184,7 +188,7 @@ func (r *repository[E]) Transaction(ctx context.Context, fn func(ctx context.Con
 			}
 		}()
 
-		if err = fn(tx.ToContext(ctx)); err != nil {
+		if err = fn(tx.WithContext(ctx)); err != nil {
 			return err
 		}
 		return tx.Commit()
