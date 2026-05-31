@@ -40,7 +40,7 @@ type Repository[E Entity] interface {
 
 	FindList(ctx context.Context, columns, conds string, args ...any) ([]*E, error)
 
-	FindOrderedList(ctx context.Context, columns, orderBy, conds string, args ...any) (entityList []*E, err error)
+	FindOrderedList(ctx context.Context, columns, orderBy, conds string, args ...any) ([]*E, error)
 
 	Transaction(ctx context.Context, fn func(ctx context.Context) error, opts ...*sql.TxOptions) error
 }
