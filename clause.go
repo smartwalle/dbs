@@ -2,6 +2,7 @@ package dbs
 
 import (
 	"database/sql/driver"
+	"errors"
 	"reflect"
 	"strings"
 )
@@ -122,6 +123,9 @@ func buildArgument(w Writer, arg any) (err error) {
 		var value = reflect.ValueOf(raw)
 		var kind = value.Kind()
 		if kind == reflect.Slice || kind == reflect.Array {
+			if value.Len() == 0 {
+				return errors.New("empty slice or array argument")
+			}
 			for idx := 0; idx < value.Len(); idx++ {
 				if idx != 0 {
 					if err = w.WriteByte(','); err != nil {
