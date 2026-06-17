@@ -178,9 +178,34 @@ func TestClause_SQL(t *testing.T) {
 			ExpectArgs: ExpectArgs(10, 100),
 		},
 		{
-			Clause:     dbs.NewSelectBuilder().Table("user u").Selects("u.id,u.name,u.age").Where("u.id < ?", 100).Limit(10).Offset(10).Count(),
+			Clause:     dbs.NewSelectBuilder().Table("user u").Selects("u.id,u.name,u.age").Where("u.id < ?", 100).OrderBy("u.id DESC").Limit(10).Offset(10).Suffix("FOR UPDATE").Count(),
 			ExpectSQL:  "SELECT COUNT(1) FROM user u WHERE u.id < ?",
 			ExpectArgs: ExpectArgs(100),
+		},
+		{
+			Clause: dbs.NewSelectBuilder().
+				Table("orders").
+				Selects("user_id,COUNT(1) total").
+				Where("status = ?", 1).
+				GroupBy("user_id").
+				Having("COUNT(1) > ?", 10).
+				OrderBy("total DESC").
+				Limit(10).
+				Offset(20).
+				Suffix("FOR UPDATE").
+				CountGroupBy("1"),
+			ExpectSQL:  "SELECT COUNT(1) FROM (SELECT 1 FROM orders WHERE status = ? GROUP BY user_id HAVING COUNT(1) > ?) AS count_query",
+			ExpectArgs: ExpectArgs(1, 10),
+		},
+		{
+			Clause: dbs.NewSelectBuilder().
+				Table("orders").
+				Selects("user_id").
+				Where("status = ?", 1).
+				OrderBy("user_id ASC").
+				CountDistinct("user_id"),
+			ExpectSQL:  "SELECT COUNT(1) FROM (SELECT DISTINCT user_id FROM orders WHERE status = ?) AS count_query",
+			ExpectArgs: ExpectArgs(1),
 		},
 		{
 			Clause:     dbs.NewInsertBuilder().Table("user").Columns("name,age").Values(1, 2),

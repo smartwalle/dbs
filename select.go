@@ -304,24 +304,45 @@ func (sb *SelectBuilder) SQL() (string, []any, error) {
 }
 
 func (sb *SelectBuilder) Count() *SelectBuilder {
-	if len(sb.groupBys) > 0 || sb.having.valid() {
-		var sub = sb.Clone()
-		sub.orderBys = nil
-		sub.limit = nil
-		sub.offset = nil
-
-		var nsb = NewSelectBuilder()
-		nsb.dialect = sb.dialect
-		nsb.session = sb.session
-		nsb.From("(?) AS count_query", sub)
-		nsb.Columns("COUNT(1)")
-		return nsb
-	}
-
 	var nsb = sb.Clone()
 	nsb.limit = nil
 	nsb.offset = nil
 	nsb.orderBys = nil
+	nsb.suffixes = nil
+	nsb.Columns("COUNT(1)")
+	return nsb
+}
+
+func (sb *SelectBuilder) CountDistinct(columns ...string) *SelectBuilder {
+	var sub = sb.Clone()
+	sub.limit = nil
+	sub.offset = nil
+	sub.orderBys = nil
+	sub.suffixes = nil
+	sub.options = NewClauses(' ', SQL("DISTINCT"))
+	if len(columns) > 0 {
+		sub.Columns(columns...)
+	}
+	return sb.countSubQuery(sub)
+}
+
+func (sb *SelectBuilder) CountGroupBy(columns ...string) *SelectBuilder {
+	var sub = sb.Clone()
+	sub.limit = nil
+	sub.offset = nil
+	sub.orderBys = nil
+	sub.suffixes = nil
+	if len(columns) > 0 {
+		sub.Columns(columns...)
+	}
+	return sb.countSubQuery(sub)
+}
+
+func (sb *SelectBuilder) countSubQuery(subQuery *SelectBuilder) *SelectBuilder {
+	var nsb = NewSelectBuilder()
+	nsb.dialect = sb.dialect
+	nsb.session = sb.session
+	nsb.From("(?) AS count_query", subQuery)
 	nsb.Columns("COUNT(1)")
 	return nsb
 }
