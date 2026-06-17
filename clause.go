@@ -394,12 +394,13 @@ func (ps Parts) Clone() Parts {
 }
 
 func (ps Parts) Write(w Writer) (err error) {
-	for idx, s := range ps {
+	var written int
+	for _, s := range ps {
 		if len(s) == 0 {
 			continue
 		}
 
-		if idx != 0 {
+		if written != 0 {
 			if err = w.WriteByte(','); err != nil {
 				return err
 			}
@@ -407,6 +408,7 @@ func (ps Parts) Write(w Writer) (err error) {
 		if _, err = w.WriteString(s); err != nil {
 			return err
 		}
+		written++
 	}
 	return nil
 }
