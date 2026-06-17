@@ -97,12 +97,24 @@ func (s *Stmts) statement(ctx context.Context, query string) (*sql.Stmt, error) 
 
 func (s *Stmts) Close() error {
 	s.mu.Lock()
+	stmts := make([]*Stmt, 0, len(s.stmts))
 	for _, stmt := range s.stmts {
-		go stmt.stmt.Close()
+		stmts = append(stmts, stmt)
 	}
 	s.stmts = make(map[string]*Stmt)
 	s.mu.Unlock()
-	return nil
+
+	var err error
+	for _, stmt := range stmts {
+		<-stmt.prepared
+		if stmt.stmt == nil {
+			continue
+		}
+		if nErr := stmt.stmt.Close(); nErr != nil && err == nil {
+			err = nErr
+		}
+	}
+	return err
 }
 
 func (s *Stmts) Dialect() Dialect {
