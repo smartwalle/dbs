@@ -17,6 +17,8 @@ type InsertBuilder struct {
 	suffixes *Clauses
 }
 
+var ErrInsertValuesCountMismatch = errors.New("dbs: insert clause values count does not match columns")
+
 func NewInsertBuilder() *InsertBuilder {
 	var ib = &InsertBuilder{}
 	return ib
@@ -73,7 +75,9 @@ func (ib *InsertBuilder) Table(table string) *InsertBuilder {
 }
 
 func (ib *InsertBuilder) Values(values ...any) *InsertBuilder {
-	ib.values = append(ib.values, values)
+	if len(values) > 0 {
+		ib.values = append(ib.values, values)
+	}
 	return ib
 }
 

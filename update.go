@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"sort"
 )
 
 type UpdateBuilder struct {
@@ -72,18 +73,23 @@ func (ub *UpdateBuilder) Table(table string) *UpdateBuilder {
 }
 
 func (ub *UpdateBuilder) Set(column string, value any) *UpdateBuilder {
-	ub.sets = append(ub.sets, NewSet(column, value))
+	if column != "" {
+		ub.sets = append(ub.sets, NewSet(column, value))
+	}
 	return ub
 }
 
 func (ub *UpdateBuilder) SetValues(values map[string]any) *UpdateBuilder {
-	var sets = make([]Set, len(values))
-	var idx = 0
-	for key, value := range values {
-		sets[idx] = NewSet(key, value)
-		idx++
+	if len(values) > 0 {
+		var keys = make([]string, 0, len(values))
+		for key := range values {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			ub.Set(key, values[key])
+		}
 	}
-	ub.sets = append(ub.sets, sets...)
 	return ub
 }
 

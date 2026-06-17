@@ -233,6 +233,14 @@ func TestClause_SQL(t *testing.T) {
 			ExpectArgs: ExpectArgs("n1", 10, 12),
 		},
 		{
+			Clause: dbs.NewUpdateBuilder().
+				Table("user").
+				SetValues(map[string]any{"name": "n1", "age": 10}).
+				Where("id = ?", 12),
+			ExpectSQL:  "UPDATE user SET age=?,name=? WHERE id = ?",
+			ExpectArgs: ExpectArgs(10, "n1", 12),
+		},
+		{
 			Clause:     dbs.NewUpdateBuilder().Table("user").Set("age", dbs.SQL("age+?", 10)).Where("id > ?", 100),
 			ExpectSQL:  "UPDATE user SET age=age+? WHERE id > ?",
 			ExpectArgs: ExpectArgs(10, 100),
