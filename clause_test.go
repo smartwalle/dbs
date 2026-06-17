@@ -1,6 +1,7 @@
 package dbs_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/smartwalle/dbs"
@@ -36,6 +37,7 @@ func TestClause_SQL(t *testing.T) {
 		Clause     dbs.SQLClause
 		ExpectSQL  string
 		ExpectArgs []any
+		ExpectErr  error
 	}{
 		{
 			Clause:     dbs.SQL("id = ?", 1),
@@ -214,9 +216,24 @@ func TestClause_SQL(t *testing.T) {
 			ExpectSQL:  "SELECT t.id,t.name FROM (SELECT s.id,s.name FROM student s WHERE s.id < ? UNION ALL SELECT t.id,t.name FROM teacher t WHERE t.id < ?) t",
 			ExpectArgs: ExpectArgs(100, 1000),
 		},
+		{
+			Clause:    dbs.SQL("id = ? AND name = ?", 1),
+			ExpectErr: dbs.ErrMissingArgument,
+		},
+		{
+			Clause:    dbs.SQL("id = ?", 1, "foo"),
+			ExpectErr: dbs.ErrTooManyArguments,
+		},
 	}
 
 	for _, test := range tests {
+		if test.ExpectErr != nil {
+			_, _, err := test.Clause.SQL()
+			if !errors.Is(err, test.ExpectErr) {
+				t.Fatalf("期望错误: %v, 实际错误: %v", test.ExpectErr, err)
+			}
+			continue
+		}
 		checkClause(t, test.Clause, test.ExpectSQL, test.ExpectArgs)
 	}
 }
