@@ -13,6 +13,9 @@ type SQLClause interface {
 	SQL() (string, []any, error)
 }
 
+var ErrMissingArgument = errors.New("missing argument")
+var ErrTooManyArguments = errors.New("too many arguments")
+
 type Clause struct {
 	sql  any
 	args []any
@@ -62,35 +65,7 @@ func (c Clause) Write(w Writer) (err error) {
 	}
 
 	if len(args) > 0 {
-		// 1 - 返回错误
-		//return errors.New("参数数量错误")
-
-		// 2 - 将多余的参数直接追加到参数列表中
-		for _, arg := range args {
-			if err = w.WriteArgument(FlagArgument, arg); err != nil {
-				return err
-			}
-		}
-
-		// 3 - 将多余的参数进行处理并追加到参数列表中
-		//for _, arg := range args[offset:] {
-		//	switch raw := arg.(type) {
-		//	case SQLClause:
-		//		//if err = w.WriteByte('('); err != nil {
-		//		//	return err
-		//		//}
-		//		if err = raw.Write(w); err != nil {
-		//			return err
-		//		}
-		//		//if err = w.WriteByte(')'); err != nil {
-		//		//	return err
-		//		//}
-		//	default:
-		//		w.WriteArguments(raw)
-		//	}
-		//}
-		//
-		// 4 - 直接丢弃
+		return ErrTooManyArguments
 	}
 	return nil
 }
@@ -163,9 +138,7 @@ func buildClause(w Writer, sql string, args []any) ([]any, error) {
 			}
 			args = args[1:]
 		} else {
-			if err = w.WriteArgument(FlagPlaceholder, nil); err != nil {
-				return nil, err
-			}
+			return nil, ErrMissingArgument
 		}
 
 		sql = sql[pos+1:]
