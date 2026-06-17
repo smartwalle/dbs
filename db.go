@@ -3,6 +3,8 @@ package dbs
 import (
 	"context"
 	"database/sql"
+	"sync/atomic"
+	"unsafe"
 
 	"github.com/smartwalle/dbs/internal"
 	"github.com/smartwalle/dbs/logger"
@@ -48,7 +50,7 @@ func Open(driver, url string, maxOpen, maxIdle int) (*DB, error) {
 	}
 
 	if err = db.Ping(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, err
 	}
 
@@ -58,7 +60,7 @@ func Open(driver, url string, maxOpen, maxIdle int) (*DB, error) {
 }
 
 type DB struct {
-	db      *sql.DB
+	db      unsafe.Pointer
 	dialect Dialect
 	logger  Logger
 	mapper  Mapper
@@ -66,22 +68,36 @@ type DB struct {
 
 func New(db *sql.DB) *DB {
 	var ndb = &DB{}
-	ndb.db = db
-	ndb.logger = logger.New()
-	ndb.mapper = NewMapper(kTagSQL)
+	ndb.UseDB(db)
+	ndb.UseLogger(logger.New())
+	ndb.UseMapper(NewMapper(kTagSQL))
 	return ndb
 }
 
+// UseDB 替换底层的 *sql.DB。
+//
+// ndb 不能为 nil。替换已有数据库时，调用方应该先获取旧的 *sql.DB，
+// 并在替换后延迟关闭，尽量确保旧连接上的相关操作已经完成：
+//
+//	oldDB := db.DB()
+//	db.UseDB(newDB)
+//	time.AfterFunc(2*time.Second, func() {
+//		_ = oldDB.Close()
+//	})
+func (db *DB) UseDB(ndb *sql.DB) {
+	atomic.StorePointer(&db.db, unsafe.Pointer(ndb))
+}
+
 func (db *DB) DB() *sql.DB {
-	return db.db
+	return (*sql.DB)(atomic.LoadPointer(&db.db))
 }
 
 func (db *DB) Ping() error {
-	return db.db.Ping()
+	return db.DB().Ping()
 }
 
 func (db *DB) PingContext(ctx context.Context) error {
-	return db.db.PingContext(ctx)
+	return db.DB().PingContext(ctx)
 }
 
 func (db *DB) Dialect() Dialect {
@@ -121,23 +137,23 @@ func (db *DB) Session(ctx context.Context) Session {
 }
 
 func (db *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
-	return db.db.PrepareContext(ctx, query)
+	return db.DB().PrepareContext(ctx, query)
 }
 
 func (db *DB) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
-	return db.db.ExecContext(ctx, query, args...)
+	return db.DB().ExecContext(ctx, query, args...)
 }
 
 func (db *DB) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
-	return db.db.QueryContext(ctx, query, args...)
+	return db.DB().QueryContext(ctx, query, args...)
 }
 
 func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
-	return db.db.QueryRowContext(ctx, query, args...)
+	return db.DB().QueryRowContext(ctx, query, args...)
 }
 
 func (db *DB) Close() error {
-	return db.db.Close()
+	return db.DB().Close()
 }
 
 func (db *DB) Begin(ctx context.Context) (*Tx, error) {
@@ -145,7 +161,7 @@ func (db *DB) Begin(ctx context.Context) (*Tx, error) {
 }
 
 func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
-	tx, err := db.db.BeginTx(ctx, opts)
+	tx, err := db.DB().BeginTx(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
