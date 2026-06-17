@@ -15,7 +15,7 @@ type SelectBuilder struct {
 	joins    *Clauses
 	wheres   *Conds
 	groupBys Parts
-	having   *Clauses
+	having   *Conds
 	orderBys *Clauses
 	limit    SQLClause
 	offset   SQLClause
@@ -146,7 +146,9 @@ func (sb *SelectBuilder) GroupBy(groupBys ...string) *SelectBuilder {
 
 func (sb *SelectBuilder) Having(sql any, args ...any) *SelectBuilder {
 	if sb.having == nil {
-		sb.having = NewClauses(' ')
+		var conds = AND()
+		conds.ignoreBracket = true
+		sb.having = conds
 	}
 	sb.having.Append(sql, args...)
 	return sb

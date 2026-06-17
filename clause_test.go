@@ -168,6 +168,16 @@ func TestClause_SQL(t *testing.T) {
 			ExpectArgs: ExpectArgs(100, 31, 32, 33, 1, 2, 3, 4, 5, 6, int64(10), int64(20)),
 		},
 		{
+			Clause: dbs.NewSelectBuilder().
+				Table("order").
+				Selects("user_id,COUNT(1) total").
+				GroupBy("user_id").
+				Having("COUNT(1) > ?", 10).
+				Having("SUM(amount) > ?", 100),
+			ExpectSQL:  "SELECT user_id,COUNT(1) total FROM order GROUP BY user_id HAVING COUNT(1) > ? AND SUM(amount) > ?",
+			ExpectArgs: ExpectArgs(10, 100),
+		},
+		{
 			Clause:     dbs.NewSelectBuilder().Table("user u").Selects("u.id,u.name,u.age").Where("u.id < ?", 100).Limit(10).Offset(10).Count(),
 			ExpectSQL:  "SELECT COUNT(1) FROM user u WHERE u.id < ?",
 			ExpectArgs: ExpectArgs(100),
