@@ -464,10 +464,14 @@ func scanIntoStruct(rows *sql.Rows, columns []*sql.ColumnType, fields []*fieldMe
 			}
 		} else if len(columns) == 1 && !isScanner {
 			var value = reflect.ValueOf(values[idx]).Elem().Elem()
-			if value.IsValid() {
-				destValue.Set(value)
-			} else {
+			if !value.IsValid() {
 				destValue.Set(reflect.Zero(destValue.Type()))
+			} else if value.Type().AssignableTo(destValue.Type()) {
+				destValue.Set(value)
+			} else if value.Type().ConvertibleTo(destValue.Type()) {
+				destValue.Set(value.Convert(destValue.Type()))
+			} else {
+				return fmt.Errorf("dbs: cannot assign column %q value of type %s to %s", columns[idx].Name(), value.Type(), destValue.Type())
 			}
 		}
 	}
