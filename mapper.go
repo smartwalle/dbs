@@ -59,7 +59,10 @@ func (m *mapper) Encode(src any) (values []FieldValue, err error) {
 			continue
 		}
 
-		var value = srcValue.FieldByIndex(field.Index)
+		var value, found = findFieldByIndex(srcValue, field.Index)
+		if !found {
+			continue
+		}
 		if field.AutoIncrement && value.IsZero() {
 			continue
 		}
@@ -476,6 +479,19 @@ func base(destType reflect.Type, destValue reflect.Value) (reflect.Type, reflect
 	return destType, destValue
 }
 
+func findFieldByIndex(value reflect.Value, index []int) (reflect.Value, bool) {
+	for i, x := range index {
+		if i > 0 && value.Kind() == reflect.Pointer && value.Type().Elem().Kind() == reflect.Struct {
+			if value.IsNil() {
+				return reflect.Value{}, false
+			}
+			value = value.Elem()
+		}
+		value = value.Field(x)
+	}
+	return value, true
+}
+
 func fieldByIndex(value reflect.Value, index []int) reflect.Value {
 	if len(index) == 1 {
 		return value.Field(index[0])
@@ -552,7 +568,7 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 			if tag == "" {
 				tag = fieldStruct.Name
 
-				if fieldStruct.Type.Kind() == reflect.Ptr {
+				if fieldStruct.Type.Kind() == reflect.Ptr && fieldStruct.Type.Elem().Kind() == reflect.Struct {
 					queue = append(queue, element{
 						Type:  fieldStruct.Type.Elem(),
 						Index: append(current.Index, i),
