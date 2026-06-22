@@ -71,7 +71,7 @@ func (m *mapper) Decode(rows *sql.Rows, dest any) (rowsAffected int, err error) 
 		return rowsAffected, sql.ErrNoRows
 	}
 
-	if err := rows.Err(); err != nil {
+	if err = rows.Err(); err != nil {
 		return rowsAffected, err
 	}
 
@@ -81,6 +81,9 @@ func (m *mapper) Decode(rows *sql.Rows, dest any) (rowsAffected int, err error) 
 	}
 
 	if !rows.Next() {
+		if err = rows.Err(); err != nil {
+			return rowsAffected, err
+		}
 		return rowsAffected, sql.ErrNoRows
 	}
 
@@ -241,6 +244,9 @@ func (m *mapper) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest any, 
 				break
 			}
 		}
+		if err := rows.Err(); err != nil {
+			return err
+		}
 
 		if len(nList) > 0 {
 			destValue.Set(reflect.Append(destValue, nList...))
@@ -267,6 +273,9 @@ func (m *mapper) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest any, 
 			if !rows.Next() {
 				break
 			}
+		}
+		if err := rows.Err(); err != nil {
+			return err
 		}
 		if len(nList) > 0 {
 			destValue.Set(reflect.Append(destValue, nList...))
@@ -344,6 +353,9 @@ func scanIntoMaps[T any](rows *sql.Rows, specificType bool, columns []*sql.Colum
 		if !rows.Next() {
 			break
 		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
 	}
 	return nil
 }
