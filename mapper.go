@@ -596,15 +596,17 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 			}
 
 			var tagValues = strings.Split(tag, kTagSeparator)
-			var tagMap = make(map[string]bool)
-			for _, tagValue := range tagValues {
-				tagMap[strings.ToLower(tagValue)] = true
+			var fieldName = strings.TrimSpace(tagValues[0])
+			if fieldName == "" {
+				continue
 			}
-
-			var fieldName = tagValues[0]
-
 			if _, ok = fields[fieldName]; ok {
 				continue
+			}
+
+			var tagMap = make(map[string]bool)
+			for _, tagValue := range tagValues {
+				tagMap[strings.ToLower(strings.TrimSpace(tagValue))] = true
 			}
 
 			var field = &fieldMetadata{}
