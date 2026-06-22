@@ -393,7 +393,7 @@ func scanIntoMaps[T any](rows *sql.Rows, specificType bool, columns []*sql.Colum
 	return nil
 }
 
-func scanIntoMapValue[T any](rows *sql.Rows, specificType bool, columns []*sql.ColumnType, mapValue map[string]T) error {
+func scanIntoMapValue[T any](rows *sql.Rows, specificType bool, columns []*sql.ColumnType, mapValue map[string]T) (err error) {
 	var values = make([]any, len(columns))
 	for idx, column := range columns {
 		if !specificType && column.ScanType() != nil {
@@ -404,7 +404,7 @@ func scanIntoMapValue[T any](rows *sql.Rows, specificType bool, columns []*sql.C
 		}
 	}
 
-	if err := rows.Scan(values...); err != nil {
+	if err = rows.Scan(values...); err != nil {
 		return err
 	}
 
@@ -414,7 +414,10 @@ func scanIntoMapValue[T any](rows *sql.Rows, specificType bool, columns []*sql.C
 		if reflectValue := reflect.Indirect(reflect.Indirect(reflect.ValueOf(values[idx]))); reflectValue.IsValid() {
 			var value = reflectValue.Interface()
 			if valuer, ok := value.(driver.Valuer); ok {
-				value, _ = valuer.Value()
+				value, err = valuer.Value()
+				if err != nil {
+					return err
+				}
 			} else if b, ok := value.(sql.RawBytes); ok {
 				value = string(b)
 			}
