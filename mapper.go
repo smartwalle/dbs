@@ -19,6 +19,8 @@ const (
 	kTagSeparator     = ";"
 )
 
+var ErrInvalidEncodeValue = errors.New("dbs: encode value must be a non-nil struct or struct pointer")
+
 type Mapper interface {
 	Encode(src any) (values []FieldValue, err error)
 
@@ -40,10 +42,10 @@ func NewMapper(tag string) *mapper {
 }
 
 func (m *mapper) Encode(src any) (values []FieldValue, err error) {
-	var srcValue = reflect.ValueOf(src)
-	var srcType = srcValue.Type()
-
-	srcType, srcValue = base(srcType, srcValue)
+	var srcType, srcValue, nErr = encodeBase(src)
+	if nErr != nil {
+		return nil, nErr
+	}
 
 	var mStruct, ok = m.getStructMetadata(srcType)
 	if !ok {
@@ -64,6 +66,29 @@ func (m *mapper) Encode(src any) (values []FieldValue, err error) {
 		values = append(values, FieldValue{Name: column, Value: value.Interface()})
 	}
 	return values, nil
+}
+
+func encodeBase(src any) (reflect.Type, reflect.Value, error) {
+	if src == nil {
+		return nil, reflect.Value{}, ErrInvalidEncodeValue
+	}
+
+	var srcValue = reflect.ValueOf(src)
+	var srcType = srcValue.Type()
+
+	for srcType.Kind() == reflect.Ptr {
+		if srcValue.IsNil() {
+			return nil, reflect.Value{}, ErrInvalidEncodeValue
+		}
+		srcValue = srcValue.Elem()
+		srcType = srcType.Elem()
+	}
+
+	if srcType.Kind() != reflect.Struct {
+		return nil, reflect.Value{}, ErrInvalidEncodeValue
+	}
+
+	return srcType, srcValue, nil
 }
 
 func (m *mapper) Decode(rows *sql.Rows, dest any) (rowsAffected int, err error) {
