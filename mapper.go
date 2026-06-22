@@ -126,10 +126,11 @@ func (m *mapper) Decode(rows *sql.Rows, dest any) (rowsAffected int, err error) 
 	destType, destValue = base(destType, destValue)
 
 	if destType.Kind() == reflect.Slice {
+		var oldLen = destValue.Len()
 		if err = m.scanSlice(rows, columns, dest, destType, destValue); err != nil {
 			return 0, err
 		}
-		rowsAffected = destValue.Len()
+		rowsAffected = destValue.Len() - oldLen
 	} else {
 		if err = m.scanOne(rows, columns, dest, destType, destValue); err != nil {
 			return 0, err
@@ -539,6 +540,9 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 
 		for i := 0; i < numField; i++ {
 			var fieldStruct = current.Type.Field(i)
+			if fieldStruct.PkgPath != "" {
+				continue
+			}
 
 			var tag = fieldStruct.Tag.Get(m.tag)
 			if tag == kTagDisable {
