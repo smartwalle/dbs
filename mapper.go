@@ -421,7 +421,11 @@ func scanIntoMapValue[T any](rows *sql.Rows, specificType bool, columns []*sql.C
 			} else if b, ok := value.(sql.RawBytes); ok {
 				value = string(b)
 			}
-			mapValue[name], _ = value.(T)
+			var nValue, ok = value.(T)
+			if !ok {
+				return fmt.Errorf("dbs: cannot assign column %q value of type %T to map value", name, value)
+			}
+			mapValue[name] = nValue
 		} else {
 			mapValue[name] = zeroValue
 		}
