@@ -197,35 +197,35 @@ func (m *mapper) scanOne(rows *sql.Rows, columns []*sql.ColumnType, dest any, de
 		if destType.Key().Kind() == reflect.String {
 			switch destType.Elem().Kind() {
 			case reflect.Bool:
-				return scanIntoMap[bool](rows, true, columns, dest)
+				return scanIntoMap[bool](rows, false, columns, dest)
 			case reflect.Int:
-				return scanIntoMap[int](rows, true, columns, dest)
+				return scanIntoMap[int](rows, false, columns, dest)
 			case reflect.Int8:
-				return scanIntoMap[int8](rows, true, columns, dest)
+				return scanIntoMap[int8](rows, false, columns, dest)
 			case reflect.Int16:
-				return scanIntoMap[int16](rows, true, columns, dest)
+				return scanIntoMap[int16](rows, false, columns, dest)
 			case reflect.Int32:
-				return scanIntoMap[int32](rows, true, columns, dest)
+				return scanIntoMap[int32](rows, false, columns, dest)
 			case reflect.Int64:
-				return scanIntoMap[int64](rows, true, columns, dest)
+				return scanIntoMap[int64](rows, false, columns, dest)
 			case reflect.Uint:
-				return scanIntoMap[uint](rows, true, columns, dest)
+				return scanIntoMap[uint](rows, false, columns, dest)
 			case reflect.Uint8:
-				return scanIntoMap[uint8](rows, true, columns, dest)
+				return scanIntoMap[uint8](rows, false, columns, dest)
 			case reflect.Uint16:
-				return scanIntoMap[uint16](rows, true, columns, dest)
+				return scanIntoMap[uint16](rows, false, columns, dest)
 			case reflect.Uint32:
-				return scanIntoMap[uint32](rows, true, columns, dest)
+				return scanIntoMap[uint32](rows, false, columns, dest)
 			case reflect.Uint64:
-				return scanIntoMap[uint64](rows, true, columns, dest)
+				return scanIntoMap[uint64](rows, false, columns, dest)
 			case reflect.Float32:
-				return scanIntoMap[float32](rows, true, columns, dest)
+				return scanIntoMap[float32](rows, false, columns, dest)
 			case reflect.Float64:
-				return scanIntoMap[float64](rows, true, columns, dest)
+				return scanIntoMap[float64](rows, false, columns, dest)
 			case reflect.String:
-				return scanIntoMap[string](rows, true, columns, dest)
+				return scanIntoMap[string](rows, false, columns, dest)
 			case reflect.Interface:
-				return scanIntoMap[any](rows, false, columns, dest)
+				return scanIntoMap[any](rows, true, columns, dest)
 			}
 		}
 		return fmt.Errorf("map[%s]%s is unsupported", destType.Key().Kind(), destType.Elem().Kind())
@@ -317,35 +317,35 @@ func (m *mapper) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest any, 
 		if destType.Key().Kind() == reflect.String {
 			switch destType.Elem().Kind() {
 			case reflect.Bool:
-				return scanIntoMaps[bool](rows, true, columns, dest)
+				return scanIntoMaps[bool](rows, false, columns, dest)
 			case reflect.Int:
-				return scanIntoMaps[int](rows, true, columns, dest)
+				return scanIntoMaps[int](rows, false, columns, dest)
 			case reflect.Int8:
-				return scanIntoMaps[int8](rows, true, columns, dest)
+				return scanIntoMaps[int8](rows, false, columns, dest)
 			case reflect.Int16:
-				return scanIntoMaps[int16](rows, true, columns, dest)
+				return scanIntoMaps[int16](rows, false, columns, dest)
 			case reflect.Int32:
-				return scanIntoMaps[int32](rows, true, columns, dest)
+				return scanIntoMaps[int32](rows, false, columns, dest)
 			case reflect.Int64:
-				return scanIntoMaps[int64](rows, true, columns, dest)
+				return scanIntoMaps[int64](rows, false, columns, dest)
 			case reflect.Uint:
-				return scanIntoMaps[uint](rows, true, columns, dest)
+				return scanIntoMaps[uint](rows, false, columns, dest)
 			case reflect.Uint8:
-				return scanIntoMaps[uint8](rows, true, columns, dest)
+				return scanIntoMaps[uint8](rows, false, columns, dest)
 			case reflect.Uint16:
-				return scanIntoMaps[uint16](rows, true, columns, dest)
+				return scanIntoMaps[uint16](rows, false, columns, dest)
 			case reflect.Uint32:
-				return scanIntoMaps[uint32](rows, true, columns, dest)
+				return scanIntoMaps[uint32](rows, false, columns, dest)
 			case reflect.Uint64:
-				return scanIntoMaps[uint64](rows, true, columns, dest)
+				return scanIntoMaps[uint64](rows, false, columns, dest)
 			case reflect.Float32:
-				return scanIntoMaps[float32](rows, true, columns, dest)
+				return scanIntoMaps[float32](rows, false, columns, dest)
 			case reflect.Float64:
-				return scanIntoMaps[float64](rows, true, columns, dest)
+				return scanIntoMaps[float64](rows, false, columns, dest)
 			case reflect.String:
-				return scanIntoMaps[string](rows, true, columns, dest)
+				return scanIntoMaps[string](rows, false, columns, dest)
 			case reflect.Interface:
-				return scanIntoMaps[any](rows, false, columns, dest)
+				return scanIntoMaps[any](rows, true, columns, dest)
 			}
 		}
 		return fmt.Errorf("[]map[%s]%s is unsupported", destType.Key().Kind(), destType.Elem().Kind())
@@ -355,7 +355,7 @@ func (m *mapper) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest any, 
 	return nil
 }
 
-func scanIntoMap[T any](rows *sql.Rows, specificType bool, columns []*sql.ColumnType, dest any) error {
+func scanIntoMap[T any](rows *sql.Rows, useColumnType bool, columns []*sql.ColumnType, dest any) error {
 	var mapValue, ok = dest.(*map[string]T)
 	if !ok {
 		return fmt.Errorf("%+v is unsupported", dest)
@@ -363,10 +363,10 @@ func scanIntoMap[T any](rows *sql.Rows, specificType bool, columns []*sql.Column
 	if *mapValue == nil {
 		*mapValue = map[string]T{}
 	}
-	return scanIntoMapValue[T](rows, specificType, columns, *mapValue)
+	return scanIntoMapValue[T](rows, useColumnType, columns, *mapValue)
 }
 
-func scanIntoMaps[T any](rows *sql.Rows, specificType bool, columns []*sql.ColumnType, dest any) error {
+func scanIntoMaps[T any](rows *sql.Rows, useColumnType bool, columns []*sql.ColumnType, dest any) error {
 	var mapValues, ok = dest.(*[]map[string]T)
 	if !ok {
 		return fmt.Errorf("%+v is unsupported", dest)
@@ -378,7 +378,7 @@ func scanIntoMaps[T any](rows *sql.Rows, specificType bool, columns []*sql.Colum
 
 	for {
 		var mapValue = make(map[string]T)
-		if err := scanIntoMapValue[T](rows, specificType, columns, mapValue); err != nil {
+		if err := scanIntoMapValue[T](rows, useColumnType, columns, mapValue); err != nil {
 			return err
 		}
 		*mapValues = append(*mapValues, mapValue)
@@ -393,10 +393,10 @@ func scanIntoMaps[T any](rows *sql.Rows, specificType bool, columns []*sql.Colum
 	return nil
 }
 
-func scanIntoMapValue[T any](rows *sql.Rows, specificType bool, columns []*sql.ColumnType, mapValue map[string]T) (err error) {
+func scanIntoMapValue[T any](rows *sql.Rows, useColumnType bool, columns []*sql.ColumnType, mapValue map[string]T) (err error) {
 	var values = make([]any, len(columns))
 	for idx, column := range columns {
-		if !specificType && column.ScanType() != nil {
+		if useColumnType && column.ScanType() != nil {
 			values[idx] = reflect.New(reflect.PointerTo(column.ScanType())).Interface()
 		} else {
 			var val T
