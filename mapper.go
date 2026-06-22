@@ -577,8 +577,6 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 			}
 
 			if tag == "" {
-				tag = fieldStruct.Name
-
 				if fieldStruct.Type.Kind() == reflect.Ptr && fieldStruct.Type.Elem().Kind() == reflect.Struct {
 					queue = append(queue, element{
 						Type:  fieldStruct.Type.Elem(),
@@ -594,6 +592,7 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 					})
 					continue
 				}
+				continue
 			}
 
 			var tagValues = strings.Split(tag, kTagSeparator)
