@@ -13,10 +13,10 @@ import (
 )
 
 const (
-	kTagDisable       = "-"
-	kTagSQL           = "sql"
-	kTagAutoIncrement = "auto_increment"
-	kTagSeparator     = ";"
+	kTagDisable   = "-"
+	kTagSQL       = "sql"
+	kTagAuto      = "auto"
+	kTagSeparator = ";"
 )
 
 var ErrInvalidEncodeValue = errors.New("dbs: encode value must be a non-nil struct or struct pointer")
@@ -63,7 +63,7 @@ func (m *mapper) Encode(src any) (values []FieldValue, err error) {
 		if !found {
 			continue
 		}
-		if field.AutoIncrement && value.IsZero() {
+		if field.Auto && value.IsZero() {
 			continue
 		}
 		values = append(values, FieldValue{Name: column, Value: value.Interface()})
@@ -617,7 +617,7 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 			field.Index = append(current.Index, i)
 			field.Type = fieldStruct.Type
 			field.ValuePool = getValuePool(field.Type)
-			field.AutoIncrement = tagMap[kTagAutoIncrement]
+			field.Auto = tagMap[kTagAuto]
 			fields[fieldName] = field
 			columns = append(columns, fieldName)
 		}
@@ -632,10 +632,10 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 }
 
 type fieldMetadata struct {
-	Index         []int
-	Type          reflect.Type
-	ValuePool     *sync.Pool
-	AutoIncrement bool
+	Index     []int
+	Type      reflect.Type
+	ValuePool *sync.Pool
+	Auto      bool
 }
 
 type structMetadata struct {
