@@ -89,7 +89,7 @@ func (rb *Builder) Exec(ctx context.Context) (sql.Result, error) {
 type depthKey struct {
 }
 
-const defaultDepth = 4
+const kDefaultDepth = 4
 
 func withDepth(ctx context.Context, depth int) context.Context {
 	return context.WithValue(ctx, depthKey{}, depth)
@@ -100,7 +100,7 @@ func depthFromContext(ctx context.Context) int {
 	if ok {
 		return value
 	}
-	return defaultDepth
+	return kDefaultDepth
 }
 
 func scan(ctx context.Context, session Session, clause SQLClause, dest any) (err error) {
