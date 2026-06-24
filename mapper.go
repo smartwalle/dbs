@@ -13,10 +13,10 @@ import (
 )
 
 const (
-	kTagDisable   = "-"
-	kTagSQL       = "sql"
-	kTagAuto      = "auto"
-	kTagSeparator = ";"
+	kTagSQL            = "sql"
+	kTagValueDisable   = "-"
+	kTagValueDefault   = "default"
+	kTagValueSeparator = ";"
 )
 
 var ErrInvalidEncodeValue = errors.New("dbs: encode value must be a non-nil struct or struct pointer")
@@ -63,10 +63,13 @@ func (m *mapper) Encode(src any) (values []FieldValue, err error) {
 		if !found {
 			continue
 		}
-		if field.Auto && value.IsZero() {
-			continue
+		var useDefault = false
+		var useValue = value.Interface()
+		if field.UseDefault && value.IsZero() {
+			useDefault = true
+			useValue = SQL("DEFAULT")
 		}
-		values = append(values, FieldValue{Name: column, Value: value.Interface()})
+		values = append(values, FieldValue{Name: column, UseDefault: useDefault, Value: useValue})
 	}
 	return values, nil
 }
@@ -576,7 +579,7 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 			}
 
 			var tag = fieldStruct.Tag.Get(m.tag)
-			if tag == kTagDisable {
+			if tag == kTagValueDisable {
 				continue
 			}
 
@@ -599,7 +602,7 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 				continue
 			}
 
-			var tagValues = strings.Split(tag, kTagSeparator)
+			var tagValues = strings.Split(tag, kTagValueSeparator)
 			var fieldName = strings.TrimSpace(tagValues[0])
 			if fieldName == "" {
 				continue
@@ -617,7 +620,7 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 			field.Index = append(current.Index, i)
 			field.Type = fieldStruct.Type
 			field.ValuePool = getValuePool(field.Type)
-			field.Auto = tagMap[kTagAuto]
+			field.UseDefault = tagMap[kTagValueDefault]
 			fields[fieldName] = field
 			columns = append(columns, fieldName)
 		}
@@ -632,10 +635,10 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 }
 
 type fieldMetadata struct {
-	Index     []int
-	Type      reflect.Type
-	ValuePool *sync.Pool
-	Auto      bool
+	Index      []int
+	Type       reflect.Type
+	ValuePool  *sync.Pool
+	UseDefault bool
 }
 
 type structMetadata struct {
@@ -660,6 +663,7 @@ func getValuePool(reflectType reflect.Type) *sync.Pool {
 }
 
 type FieldValue struct {
-	Name  string
-	Value any
+	Name       string
+	Value      any
+	UseDefault bool
 }

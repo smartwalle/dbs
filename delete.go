@@ -105,7 +105,7 @@ func (db *DeleteBuilder) Write(w Writer) (err error) {
 		return errors.New("dbs: delete clause must specify a table")
 	}
 	if !db.wheres.valid() {
-		return errors.New("dbs: delete clause must have at least one where")
+		return errors.New("dbs: delete clause must specify a where clause")
 	}
 
 	if db.prefixes.valid() {

@@ -97,12 +97,15 @@ func (r *repository[E]) Create(ctx context.Context, entity *E) (sql.Result, erro
 	if err != nil {
 		return nil, err
 	}
-	var columns = make([]string, len(fieldValues))
-	var values = make([]any, len(fieldValues))
+	var columns = make([]string, 0, len(fieldValues))
+	var values = make([]any, 0, len(fieldValues))
 
-	for idx, fieldValue := range fieldValues {
-		columns[idx] = fieldValue.Name
-		values[idx] = fieldValue.Value
+	for _, fieldValue := range fieldValues {
+		if fieldValue.UseDefault {
+			continue
+		}
+		columns = append(columns, fieldValue.Name)
+		values = append(values, fieldValue.Value)
 	}
 
 	var ib = r.InsertBuilder(ctx)

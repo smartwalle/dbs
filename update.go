@@ -129,10 +129,10 @@ func (ub *UpdateBuilder) Write(w Writer) (err error) {
 		return errors.New("dbs: update clause must specify a table")
 	}
 	if len(ub.sets) == 0 {
-		return errors.New("dbs: update clause must have at least one set")
+		return errors.New("dbs: update clause must specify set values")
 	}
 	if !ub.wheres.valid() {
-		return errors.New("dbs: update clause must have at least one where")
+		return errors.New("dbs: update clause must specify a where clause")
 	}
 
 	if ub.prefixes.valid() {

@@ -93,8 +93,11 @@ func (ib *InsertBuilder) Write(w Writer) (err error) {
 	if len(ib.table) == 0 {
 		return errors.New("dbs: insert clause must specify a table")
 	}
+	if len(ib.columns) == 0 {
+		return errors.New("dbs: insert clause must specify columns")
+	}
 	if len(ib.values) == 0 {
-		return errors.New("dbs: insert clause must have at least one set of values")
+		return errors.New("dbs: insert clause must specify values")
 	}
 
 	if ib.prefixes.valid() {

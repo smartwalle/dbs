@@ -21,7 +21,7 @@ import (
 )
 
 type Base struct {
-	Id int32 `sql:"id;auto"`
+	Id int32 `sql:"id;default"`
 }
 
 type Mail struct {

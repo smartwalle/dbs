@@ -182,7 +182,7 @@ func (sb *SelectBuilder) Suffix(sql any, args ...any) *SelectBuilder {
 
 func (sb *SelectBuilder) Write(w Writer) (err error) {
 	if !sb.columns.valid() {
-		return errors.New("dbs: select clause must have at least one result column")
+		return errors.New("dbs: select clause must specify result columns")
 	}
 
 	if sb.prefixes.valid() {
