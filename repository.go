@@ -6,7 +6,8 @@ import (
 )
 
 const (
-	kRepositoryDepth = 5
+	kRepositoryDepth  = 5
+	kDefaultBatchSize = 100
 )
 
 type Entity interface {
@@ -29,6 +30,8 @@ type Repository[E Entity] interface {
 	SelectBuilder(ctx context.Context) *SelectBuilder
 
 	Create(ctx context.Context, entity *E) (sql.Result, error)
+
+	CreateInBatches(ctx context.Context, batchSize int, entities ...*E) (sql.Result, error)
 
 	Delete(ctx context.Context, id any) (sql.Result, error)
 
@@ -112,6 +115,65 @@ func (r *repository[E]) Create(ctx context.Context, entity *E) (sql.Result, erro
 	ib.Columns(columns...)
 	ib.Values(values...)
 	return ib.Exec(withDepth(ctx, kRepositoryDepth))
+}
+
+func (r *repository[E]) CreateInBatches(ctx context.Context, batchSize int, entities ...*E) (sql.Result, error) {
+	if len(entities) == 0 {
+		return insertResults(nil), nil
+	}
+	if batchSize <= 0 {
+		batchSize = kDefaultBatchSize
+	}
+
+	var columns []string
+	var rows = make([][]any, 0, len(entities))
+
+	for idx, entity := range entities {
+		var fieldValues, err = r.db.Mapper().Encode(entity)
+		if err != nil {
+			return nil, err
+		}
+
+		if idx == 0 {
+			columns = make([]string, len(fieldValues))
+		}
+
+		var values = make([]any, len(fieldValues))
+		for i, fieldValue := range fieldValues {
+			if idx == 0 {
+				columns[i] = fieldValue.Name
+			}
+			values[i] = fieldValue.Value
+		}
+		rows = append(rows, values)
+	}
+
+	var results insertResults
+	var err = r.Transaction(ctx, func(ctx context.Context) error {
+		for start := 0; start < len(rows); start += batchSize {
+			var end = start + batchSize
+			if end > len(rows) {
+				end = len(rows)
+			}
+
+			var ib = r.InsertBuilder(ctx)
+			ib.Columns(columns...)
+			for _, values := range rows[start:end] {
+				ib.Values(values...)
+			}
+
+			var result, err = ib.Exec(withDepth(ctx, kRepositoryDepth+2))
+			if err != nil {
+				return err
+			}
+			results = append(results, result)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return results, nil
 }
 
 func (r *repository[E]) Delete(ctx context.Context, id any) (sql.Result, error) {
@@ -198,4 +260,28 @@ func (r *repository[E]) Transaction(ctx context.Context, fn func(ctx context.Con
 	}
 
 	return fn(ctx)
+}
+
+type insertResults []sql.Result
+
+func (rs insertResults) LastInsertId() (int64, error) {
+	if len(rs) == 0 {
+		return 0, nil
+	}
+	return rs[len(rs)-1].LastInsertId()
+}
+
+func (rs insertResults) RowsAffected() (int64, error) {
+	var rowsAffected int64
+	for _, result := range rs {
+		if result == nil {
+			continue
+		}
+		var n, err = result.RowsAffected()
+		if err != nil {
+			return rowsAffected, err
+		}
+		rowsAffected += n
+	}
+	return rowsAffected, nil
 }
