@@ -14,14 +14,13 @@ type Stmt struct {
 
 type Stmts struct {
 	session Session
-	mu      *sync.RWMutex
+	mu      sync.RWMutex
 	stmts   map[string]*Stmt
 }
 
 func NewStmts(session Session) *Stmts {
 	return &Stmts{
 		session: session,
-		mu:      &sync.RWMutex{},
 		stmts:   make(map[string]*Stmt),
 	}
 }
@@ -87,7 +86,9 @@ func (s *Stmts) removeStatement(key string, stmt *sql.Stmt) {
 	if stmt != nil {
 		go stmt.Close()
 	}
-	delete(s.stmts, key)
+	if cached := s.stmts[key]; cached != nil && cached.stmt == stmt {
+		delete(s.stmts, key)
+	}
 	s.mu.Unlock()
 }
 
