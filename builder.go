@@ -86,21 +86,21 @@ func (rb *Builder) Exec(ctx context.Context) (sql.Result, error) {
 	return exec(ctx, rb.session, rb)
 }
 
-type depthKey struct {
+type traceDepthKey struct {
 }
 
-const kDefaultDepth = 4
+const kBuilderTraceDepth = kDefaultTraceDepth + 1
 
-func withDepth(ctx context.Context, depth int) context.Context {
-	return context.WithValue(ctx, depthKey{}, depth)
+func withTraceDepth(ctx context.Context, depth int) context.Context {
+	return context.WithValue(ctx, traceDepthKey{}, depth)
 }
 
-func depthFromContext(ctx context.Context) int {
-	value, ok := ctx.Value(depthKey{}).(int)
+func traceDepthFromContext(ctx context.Context) int {
+	value, ok := ctx.Value(traceDepthKey{}).(int)
 	if ok {
 		return value
 	}
-	return kDefaultDepth
+	return kBuilderTraceDepth
 }
 
 func scan(ctx context.Context, session Session, clause SQLClause, dest any) (err error) {
@@ -111,7 +111,7 @@ func scan(ctx context.Context, session Session, clause SQLClause, dest any) (err
 	if logger != nil {
 		var beginTime = time.Now()
 		defer func() {
-			logger.Trace(ctx, depthFromContext(ctx), beginTime, query, args, int64(rowsAffected), err)
+			logger.Trace(ctx, traceDepthFromContext(ctx), beginTime, query, args, int64(rowsAffected), err)
 		}()
 	}
 
@@ -140,7 +140,7 @@ func scanRow(ctx context.Context, session Session, clause SQLClause, dest ...any
 	if logger != nil {
 		var beginTime = time.Now()
 		defer func() {
-			logger.Trace(ctx, depthFromContext(ctx), beginTime, query, args, int64(rowsAffected), err)
+			logger.Trace(ctx, traceDepthFromContext(ctx), beginTime, query, args, int64(rowsAffected), err)
 		}()
 	}
 
@@ -172,7 +172,7 @@ func exec(ctx context.Context, session Session, clause SQLClause) (result sql.Re
 			if result != nil {
 				rowsAffected, _ = result.RowsAffected()
 			}
-			logger.Trace(ctx, depthFromContext(ctx), beginTime, query, args, rowsAffected, err)
+			logger.Trace(ctx, traceDepthFromContext(ctx), beginTime, query, args, rowsAffected, err)
 		}()
 	}
 
