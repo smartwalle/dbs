@@ -43,8 +43,8 @@ type Database interface {
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error)
 }
 
-func Open(driver, url string, maxOpen, maxIdle int) (*DB, error) {
-	db, err := sql.Open(driver, url)
+func Open(driver, dsn string, maxOpen, maxIdle int) (*DB, error) {
+	db, err := sql.Open(driver, dsn)
 	if err != nil {
 		return nil, err
 	}
