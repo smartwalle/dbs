@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"sync/atomic"
-	"unsafe"
 
 	"github.com/smartwalle/dbs/internal"
 	"github.com/smartwalle/dbs/logger"
@@ -60,7 +59,7 @@ func Open(driver, dsn string, maxOpen, maxIdle int) (*DB, error) {
 }
 
 type DB struct {
-	db      unsafe.Pointer
+	db      atomic.Value
 	dialect Dialect
 	logger  Logger
 	mapper  Mapper
@@ -86,11 +85,11 @@ func New(sdb *sql.DB) *DB {
 //		_ = oldDB.Close()
 //	})
 func (db *DB) UseDB(sdb *sql.DB) {
-	atomic.StorePointer(&db.db, unsafe.Pointer(sdb))
+	db.db.Store(sdb)
 }
 
 func (db *DB) DB() *sql.DB {
-	return (*sql.DB)(atomic.LoadPointer(&db.db))
+	return db.db.Load().(*sql.DB)
 }
 
 func (db *DB) Ping() error {
