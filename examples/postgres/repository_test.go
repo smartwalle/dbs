@@ -82,7 +82,7 @@ func TestRepositoryTransaction(t *testing.T) {
 		}
 		_, err := repo.Create(ctx, mail)
 		return err
-	})
+	}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"sync/atomic"
 
-	"github.com/smartwalle/dbs/internal"
 	"github.com/smartwalle/dbs/logger"
 )
 
@@ -129,8 +128,7 @@ func (db *DB) UseMapper(mapper Mapper) {
 }
 
 func (db *DB) Session(ctx context.Context) Session {
-	var session, ok = ctx.Value(internal.TxSessionKey{}).(Session)
-	if ok && session != nil {
+	if session := SessionFromContext(ctx); session != nil {
 		return session
 	}
 	return db
@@ -169,4 +167,15 @@ func (db *DB) BeginTx(ctx context.Context, opts *TxOptions) (*Tx, error) {
 	nTx.tx = tx
 	nTx.db = db
 	return nTx, nil
+}
+
+type sessionKey struct{}
+
+func ContextWithSession(ctx context.Context, session Session) context.Context {
+	return context.WithValue(ctx, sessionKey{}, session)
+}
+
+func SessionFromContext(ctx context.Context) Session {
+	session, _ := ctx.Value(sessionKey{}).(Session)
+	return session
 }

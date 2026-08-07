@@ -3,8 +3,6 @@ package dbs
 import (
 	"context"
 	"database/sql"
-
-	"github.com/smartwalle/dbs/internal"
 )
 
 type Tx struct {
@@ -54,13 +52,4 @@ func (tx *Tx) Commit() error {
 
 func (tx *Tx) Rollback() error {
 	return tx.tx.Rollback()
-}
-
-func ContextWithTx(ctx context.Context, tx *Tx) context.Context {
-	return context.WithValue(ctx, internal.TxSessionKey{}, tx)
-}
-
-func TxFromContext(ctx context.Context) *Tx {
-	tx, _ := ctx.Value(internal.TxSessionKey{}).(*Tx)
-	return tx
 }

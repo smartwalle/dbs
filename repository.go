@@ -240,7 +240,7 @@ func (r *repository[E]) FindOrderedList(ctx context.Context, columns, orderBy, c
 }
 
 func (r *repository[E]) Transaction(ctx context.Context, fn func(ctx context.Context) error, opts *TxOptions) (err error) {
-	var tx = TxFromContext(ctx)
+	var tx, _ = SessionFromContext(ctx).(*Tx)
 	if tx == nil {
 		tx, err = r.db.BeginTx(ctx, opts)
 		if err != nil {
@@ -252,7 +252,7 @@ func (r *repository[E]) Transaction(ctx context.Context, fn func(ctx context.Con
 			}
 		}()
 
-		if err = fn(ContextWithTx(ctx, tx)); err != nil {
+		if err = fn(ContextWithSession(ctx, tx)); err != nil {
 			return err
 		}
 		return tx.Commit()

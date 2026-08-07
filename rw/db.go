@@ -5,7 +5,6 @@ import (
 	"database/sql"
 
 	"github.com/smartwalle/dbs"
-	"github.com/smartwalle/dbs/internal"
 )
 
 // DB 维护一个 master 节点和一个 slave 节点的数据库连接信息，用于实现读写分离操作。
@@ -66,8 +65,7 @@ func (db *DB) Mapper() dbs.Mapper {
 }
 
 func (db *DB) Session(ctx context.Context) dbs.Session {
-	var session, ok = ctx.Value(internal.TxSessionKey{}).(dbs.Session)
-	if ok && session != nil {
+	if session := dbs.SessionFromContext(ctx); session != nil {
 		return session
 	}
 	return db
