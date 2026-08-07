@@ -45,7 +45,7 @@ type Repository[E Entity] interface {
 
 	FindOrderedList(ctx context.Context, columns, orderBy, conds string, args ...any) ([]*E, error)
 
-	Transaction(ctx context.Context, fn func(ctx context.Context) error, opts ...*sql.TxOptions) error
+	Transaction(ctx context.Context, fn func(ctx context.Context) error, opts *sql.TxOptions) error
 }
 
 type repository[E Entity] struct {
@@ -67,30 +67,34 @@ func (r *repository[E]) Database() Database {
 	return r.db
 }
 
+func (r *repository[E]) Session(ctx context.Context) Session {
+	return r.db.Session(ctx)
+}
+
 func (r *repository[E]) InsertBuilder(ctx context.Context) *InsertBuilder {
 	var ib = NewInsertBuilder()
-	ib.UseSession(r.Database().Session(ctx))
+	ib.UseSession(r.Session(ctx))
 	ib.Table(r.TableName())
 	return ib
 }
 
 func (r *repository[E]) DeleteBuilder(ctx context.Context) *DeleteBuilder {
 	var rb = NewDeleteBuilder()
-	rb.UseSession(r.Database().Session(ctx))
+	rb.UseSession(r.Session(ctx))
 	rb.Table(r.TableName())
 	return rb
 }
 
 func (r *repository[E]) UpdateBuilder(ctx context.Context) *UpdateBuilder {
 	var ub = NewUpdateBuilder()
-	ub.UseSession(r.Database().Session(ctx))
+	ub.UseSession(r.Session(ctx))
 	ub.Table(r.TableName())
 	return ub
 }
 
 func (r *repository[E]) SelectBuilder(ctx context.Context) *SelectBuilder {
 	var sb = NewSelectBuilder()
-	sb.UseSession(r.Database().Session(ctx))
+	sb.UseSession(r.Session(ctx))
 	sb.Table(r.TableName())
 	return sb
 }
@@ -169,7 +173,7 @@ func (r *repository[E]) CreateInBatches(ctx context.Context, batchSize int, enti
 			results = append(results, result)
 		}
 		return nil
-	})
+	}, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -236,14 +240,10 @@ func (r *repository[E]) FindOrderedList(ctx context.Context, columns, orderBy, c
 	return entityList, nil
 }
 
-func (r *repository[E]) Transaction(ctx context.Context, fn func(ctx context.Context) error, opts ...*sql.TxOptions) (err error) {
+func (r *repository[E]) Transaction(ctx context.Context, fn func(ctx context.Context) error, opts *sql.TxOptions) (err error) {
 	var tx = TxFromContext(ctx)
 	if tx == nil {
-		var opt *sql.TxOptions
-		if len(opts) > 0 {
-			opt = opts[0]
-		}
-		tx, err = r.db.BeginTx(ctx, opt)
+		tx, err = r.db.BeginTx(ctx, opts)
 		if err != nil {
 			return err
 		}
@@ -253,7 +253,7 @@ func (r *repository[E]) Transaction(ctx context.Context, fn func(ctx context.Con
 			}
 		}()
 
-		if err = fn(tx.WithContext(ctx)); err != nil {
+		if err = fn(ContextWithTx(ctx, tx)); err != nil {
 			return err
 		}
 		return tx.Commit()

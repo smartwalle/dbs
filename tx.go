@@ -56,14 +56,11 @@ func (tx *Tx) Rollback() error {
 	return tx.tx.Rollback()
 }
 
-func (tx *Tx) WithContext(ctx context.Context) context.Context {
+func ContextWithTx(ctx context.Context, tx *Tx) context.Context {
 	return context.WithValue(ctx, internal.TxSessionKey{}, tx)
 }
 
 func TxFromContext(ctx context.Context) *Tx {
-	var tx, ok = ctx.Value(internal.TxSessionKey{}).(*Tx)
-	if ok && tx != nil {
-		return tx
-	}
-	return nil
+	tx, _ := ctx.Value(internal.TxSessionKey{}).(*Tx)
+	return tx
 }
