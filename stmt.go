@@ -84,7 +84,9 @@ func (s *Stmts) RevokeStatement(key string) {
 func (s *Stmts) removeStatement(key string, stmt *sql.Stmt) {
 	s.mu.Lock()
 	if stmt != nil {
-		go stmt.Close()
+		go func() {
+			_ = stmt.Close()
+		}()
 	}
 	if cached := s.stmts[key]; cached != nil && cached.stmt == stmt {
 		delete(s.stmts, key)
