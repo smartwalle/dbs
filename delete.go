@@ -2,7 +2,6 @@ package dbs
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 )
 
@@ -193,6 +192,6 @@ func (db *DeleteBuilder) ScanRow(ctx context.Context, dest ...any) error {
 	return scanRow(ctx, db.session, db, dest...)
 }
 
-func (db *DeleteBuilder) Exec(ctx context.Context) (sql.Result, error) {
+func (db *DeleteBuilder) Exec(ctx context.Context) (Result, error) {
 	return exec(ctx, db.session, db)
 }

@@ -2,7 +2,6 @@ package dbs
 
 import (
 	"context"
-	"database/sql"
 )
 
 const (
@@ -29,13 +28,13 @@ type Repository[E Entity] interface {
 
 	SelectBuilder(ctx context.Context) *SelectBuilder
 
-	Create(ctx context.Context, entity *E) (sql.Result, error)
+	Create(ctx context.Context, entity *E) (Result, error)
 
-	CreateInBatches(ctx context.Context, batchSize int, entities ...*E) (sql.Result, error)
+	CreateInBatches(ctx context.Context, batchSize int, entities ...*E) (Result, error)
 
-	Delete(ctx context.Context, id any) (sql.Result, error)
+	Delete(ctx context.Context, id any) (Result, error)
 
-	Update(ctx context.Context, id any, values map[string]any) (sql.Result, error)
+	Update(ctx context.Context, id any, values map[string]any) (Result, error)
 
 	Find(ctx context.Context, id any, columns string) (*E, error)
 
@@ -45,7 +44,7 @@ type Repository[E Entity] interface {
 
 	FindOrderedList(ctx context.Context, columns, orderBy, conds string, args ...any) ([]*E, error)
 
-	Transaction(ctx context.Context, fn func(ctx context.Context) error, opts *sql.TxOptions) error
+	Transaction(ctx context.Context, fn func(ctx context.Context) error, opts *TxOptions) error
 }
 
 type repository[E Entity] struct {
@@ -99,7 +98,7 @@ func (r *repository[E]) SelectBuilder(ctx context.Context) *SelectBuilder {
 	return sb
 }
 
-func (r *repository[E]) Create(ctx context.Context, entity *E) (sql.Result, error) {
+func (r *repository[E]) Create(ctx context.Context, entity *E) (Result, error) {
 	var fieldValues, err = r.db.Mapper().Encode(entity)
 	if err != nil {
 		return nil, err
@@ -121,7 +120,7 @@ func (r *repository[E]) Create(ctx context.Context, entity *E) (sql.Result, erro
 	return ib.Exec(withTraceDepth(ctx, kRepositoryTraceDepth))
 }
 
-func (r *repository[E]) CreateInBatches(ctx context.Context, batchSize int, entities ...*E) (sql.Result, error) {
+func (r *repository[E]) CreateInBatches(ctx context.Context, batchSize int, entities ...*E) (Result, error) {
 	if len(entities) == 0 {
 		return insertResults(nil), nil
 	}
@@ -180,13 +179,13 @@ func (r *repository[E]) CreateInBatches(ctx context.Context, batchSize int, enti
 	return results, nil
 }
 
-func (r *repository[E]) Delete(ctx context.Context, id any) (sql.Result, error) {
+func (r *repository[E]) Delete(ctx context.Context, id any) (Result, error) {
 	var rb = r.DeleteBuilder(ctx)
 	rb.Where(r.entity.PrimaryKey()+" = ?", id)
 	return rb.Exec(withTraceDepth(ctx, kRepositoryTraceDepth))
 }
 
-func (r *repository[E]) Update(ctx context.Context, id any, values map[string]any) (sql.Result, error) {
+func (r *repository[E]) Update(ctx context.Context, id any, values map[string]any) (Result, error) {
 	var ub = r.UpdateBuilder(ctx)
 	ub.SetValues(values)
 	ub.Where(r.entity.PrimaryKey()+" = ?", id)
@@ -240,7 +239,7 @@ func (r *repository[E]) FindOrderedList(ctx context.Context, columns, orderBy, c
 	return entityList, nil
 }
 
-func (r *repository[E]) Transaction(ctx context.Context, fn func(ctx context.Context) error, opts *sql.TxOptions) (err error) {
+func (r *repository[E]) Transaction(ctx context.Context, fn func(ctx context.Context) error, opts *TxOptions) (err error) {
 	var tx = TxFromContext(ctx)
 	if tx == nil {
 		tx, err = r.db.BeginTx(ctx, opts)
@@ -262,7 +261,7 @@ func (r *repository[E]) Transaction(ctx context.Context, fn func(ctx context.Con
 	return fn(ctx)
 }
 
-type insertResults []sql.Result
+type insertResults []Result
 
 func (rs insertResults) LastInsertId() (int64, error) {
 	if len(rs) == 0 {

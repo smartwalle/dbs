@@ -20,7 +20,7 @@ type Session interface {
 
 	Preparer
 
-	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	ExecContext(ctx context.Context, query string, args ...any) (Result, error)
 
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 
@@ -39,7 +39,7 @@ type Database interface {
 	Session(ctx context.Context) Session
 
 	Begin(ctx context.Context) (*Tx, error)
-	BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error)
+	BeginTx(ctx context.Context, opts *TxOptions) (*Tx, error)
 }
 
 func Open(driver, dsn string, maxOpen, maxIdle int) (*DB, error) {
@@ -140,7 +140,7 @@ func (db *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, erro
 	return db.DB().PrepareContext(ctx, query)
 }
 
-func (db *DB) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+func (db *DB) ExecContext(ctx context.Context, query string, args ...any) (Result, error) {
 	return db.DB().ExecContext(ctx, query, args...)
 }
 
@@ -160,7 +160,7 @@ func (db *DB) Begin(ctx context.Context) (*Tx, error) {
 	return db.BeginTx(ctx, nil)
 }
 
-func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
+func (db *DB) BeginTx(ctx context.Context, opts *TxOptions) (*Tx, error) {
 	tx, err := db.DB().BeginTx(ctx, opts)
 	if err != nil {
 		return nil, err

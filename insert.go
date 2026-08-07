@@ -2,7 +2,6 @@ package dbs
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 )
 
@@ -215,6 +214,6 @@ func (ib *InsertBuilder) ScanRow(ctx context.Context, dest ...any) error {
 	return scanRow(ctx, ib.session, ib, dest...)
 }
 
-func (ib *InsertBuilder) Exec(ctx context.Context) (sql.Result, error) {
+func (ib *InsertBuilder) Exec(ctx context.Context) (Result, error) {
 	return exec(ctx, ib.session, ib)
 }

@@ -81,7 +81,7 @@ func (db *DB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, erro
 	return db.master.PrepareContext(ctx, query)
 }
 
-func (db *DB) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+func (db *DB) ExecContext(ctx context.Context, query string, args ...any) (dbs.Result, error) {
 	return db.master.ExecContext(ctx, query, args...)
 }
 
@@ -114,6 +114,6 @@ func (db *DB) Begin(ctx context.Context) (*dbs.Tx, error) {
 	return db.master.Begin(ctx)
 }
 
-func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*dbs.Tx, error) {
+func (db *DB) BeginTx(ctx context.Context, opts *dbs.TxOptions) (*dbs.Tx, error) {
 	return db.master.BeginTx(ctx, opts)
 }

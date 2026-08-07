@@ -36,7 +36,7 @@ func (tx *Tx) StmtContext(ctx context.Context, stmt *sql.Stmt) *sql.Stmt {
 	return tx.tx.StmtContext(ctx, stmt)
 }
 
-func (tx *Tx) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+func (tx *Tx) ExecContext(ctx context.Context, query string, args ...any) (Result, error) {
 	return tx.tx.ExecContext(ctx, query, args...)
 }
 

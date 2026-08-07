@@ -25,7 +25,9 @@ func Query[T any](ctx context.Context, session Session, query string, args ...an
 	if err != nil {
 		return dest, err
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	if rowsAffected, err = session.Mapper().Decode(rows, &dest); err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return dest, err
@@ -33,7 +35,7 @@ func Query[T any](ctx context.Context, session Session, query string, args ...an
 	return dest, nil
 }
 
-func Exec(ctx context.Context, session Session, query string, args ...any) (result sql.Result, err error) {
+func Exec(ctx context.Context, session Session, query string, args ...any) (result Result, err error) {
 	var logger = session.Logger()
 	if logger != nil {
 		var beginTime = time.Now()
@@ -47,3 +49,20 @@ func Exec(ctx context.Context, session Session, query string, args ...any) (resu
 	}
 	return session.ExecContext(ctx, query, args...)
 }
+
+type TxOptions = sql.TxOptions
+
+type IsolationLevel = sql.IsolationLevel
+
+const (
+	LevelDefault         = sql.LevelDefault
+	LevelReadUncommitted = sql.LevelReadUncommitted
+	LevelReadCommitted   = sql.LevelReadCommitted
+	LevelWriteCommitted  = sql.LevelWriteCommitted
+	LevelRepeatableRead  = sql.LevelRepeatableRead
+	LevelSnapshot        = sql.LevelSnapshot
+	LevelSerializable    = sql.LevelSerializable
+	LevelLinearizable    = sql.LevelLinearizable
+)
+
+type Result = sql.Result
