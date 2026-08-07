@@ -66,9 +66,9 @@ type DB struct {
 	mapper  Mapper
 }
 
-func New(db *sql.DB) *DB {
+func New(sdb *sql.DB) *DB {
 	var ndb = &DB{}
-	ndb.UseDB(db)
+	ndb.UseDB(sdb)
 	ndb.UseLogger(logger.New())
 	ndb.UseMapper(NewMapper(kTagSQL))
 	return ndb
@@ -76,16 +76,17 @@ func New(db *sql.DB) *DB {
 
 // UseDB 替换底层的 *sql.DB。
 //
-// ndb 不能为 nil。替换已有数据库时，调用方应该先获取旧的 *sql.DB，
+// sdb 不能为 nil。替换已有数据库时，调用方应该先获取旧的 *sql.DB，
 // 并在替换后延迟关闭，尽量确保旧连接上的相关操作已经完成：
 //
+//	newDB := sql.Open()
 //	oldDB := db.DB()
 //	db.UseDB(newDB)
 //	time.AfterFunc(2*time.Second, func() {
 //		_ = oldDB.Close()
 //	})
-func (db *DB) UseDB(ndb *sql.DB) {
-	atomic.StorePointer(&db.db, unsafe.Pointer(ndb))
+func (db *DB) UseDB(sdb *sql.DB) {
+	atomic.StorePointer(&db.db, unsafe.Pointer(sdb))
 }
 
 func (db *DB) DB() *sql.DB {
