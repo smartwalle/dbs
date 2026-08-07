@@ -66,34 +66,34 @@ func (r *repository[E]) Database() Database {
 	return r.db
 }
 
-func (r *repository[E]) Session(ctx context.Context) Session {
+func (r *repository[E]) session(ctx context.Context) Session {
 	return r.db.Session(ctx)
 }
 
 func (r *repository[E]) InsertBuilder(ctx context.Context) *InsertBuilder {
 	var ib = NewInsertBuilder()
-	ib.UseSession(r.Session(ctx))
+	ib.UseSession(r.session(ctx))
 	ib.Table(r.TableName())
 	return ib
 }
 
 func (r *repository[E]) DeleteBuilder(ctx context.Context) *DeleteBuilder {
 	var rb = NewDeleteBuilder()
-	rb.UseSession(r.Session(ctx))
+	rb.UseSession(r.session(ctx))
 	rb.Table(r.TableName())
 	return rb
 }
 
 func (r *repository[E]) UpdateBuilder(ctx context.Context) *UpdateBuilder {
 	var ub = NewUpdateBuilder()
-	ub.UseSession(r.Session(ctx))
+	ub.UseSession(r.session(ctx))
 	ub.Table(r.TableName())
 	return ub
 }
 
 func (r *repository[E]) SelectBuilder(ctx context.Context) *SelectBuilder {
 	var sb = NewSelectBuilder()
-	sb.UseSession(r.Session(ctx))
+	sb.UseSession(r.session(ctx))
 	sb.Table(r.TableName())
 	return sb
 }
