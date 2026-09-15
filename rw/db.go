@@ -19,7 +19,7 @@ type DB struct {
 
 type masterKey struct{}
 
-// WithMaster 有一些特殊情况需要在 master 节点执行 Query 相关的操作，可以通过传递 WithMaster() 函数返回的 context.Context
+// WithMaster 需要在 master 节点执行 Query 相关的操作，可以通过传递 WithMaster() 函数返回的 context.Context
 //
 //	用于指定该操作在 master 节点上执行。
 //
