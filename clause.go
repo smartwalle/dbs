@@ -13,8 +13,8 @@ type SQLClause interface {
 	SQL() (string, []any, error)
 }
 
-var ErrMissingArgument = errors.New("missing argument")
-var ErrTooManyArguments = errors.New("too many arguments")
+var ErrMissingArgument = errors.New("dbs: missing argument")
+var ErrTooManyArguments = errors.New("dbs: too many arguments")
 
 type Clause struct {
 	sql  any
@@ -99,7 +99,7 @@ func buildArgument(w Writer, arg any) (err error) {
 		var kind = value.Kind()
 		if kind == reflect.Slice || kind == reflect.Array {
 			if value.Len() == 0 {
-				return errors.New("empty slice or array argument")
+				return errors.New("dbs: empty slice or array argument")
 			}
 			for idx := 0; idx < value.Len(); idx++ {
 				if idx != 0 {

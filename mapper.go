@@ -103,18 +103,18 @@ func (m *mapper) Decode(rows *sql.Rows, dest any) (rowsAffected int, err error) 
 	}
 
 	if dest == nil {
-		return rowsAffected, errors.New("nil pointer passed")
+		return rowsAffected, errors.New("dbs: nil pointer passed")
 	}
 
 	var destValue = reflect.ValueOf(dest)
 	var destType = destValue.Type()
 
 	if destValue.Kind() != reflect.Ptr {
-		return rowsAffected, errors.New("must pass a pointer")
+		return rowsAffected, errors.New("dbs: must pass a pointer")
 	}
 
 	if destValue.IsNil() {
-		return rowsAffected, errors.New("nil pointer passed")
+		return rowsAffected, errors.New("dbs: nil pointer passed")
 	}
 
 	if err = rows.Err(); err != nil {
