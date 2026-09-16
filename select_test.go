@@ -40,7 +40,7 @@ func BenchmarkSelectBuilder(b *testing.B) {
 }
 
 var pool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return dbs.NewSelectBuilder()
 	},
 }

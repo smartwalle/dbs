@@ -655,7 +655,7 @@ var cachedValue = sync.Map{}
 
 func getValuePool(reflectType reflect.Type) *sync.Pool {
 	var pool, _ = cachedValue.LoadOrStore(reflectType, &sync.Pool{
-		New: func() interface{} {
+		New: func() any {
 			return reflect.New(reflect.PointerTo(reflectType)).Interface()
 		},
 	})
