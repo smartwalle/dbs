@@ -1,6 +1,13 @@
 package mysql
 
-import "github.com/smartwalle/dbs"
+import (
+	"fmt"
+	"reflect"
+	"strconv"
+	"time"
+
+	"github.com/smartwalle/dbs"
+)
 
 var _dialect = &dialect{}
 
@@ -20,4 +27,167 @@ func (d *dialect) WritePlaceholder(w dbs.Writer, _ int) (err error) {
 		return err
 	}
 	return nil
+}
+
+var convertibleTypes = []reflect.Type{
+	reflect.TypeOf(time.Time{}),
+}
+
+func (d *dialect) WriteArgument(w dbs.Writer, arg any) error {
+	switch raw := arg.(type) {
+	case nil:
+		return writeString(w, "NULL")
+	case time.Time:
+		return writeTime(w, raw)
+	case *time.Time:
+		if raw == nil {
+			return writeString(w, "NULL")
+		}
+		return writeTime(w, *raw)
+	case bool:
+		return writeString(w, strconv.FormatBool(raw))
+	case string:
+		return writeQuotedString(w, raw)
+	case []byte:
+		return writeBytes(w, raw)
+	case int:
+		return writeString(w, strconv.FormatInt(int64(raw), 10))
+	case int8:
+		return writeString(w, strconv.FormatInt(int64(raw), 10))
+	case int16:
+		return writeString(w, strconv.FormatInt(int64(raw), 10))
+	case int32:
+		return writeString(w, strconv.FormatInt(int64(raw), 10))
+	case int64:
+		return writeString(w, strconv.FormatInt(raw, 10))
+	case uint:
+		return writeString(w, strconv.FormatUint(uint64(raw), 10))
+	case uint8:
+		return writeString(w, strconv.FormatUint(uint64(raw), 10))
+	case uint16:
+		return writeString(w, strconv.FormatUint(uint64(raw), 10))
+	case uint32:
+		return writeString(w, strconv.FormatUint(uint64(raw), 10))
+	case uint64:
+		return writeString(w, strconv.FormatUint(raw, 10))
+	case float32:
+		return writeString(w, strconv.FormatFloat(float64(raw), 'f', -1, 32))
+	case float64:
+		return writeString(w, strconv.FormatFloat(raw, 'f', -1, 64))
+	default:
+		value := reflect.ValueOf(raw)
+		if !value.IsValid() {
+			return writeString(w, "NULL")
+		}
+
+		switch value.Kind() {
+		case reflect.Ptr:
+			if value.IsNil() {
+				return writeString(w, "NULL")
+			}
+			return d.WriteArgument(w, value.Elem().Interface())
+		case reflect.Bool:
+			return d.WriteArgument(w, value.Bool())
+		case reflect.String:
+			return d.WriteArgument(w, value.String())
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return d.WriteArgument(w, value.Int())
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			return d.WriteArgument(w, value.Uint())
+		case reflect.Float32, reflect.Float64:
+			return d.WriteArgument(w, value.Float())
+		}
+		for _, typ := range convertibleTypes {
+			if value.Type().ConvertibleTo(typ) {
+				return d.WriteArgument(w, value.Convert(typ).Interface())
+			}
+		}
+		return fmt.Errorf("unsupported argument type %T", arg)
+	}
+}
+
+func writeTime(w dbs.Writer, value time.Time) (err error) {
+	if err = w.WriteByte('\''); err != nil {
+		return err
+	}
+	if value.IsZero() {
+		if _, err = w.WriteString("0000-00-00 00:00:00"); err != nil {
+			return err
+		}
+	} else {
+		if _, err = w.WriteString(value.Format("2006-01-02 15:04:05.999")); err != nil {
+			return err
+		}
+	}
+	return w.WriteByte('\'')
+}
+
+func writeQuotedString(w dbs.Writer, value string) (err error) {
+	if err = w.WriteByte('\''); err != nil {
+		return err
+	}
+	for i := 0; i < len(value); i++ {
+		switch value[i] {
+		case '\\':
+			if _, err = w.WriteString(`\\`); err != nil {
+				return err
+			}
+		case '\'':
+			if _, err = w.WriteString(`\'`); err != nil {
+				return err
+			}
+		case '\x00':
+			if _, err = w.WriteString(`\0`); err != nil {
+				return err
+			}
+		case '\n':
+			if _, err = w.WriteString(`\n`); err != nil {
+				return err
+			}
+		case '\r':
+			if _, err = w.WriteString(`\r`); err != nil {
+				return err
+			}
+		case '\t':
+			if _, err = w.WriteString(`\t`); err != nil {
+				return err
+			}
+		case '\b':
+			if _, err = w.WriteString(`\b`); err != nil {
+				return err
+			}
+		case '\x1a':
+			if _, err = w.WriteString(`\Z`); err != nil {
+				return err
+			}
+		default:
+			if err = w.WriteByte(value[i]); err != nil {
+				return err
+			}
+		}
+	}
+	return w.WriteByte('\'')
+}
+
+func writeBytes(w dbs.Writer, value []byte) (err error) {
+	if _, err = w.WriteString("X'"); err != nil {
+		return err
+	}
+
+	const hex = "0123456789ABCDEF"
+
+	for _, b := range value {
+		if err = w.WriteByte(hex[b>>4]); err != nil {
+			return err
+		}
+		if err = w.WriteByte(hex[b&0x0f]); err != nil {
+			return err
+		}
+	}
+	return w.WriteByte('\'')
+}
+
+func writeString(w dbs.Writer, value string) error {
+	_, err := w.WriteString(value)
+	return err
 }

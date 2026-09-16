@@ -2,8 +2,11 @@ package dbs
 
 import (
 	"bytes"
+	"errors"
 	"sync"
 )
+
+var ErrInvalidDialect = errors.New("dbs: invalid dialect")
 
 const kDefaultArgsSize = 16
 const kDefaultBufferSize = 1024
@@ -15,6 +18,8 @@ const (
 
 type Writer interface {
 	UseDialect(p Dialect)
+
+	UseInline()
 
 	Write(p []byte) (n int, err error)
 
@@ -31,6 +36,7 @@ var bufferPool = sync.Pool{
 	New: func() interface{} {
 		return &Buffer{
 			Buffer:           bytes.NewBuffer(make([]byte, 0, kDefaultBufferSize)),
+			inline:           false,
 			arguments:        make([]any, 0, kDefaultArgsSize),
 			placeholderCount: 0,
 		}
@@ -39,6 +45,7 @@ var bufferPool = sync.Pool{
 
 type Buffer struct {
 	*bytes.Buffer
+	inline           bool
 	arguments        []any
 	dialect          Dialect
 	placeholderCount int
@@ -47,6 +54,7 @@ type Buffer struct {
 func NewBuffer() *Buffer {
 	var buffer = bufferPool.Get().(*Buffer)
 	buffer.Buffer.Reset()
+	buffer.inline = false
 	buffer.arguments = buffer.arguments[:0]
 	buffer.dialect = nil
 	buffer.placeholderCount = 0
@@ -61,11 +69,21 @@ func (b *Buffer) UseDialect(dialect Dialect) {
 	b.dialect = dialect
 }
 
+func (b *Buffer) UseInline() {
+	b.inline = true
+}
+
 func (b *Buffer) WriteArgument(flag uint8, arg any) (err error) {
+	if b.inline {
+		if b.dialect == nil {
+			return ErrInvalidDialect
+		}
+		return b.dialect.WriteArgument(b, arg)
+	}
+
 	if flag&FlagArgument == FlagArgument {
 		b.arguments = append(b.arguments, arg)
 	}
-
 	if flag&FlagPlaceholder == FlagPlaceholder {
 		b.placeholderCount++
 		if b.dialect != nil {

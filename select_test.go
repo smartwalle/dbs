@@ -5,9 +5,10 @@ import (
 	"testing"
 
 	"github.com/smartwalle/dbs"
+	"github.com/smartwalle/dbs/dialect/mysql"
 )
 
-func TestSelectBuilder(t *testing.T) {
+func TestSelectBuilder_SQL(t *testing.T) {
 	var sb = dbs.NewSelectBuilder()
 	sb.Selects("id", "user_id", "pay_no", "trade_no", "goods_id", "goods_name", "goods_price", "goods_cnt", "sku_id", "original_spec", "real_spec", "status", "created_at")
 	sb.Table("order")
@@ -15,6 +16,17 @@ func TestSelectBuilder(t *testing.T) {
 	sb.Where("status = ?", 1)
 	t.Log(sb.SQL())
 	t.Log(sb.Count().SQL())
+}
+
+func TestSelectBuilder_Explain(t *testing.T) {
+	var sb = dbs.NewSelectBuilder()
+	sb.UseDialect(mysql.Dialect())
+	sb.Selects("id", "user_id", "pay_no", "trade_no", "goods_id", "goods_name", "goods_price", "goods_cnt", "sku_id", "original_spec", "real_spec", "status", "created_at")
+	sb.Table("order")
+	sb.Where("id = ?", 123)
+	sb.Where("status = ?", 1)
+	t.Log(sb.Explain())
+	t.Log(sb.Count().Explain())
 }
 
 func BenchmarkSelectBuilder(b *testing.B) {

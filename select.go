@@ -303,6 +303,19 @@ func (sb *SelectBuilder) SQL() (string, []any, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
+func (sb *SelectBuilder) Explain() (string, error) {
+	var buffer = NewBuffer()
+	defer buffer.Release()
+
+	buffer.UseDialect(sb.dialect)
+	buffer.UseInline()
+
+	if err := sb.Write(buffer); err != nil {
+		return "", err
+	}
+	return buffer.String(), nil
+}
+
 func (sb *SelectBuilder) Count() *SelectBuilder {
 	var nsb = sb.Clone()
 	nsb.limit = nil

@@ -28,3 +28,7 @@ func (d *dialect) WritePlaceholder(w dbs.Writer, idx int) (err error) {
 	}
 	return nil
 }
+
+func (d *dialect) WriteArgument(w dbs.Writer, arg any) error {
+	return nil
+}
