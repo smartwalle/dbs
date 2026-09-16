@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"database/sql/driver"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -37,6 +38,12 @@ func (d *dialect) WriteArgument(w dbs.Writer, arg any) error {
 	switch raw := arg.(type) {
 	case nil:
 		return writeString(w, "NULL")
+	case driver.Valuer:
+		value, err := raw.Value()
+		if err != nil {
+			return err
+		}
+		return d.WriteArgument(w, value)
 	case time.Time:
 		return writeTime(w, raw)
 	case *time.Time:

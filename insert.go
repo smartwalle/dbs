@@ -206,6 +206,19 @@ func (ib *InsertBuilder) SQL() (string, []any, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
+func (ib *InsertBuilder) Explain() (string, error) {
+	var buffer = NewBuffer()
+	defer buffer.Release()
+
+	buffer.UseDialect(ib.dialect)
+	buffer.UseInline()
+
+	if err := ib.Write(buffer); err != nil {
+		return "", err
+	}
+	return buffer.String(), nil
+}
+
 func (ib *InsertBuilder) Scan(ctx context.Context, dest any) error {
 	return scan(ctx, ib.session, ib, dest)
 }

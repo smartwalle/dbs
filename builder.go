@@ -74,6 +74,19 @@ func (rb *Builder) SQL() (string, []any, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
+func (rb *Builder) Explain() (string, error) {
+	var buffer = NewBuffer()
+	defer buffer.Release()
+
+	buffer.UseDialect(rb.dialect)
+	buffer.UseInline()
+
+	if err := rb.Write(buffer); err != nil {
+		return "", err
+	}
+	return buffer.String(), nil
+}
+
 func (rb *Builder) Scan(ctx context.Context, dest any) error {
 	return scan(ctx, rb.session, rb, dest)
 }

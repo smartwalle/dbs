@@ -224,6 +224,19 @@ func (ub *UpdateBuilder) SQL() (string, []any, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
+func (ub *UpdateBuilder) Explain() (string, error) {
+	var buffer = NewBuffer()
+	defer buffer.Release()
+
+	buffer.UseDialect(ub.dialect)
+	buffer.UseInline()
+
+	if err := ub.Write(buffer); err != nil {
+		return "", err
+	}
+	return buffer.String(), nil
+}
+
 func (ub *UpdateBuilder) Scan(ctx context.Context, dest any) error {
 	return scan(ctx, ub.session, ub, dest)
 }

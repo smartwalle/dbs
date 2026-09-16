@@ -184,6 +184,19 @@ func (db *DeleteBuilder) SQL() (string, []any, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
+func (db *DeleteBuilder) Explain() (string, error) {
+	var buffer = NewBuffer()
+	defer buffer.Release()
+
+	buffer.UseDialect(db.dialect)
+	buffer.UseInline()
+
+	if err := db.Write(buffer); err != nil {
+		return "", err
+	}
+	return buffer.String(), nil
+}
+
 func (db *DeleteBuilder) Scan(ctx context.Context, dest any) error {
 	return scan(ctx, db.session, db, dest)
 }
