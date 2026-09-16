@@ -106,10 +106,11 @@ func (d *dialect) WriteArgument(w dbs.Writer, arg any) error {
 			return d.WriteArgument(w, value.Uint())
 		case reflect.Float32, reflect.Float64:
 			return d.WriteArgument(w, value.Float())
-		}
-		for _, typ := range convertibleTypes {
-			if value.Type().ConvertibleTo(typ) {
-				return d.WriteArgument(w, value.Convert(typ).Interface())
+		default:
+			for _, typ := range convertibleTypes {
+				if value.Type().ConvertibleTo(typ) {
+					return d.WriteArgument(w, value.Convert(typ).Interface())
+				}
 			}
 		}
 		return fmt.Errorf("unsupported argument type %T", arg)
