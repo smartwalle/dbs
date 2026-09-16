@@ -59,7 +59,7 @@ func (d *dialect) WriteArgument(w dbs.Writer, arg any) error {
 	case string:
 		return writeQuotedString(w, raw)
 	case []byte:
-		return writeQuotedString(w, string(raw))
+		return writeBytes(w, raw)
 	case int:
 		return writeString(w, strconv.FormatInt(int64(raw), 10))
 	case int8:
@@ -148,6 +148,24 @@ func writeQuotedString(w dbs.Writer, value string) (err error) {
 			if err = w.WriteByte(value[i]); err != nil {
 				return err
 			}
+		}
+	}
+	return w.WriteByte('\'')
+}
+
+func writeBytes(w dbs.Writer, value []byte) (err error) {
+	if _, err = w.WriteString("'\\x"); err != nil {
+		return err
+	}
+
+	const hex = "0123456789abcdef"
+
+	for _, b := range value {
+		if err = w.WriteByte(hex[b>>4]); err != nil {
+			return err
+		}
+		if err = w.WriteByte(hex[b&0x0f]); err != nil {
+			return err
 		}
 	}
 	return w.WriteByte('\'')
