@@ -11,7 +11,9 @@ import (
 	"github.com/smartwalle/dbs"
 )
 
-var _dialect = &dialect{}
+var _dialect = &dialect{
+	location: time.Local,
+}
 
 const (
 	kPlaceholder = '$'
@@ -22,6 +24,14 @@ func Dialect() dbs.Dialect {
 }
 
 type dialect struct {
+	location *time.Location
+}
+
+func (d *dialect) UseTimeLocation(location *time.Location) {
+	if location == nil {
+		location = time.Local
+	}
+	d.location = location
 }
 
 func (d *dialect) WritePlaceholder(w dbs.Writer, idx int) (err error) {
@@ -62,7 +72,7 @@ func (d *dialect) WriteArgument(w dbs.Writer, arg any) error {
 		}
 		return d.WriteArgument(w, v)
 	case time.Time:
-		return writeTime(w, raw)
+		return d.writeTime(w, raw)
 	case bool:
 		return writeString(w, strconv.FormatBool(raw))
 	case string:
@@ -139,6 +149,16 @@ func (d *dialect) writeReflectArgument(w dbs.Writer, value reflect.Value, arg an
 	return fmt.Errorf("unsupported argument type %T", arg)
 }
 
+func (d *dialect) writeTime(w dbs.Writer, value time.Time) (err error) {
+	if err = w.WriteByte('\''); err != nil {
+		return err
+	}
+	if _, err = w.WriteString(value.In(d.location).Format("2006-01-02 15:04:05.999999Z07:00")); err != nil {
+		return err
+	}
+	return w.WriteByte('\'')
+}
+
 func writeFloat(w dbs.Writer, value float64, bitSize int) error {
 	switch {
 	case math.IsNaN(value):
@@ -152,16 +172,6 @@ func writeFloat(w dbs.Writer, value float64, bitSize int) error {
 	default:
 	}
 	return writeString(w, strconv.FormatFloat(value, 'f', -1, bitSize))
-}
-
-func writeTime(w dbs.Writer, value time.Time) (err error) {
-	if err = w.WriteByte('\''); err != nil {
-		return err
-	}
-	if _, err = w.WriteString(value.Format("2006-01-02 15:04:05.999999Z07:00")); err != nil {
-		return err
-	}
-	return w.WriteByte('\'')
 }
 
 func writeQuotedString(w dbs.Writer, value string) (err error) {
