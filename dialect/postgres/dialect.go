@@ -3,6 +3,7 @@ package postgres
 import (
 	"database/sql/driver"
 	"fmt"
+	"math"
 	"reflect"
 	"strconv"
 	"time"
@@ -38,22 +39,24 @@ var convertibleTypes = []reflect.Type{
 }
 
 func (d *dialect) WriteArgument(w dbs.Writer, arg any) error {
-	switch raw := arg.(type) {
-	case nil:
+	if arg == nil {
 		return writeString(w, "NULL")
+	}
+
+	var value = reflect.ValueOf(arg)
+	if value.Kind() == reflect.Ptr && value.IsNil() {
+		return writeString(w, "NULL")
+	}
+
+	switch raw := arg.(type) {
 	case driver.Valuer:
-		value, err := raw.Value()
+		v, err := raw.Value()
 		if err != nil {
 			return err
 		}
-		return d.WriteArgument(w, value)
+		return d.WriteArgument(w, v)
 	case time.Time:
 		return writeTime(w, raw)
-	case *time.Time:
-		if raw == nil {
-			return writeString(w, "NULL")
-		}
-		return writeTime(w, *raw)
 	case bool:
 		return writeString(w, strconv.FormatBool(raw))
 	case string:
@@ -81,54 +84,76 @@ func (d *dialect) WriteArgument(w dbs.Writer, arg any) error {
 	case uint64:
 		return writeString(w, strconv.FormatUint(raw, 10))
 	case float32:
-		return writeString(w, strconv.FormatFloat(float64(raw), 'f', -1, 32))
+		return writeFloat(w, float64(raw), 32)
 	case float64:
-		return writeString(w, strconv.FormatFloat(raw, 'f', -1, 64))
+		return writeFloat(w, raw, 64)
 	default:
-		value := reflect.ValueOf(raw)
-		if !value.IsValid() {
+		return d.writeReflectArgument(w, value, arg)
+	}
+}
+
+func (d *dialect) writeReflectArgument(w dbs.Writer, value reflect.Value, arg any) error {
+	switch value.Kind() {
+	case reflect.Ptr:
+		if value.IsNil() {
 			return writeString(w, "NULL")
 		}
-
-		switch value.Kind() {
-		case reflect.Ptr:
-			if value.IsNil() {
-				return writeString(w, "NULL")
-			}
-			return d.WriteArgument(w, value.Elem().Interface())
-		case reflect.Bool:
-			return d.WriteArgument(w, value.Bool())
-		case reflect.String:
-			return d.WriteArgument(w, value.String())
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			return d.WriteArgument(w, value.Int())
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			return d.WriteArgument(w, value.Uint())
-		case reflect.Float32, reflect.Float64:
-			return d.WriteArgument(w, value.Float())
-		default:
-			for _, typ := range convertibleTypes {
-				if value.Type().ConvertibleTo(typ) {
-					return d.WriteArgument(w, value.Convert(typ).Interface())
-				}
+		return d.WriteArgument(w, value.Elem().Interface())
+	case reflect.Bool:
+		return writeString(w, strconv.FormatBool(value.Bool()))
+	case reflect.String:
+		return writeQuotedString(w, value.String())
+	case reflect.Int,
+		reflect.Int8,
+		reflect.Int16,
+		reflect.Int32,
+		reflect.Int64:
+		return writeString(w, strconv.FormatInt(value.Int(), 10))
+	case reflect.Uint,
+		reflect.Uint8,
+		reflect.Uint16,
+		reflect.Uint32,
+		reflect.Uint64:
+		return writeString(w, strconv.FormatUint(value.Uint(), 10))
+	case reflect.Float32:
+		return writeFloat(w, value.Float(), 32)
+	case reflect.Float64:
+		return writeFloat(w, value.Float(), 64)
+	case reflect.Slice:
+		if value.Type().Elem().Kind() == reflect.Uint8 {
+			return writeBytes(w, value.Bytes())
+		}
+	default:
+		for _, typ := range convertibleTypes {
+			if value.Type().ConvertibleTo(typ) {
+				return d.WriteArgument(w, value.Convert(typ).Interface())
 			}
 		}
-		return fmt.Errorf("unsupported argument type %T", arg)
 	}
+	return fmt.Errorf("unsupported argument type %T", arg)
+}
+
+func writeFloat(w dbs.Writer, value float64, bitSize int) error {
+	switch {
+	case math.IsNaN(value):
+		return writeString(w, "'NaN'")
+
+	case math.IsInf(value, 1):
+		return writeString(w, "'Infinity'")
+
+	case math.IsInf(value, -1):
+		return writeString(w, "'-Infinity'")
+	default:
+	}
+	return writeString(w, strconv.FormatFloat(value, 'f', -1, bitSize))
 }
 
 func writeTime(w dbs.Writer, value time.Time) (err error) {
 	if err = w.WriteByte('\''); err != nil {
 		return err
 	}
-	if value.IsZero() {
-		if _, err = w.WriteString("0001-01-01 00:00:00"); err != nil {
-			return err
-		}
-	} else {
-		if _, err = w.WriteString(value.Format("2006-01-02 15:04:05.999")); err != nil {
-			return err
-		}
+	if _, err = w.WriteString(value.Format("2006-01-02 15:04:05.999999")); err != nil {
+		return err
 	}
 	return w.WriteByte('\'')
 }
@@ -140,7 +165,11 @@ func writeQuotedString(w dbs.Writer, value string) (err error) {
 	for i := 0; i < len(value); i++ {
 		switch value[i] {
 		case '\'':
-			if _, err = w.WriteString("''"); err != nil {
+			if err = w.WriteByte('\''); err != nil {
+				return err
+			}
+
+			if err = w.WriteByte('\''); err != nil {
 				return err
 			}
 
@@ -154,7 +183,7 @@ func writeQuotedString(w dbs.Writer, value string) (err error) {
 }
 
 func writeBytes(w dbs.Writer, value []byte) (err error) {
-	if _, err = w.WriteString("'\\x"); err != nil {
+	if _, err = w.WriteString(`'\x`); err != nil {
 		return err
 	}
 
