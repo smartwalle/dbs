@@ -24,11 +24,8 @@ func Dialect() dbs.Dialect {
 type dialect struct {
 }
 
-func (d *dialect) WritePlaceholder(w dbs.Writer, _ int) (err error) {
-	if err = w.WriteByte(kPlaceholder); err != nil {
-		return err
-	}
-	return nil
+func (d *dialect) WritePlaceholder(w dbs.Writer, _ int) error {
+	return w.WriteByte(kPlaceholder)
 }
 
 var convertibleTypes = []reflect.Type{
