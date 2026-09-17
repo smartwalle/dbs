@@ -5,3 +5,7 @@ type Dialect interface {
 
 	WriteArgument(w Writer, arg any) error
 }
+
+type ExplainValuer interface {
+	ExplainValue() (any, error)
+}

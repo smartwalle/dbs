@@ -49,6 +49,12 @@ func (d *dialect) WriteArgument(w dbs.Writer, arg any) error {
 	}
 
 	switch raw := arg.(type) {
+	case dbs.ExplainValuer:
+		v, err := raw.ExplainValue()
+		if err != nil {
+			return err
+		}
+		return d.WriteArgument(w, v)
 	case driver.Valuer:
 		v, err := raw.Value()
 		if err != nil {
@@ -152,7 +158,7 @@ func writeTime(w dbs.Writer, value time.Time) (err error) {
 	if err = w.WriteByte('\''); err != nil {
 		return err
 	}
-	if _, err = w.WriteString(value.Format("2006-01-02 15:04:05.999999")); err != nil {
+	if _, err = w.WriteString(value.Format("2006-01-02 15:04:05.999999Z07:00")); err != nil {
 		return err
 	}
 	return w.WriteByte('\'')
