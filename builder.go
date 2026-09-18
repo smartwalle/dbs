@@ -67,6 +67,7 @@ func (rb *Builder) SQL() (string, []any, error) {
 	defer buffer.Release()
 
 	buffer.UseDialect(rb.dialect)
+	buffer.UseInline(false)
 
 	if err := rb.Write(buffer); err != nil {
 		return "", nil, err
@@ -79,7 +80,7 @@ func (rb *Builder) Explain() (string, error) {
 	defer buffer.Release()
 
 	buffer.UseDialect(rb.dialect)
-	buffer.UseInline()
+	buffer.UseInline(true)
 
 	if err := rb.Write(buffer); err != nil {
 		return "", err

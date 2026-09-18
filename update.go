@@ -217,6 +217,7 @@ func (ub *UpdateBuilder) SQL() (string, []any, error) {
 	defer buffer.Release()
 
 	buffer.UseDialect(ub.dialect)
+	buffer.UseInline(false)
 
 	if err := ub.Write(buffer); err != nil {
 		return "", nil, err
@@ -229,7 +230,7 @@ func (ub *UpdateBuilder) Explain() (string, error) {
 	defer buffer.Release()
 
 	buffer.UseDialect(ub.dialect)
-	buffer.UseInline()
+	buffer.UseInline(true)
 
 	if err := ub.Write(buffer); err != nil {
 		return "", err

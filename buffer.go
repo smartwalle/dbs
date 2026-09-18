@@ -9,7 +9,7 @@ import (
 var ErrInvalidDialect = errors.New("dbs: invalid dialect")
 
 const kDefaultArgsSize = 16
-const kDefaultBufferSize = 1024
+const kDefaultBufferSize = 2048
 
 const (
 	FlagPlaceholder = uint8(1)
@@ -19,17 +19,17 @@ const (
 type Writer interface {
 	UseDialect(p Dialect)
 
-	UseInline()
+	UseInline(inline bool)
+
+	Arguments() []any
+
+	WriteArgument(flag uint8, arg any) (err error)
 
 	Write(p []byte) (n int, err error)
 
 	WriteByte(c byte) error
 
 	WriteString(s string) (n int, err error)
-
-	WriteArgument(flag uint8, arg any) (err error)
-
-	Arguments() []any
 }
 
 var bufferPool = sync.Pool{
@@ -69,8 +69,27 @@ func (b *Buffer) UseDialect(dialect Dialect) {
 	b.dialect = dialect
 }
 
-func (b *Buffer) UseInline() {
-	b.inline = true
+func (b *Buffer) UseInline(inline bool) {
+	b.inline = inline
+}
+
+func (b *Buffer) Arguments() []any {
+	var args = make([]any, len(b.arguments))
+	copy(args, b.arguments)
+	return args
+}
+
+func (b *Buffer) WriteIdentifier(s string) (err error) {
+	if s == "" {
+		return nil
+	}
+	if b.dialect != nil {
+		return b.dialect.WriteIdentifier(b, s)
+	}
+	if _, err = b.WriteString(s); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (b *Buffer) WriteArgument(flag uint8, arg any) (err error) {
@@ -97,10 +116,4 @@ func (b *Buffer) WriteArgument(flag uint8, arg any) (err error) {
 		}
 	}
 	return nil
-}
-
-func (b *Buffer) Arguments() []any {
-	var args = make([]any, len(b.arguments))
-	copy(args, b.arguments)
-	return args
 }

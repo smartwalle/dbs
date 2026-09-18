@@ -34,6 +34,40 @@ func (d *dialect) UseTimeLocation(location *time.Location) {
 	d.location = location
 }
 
+func (d *dialect) WriteIdentifier(w dbs.Writer, s string) (err error) {
+	if s == "" {
+		return nil
+	}
+
+	if err = w.WriteByte('`'); err != nil {
+		return err
+	}
+
+	var start = 0
+	for i := 0; i < len(s); i++ {
+		if s[i] != '`' {
+			continue
+		}
+		if start < i {
+			if _, err = w.WriteString(s[start:i]); err != nil {
+				return err
+			}
+		}
+		if _, err = w.WriteString("``"); err != nil {
+			return err
+		}
+		start = i + 1
+	}
+
+	if start < len(s) {
+		if _, err = w.WriteString(s[start:]); err != nil {
+			return err
+		}
+	}
+
+	return w.WriteByte('`')
+}
+
 func (d *dialect) WritePlaceholder(w dbs.Writer, _ int) error {
 	return w.WriteByte(kPlaceholder)
 }

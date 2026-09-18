@@ -177,6 +177,7 @@ func (db *DeleteBuilder) SQL() (string, []any, error) {
 	defer buffer.Release()
 
 	buffer.UseDialect(db.dialect)
+	buffer.UseInline(false)
 
 	if err := db.Write(buffer); err != nil {
 		return "", nil, err
@@ -189,7 +190,7 @@ func (db *DeleteBuilder) Explain() (string, error) {
 	defer buffer.Release()
 
 	buffer.UseDialect(db.dialect)
-	buffer.UseInline()
+	buffer.UseInline(true)
 
 	if err := db.Write(buffer); err != nil {
 		return "", err

@@ -296,6 +296,7 @@ func (sb *SelectBuilder) SQL() (string, []any, error) {
 	defer buffer.Release()
 
 	buffer.UseDialect(sb.dialect)
+	buffer.UseInline(false)
 
 	if err := sb.Write(buffer); err != nil {
 		return "", nil, err
@@ -308,7 +309,7 @@ func (sb *SelectBuilder) Explain() (string, error) {
 	defer buffer.Release()
 
 	buffer.UseDialect(sb.dialect)
-	buffer.UseInline()
+	buffer.UseInline(true)
 
 	if err := sb.Write(buffer); err != nil {
 		return "", err

@@ -199,6 +199,7 @@ func (ib *InsertBuilder) SQL() (string, []any, error) {
 	defer buffer.Release()
 
 	buffer.UseDialect(ib.dialect)
+	buffer.UseInline(false)
 
 	if err := ib.Write(buffer); err != nil {
 		return "", nil, err
@@ -211,7 +212,7 @@ func (ib *InsertBuilder) Explain() (string, error) {
 	defer buffer.Release()
 
 	buffer.UseDialect(ib.dialect)
-	buffer.UseInline()
+	buffer.UseInline(true)
 
 	if err := ib.Write(buffer); err != nil {
 		return "", err
