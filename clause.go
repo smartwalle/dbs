@@ -5,6 +5,7 @@ import (
 	"errors"
 	"reflect"
 	"strings"
+	"time"
 )
 
 type SQLClause interface {
@@ -80,18 +81,22 @@ func (c Clause) SQL() (string, []any, error) {
 	return buffer.String(), buffer.Arguments(), nil
 }
 
-func buildArgument(w Writer, arg any) (err error) {
+func writeArgument(w Writer, arg any) (err error) {
 	switch raw := arg.(type) {
 	case SQLClause:
 		if err = raw.Write(w); err != nil {
 			return err
 		}
 	case driver.Valuer:
-		var value driver.Value
-		if value, err = raw.Value(); err != nil {
+		if err = w.WriteArgument(raw); err != nil {
 			return err
 		}
-		if err = w.WriteArgument(FlagPlaceholder|FlagArgument, value); err != nil {
+	case bool, string,
+		int, int8, int16, int32, int64,
+		uint, uint8, uint16, uint32, uint64, uintptr,
+		float32, float64,
+		time.Time, *time.Time:
+		if err = w.WriteArgument(raw); err != nil {
 			return err
 		}
 	default:
@@ -107,12 +112,12 @@ func buildArgument(w Writer, arg any) (err error) {
 						return err
 					}
 				}
-				if err = w.WriteArgument(FlagPlaceholder|FlagArgument, value.Index(idx).Interface()); err != nil {
+				if err = writeArgument(w, value.Index(idx).Interface()); err != nil {
 					return err
 				}
 			}
 		} else {
-			if err = w.WriteArgument(FlagPlaceholder|FlagArgument, raw); err != nil {
+			if err = w.WriteArgument(raw); err != nil {
 				return err
 			}
 		}
@@ -133,7 +138,7 @@ func buildClause(w Writer, sql string, args []any) ([]any, error) {
 		}
 
 		if len(args) > 0 {
-			if err = buildArgument(w, args[0]); err != nil {
+			if err = writeArgument(w, args[0]); err != nil {
 				return nil, err
 			}
 			args = args[1:]
@@ -338,18 +343,7 @@ func (sc Set) Write(w Writer) (err error) {
 	if err = w.WriteByte('='); err != nil {
 		return err
 	}
-
-	switch raw := sc.value.(type) {
-	case SQLClause:
-		if err = raw.Write(w); err != nil {
-			return err
-		}
-	default:
-		if err = w.WriteArgument(FlagPlaceholder|FlagArgument, raw); err != nil {
-			return err
-		}
-	}
-	return nil
+	return writeArgument(w, sc.value)
 }
 
 func (sc Set) SQL() (string, []any, error) {

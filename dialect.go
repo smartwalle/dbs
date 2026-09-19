@@ -13,5 +13,5 @@ type Dialect interface {
 }
 
 type ExplainValuer interface {
-	ExplainValue() (any, error)
+	ExplainValue() (string, error)
 }

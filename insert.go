@@ -164,17 +164,9 @@ func (ib *InsertBuilder) Write(w Writer) (err error) {
 					}
 				}
 
-				switch raw := value.(type) {
-				case SQLClause:
-					if err = raw.Write(w); err != nil {
-						return err
-					}
-				default:
-					if err = w.WriteArgument(FlagPlaceholder|FlagArgument, value); err != nil {
-						return err
-					}
+				if err = writeArgument(w, value); err != nil {
+					return err
 				}
-
 			}
 			if err = w.WriteByte(')'); err != nil {
 				return err

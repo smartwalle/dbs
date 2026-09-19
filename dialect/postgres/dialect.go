@@ -96,7 +96,7 @@ func (d *dialect) WriteArgument(w dbs.Writer, arg any) error {
 		if err != nil {
 			return err
 		}
-		return d.WriteArgument(w, v)
+		return writeQuotedString(w, v)
 	case driver.Valuer:
 		v, err := raw.Value()
 		if err != nil {

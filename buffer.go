@@ -11,11 +11,6 @@ var ErrInvalidDialect = errors.New("dbs: invalid dialect")
 const kDefaultArgsSize = 16
 const kDefaultBufferSize = 2048
 
-const (
-	FlagPlaceholder = uint8(1)
-	FlagArgument    = uint8(2)
-)
-
 type Writer interface {
 	UseDialect(p Dialect)
 
@@ -23,7 +18,7 @@ type Writer interface {
 
 	Arguments() []any
 
-	WriteArgument(flag uint8, arg any) (err error)
+	WriteArgument(arg any) (err error)
 
 	Write(p []byte) (n int, err error)
 
@@ -92,7 +87,7 @@ func (b *Buffer) WriteIdentifier(s string) (err error) {
 	return nil
 }
 
-func (b *Buffer) WriteArgument(flag uint8, arg any) (err error) {
+func (b *Buffer) WriteArgument(arg any) (err error) {
 	if b.inline {
 		if b.dialect == nil {
 			return ErrInvalidDialect
@@ -100,19 +95,16 @@ func (b *Buffer) WriteArgument(flag uint8, arg any) (err error) {
 		return b.dialect.WriteArgument(b, arg)
 	}
 
-	if flag&FlagArgument == FlagArgument {
-		b.arguments = append(b.arguments, arg)
-	}
-	if flag&FlagPlaceholder == FlagPlaceholder {
-		b.placeholderCount++
-		if b.dialect != nil {
-			if err = b.dialect.WritePlaceholder(b, b.placeholderCount); err != nil {
-				return err
-			}
-		} else {
-			if err = b.WriteByte('?'); err != nil {
-				return err
-			}
+	b.arguments = append(b.arguments, arg)
+
+	b.placeholderCount++
+	if b.dialect != nil {
+		if err = b.dialect.WritePlaceholder(b, b.placeholderCount); err != nil {
+			return err
+		}
+	} else {
+		if err = b.WriteByte('?'); err != nil {
+			return err
 		}
 	}
 	return nil
