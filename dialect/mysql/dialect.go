@@ -127,6 +127,8 @@ func (d *dialect) WriteArgument(w dbs.Writer, arg any) error {
 		return writeString(w, strconv.FormatUint(uint64(raw), 10))
 	case uint64:
 		return writeString(w, strconv.FormatUint(raw, 10))
+	case uintptr:
+		return writeString(w, strconv.FormatUint(uint64(raw), 10))
 	case float32:
 		return writeFloat(w, float64(raw), 32)
 	case float64:
