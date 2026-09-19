@@ -165,7 +165,8 @@ func (d *dialect) writeReflectArgument(w dbs.Writer, value reflect.Value, arg an
 		reflect.Uint8,
 		reflect.Uint16,
 		reflect.Uint32,
-		reflect.Uint64:
+		reflect.Uint64,
+		reflect.Uintptr:
 		return writeString(w, strconv.FormatUint(value.Uint(), 10))
 	case reflect.Float32:
 		return writeFloat(w, value.Float(), 32)
