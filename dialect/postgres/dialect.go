@@ -135,6 +135,8 @@ func (d *dialect) WriteArgument(w dbs.Writer, arg any) error {
 		return writeFloat(w, float64(raw), 32)
 	case float64:
 		return writeFloat(w, raw, 64)
+	case fmt.Stringer:
+		return writeQuotedString(w, raw.String())
 	default:
 		return d.writeReflectArgument(w, value, arg)
 	}
