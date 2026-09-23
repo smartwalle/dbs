@@ -30,20 +30,18 @@ type Writer interface {
 var bufferPool = sync.Pool{
 	New: func() any {
 		return &Buffer{
-			Buffer:           bytes.NewBuffer(make([]byte, 0, kDefaultBufferSize)),
-			inline:           false,
-			arguments:        make([]any, 0, kDefaultArgsSize),
-			placeholderCount: 0,
+			Buffer:    bytes.NewBuffer(make([]byte, 0, kDefaultBufferSize)),
+			inline:    false,
+			arguments: make([]any, 0, kDefaultArgsSize),
 		}
 	},
 }
 
 type Buffer struct {
 	*bytes.Buffer
-	inline           bool
-	arguments        []any
-	dialect          Dialect
-	placeholderCount int
+	inline    bool
+	arguments []any
+	dialect   Dialect
 }
 
 func NewBuffer() *Buffer {
@@ -52,7 +50,6 @@ func NewBuffer() *Buffer {
 	buffer.inline = false
 	buffer.arguments = buffer.arguments[:0]
 	buffer.dialect = nil
-	buffer.placeholderCount = 0
 	return buffer
 }
 
@@ -97,15 +94,8 @@ func (b *Buffer) WriteArgument(arg any) (err error) {
 
 	b.arguments = append(b.arguments, arg)
 
-	b.placeholderCount++
-	if b.dialect != nil {
-		if err = b.dialect.WritePlaceholder(b, b.placeholderCount); err != nil {
-			return err
-		}
-	} else {
-		if err = b.WriteByte('?'); err != nil {
-			return err
-		}
+	if b.dialect == nil {
+		return b.WriteByte('?')
 	}
-	return nil
+	return b.dialect.WritePlaceholder(b, len(b.arguments))
 }
