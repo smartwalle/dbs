@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"sync/atomic"
+	"time"
 
 	"github.com/smartwalle/dbs/logger"
 )
@@ -46,14 +47,16 @@ func Open(driver, dsn string, maxOpen, maxIdle int) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
+	db.SetMaxIdleConns(maxIdle)
+	db.SetMaxOpenConns(maxOpen)
 
-	if err = db.Ping(); err != nil {
+	var ctx, cancel = context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	if err = db.PingContext(ctx); err != nil {
 		_ = db.Close()
 		return nil, err
 	}
-
-	db.SetMaxIdleConns(maxIdle)
-	db.SetMaxOpenConns(maxOpen)
 	return New(db), err
 }
 
