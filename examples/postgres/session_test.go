@@ -12,7 +12,7 @@ import (
 
 func TestSessionFromContextNil(t *testing.T) {
 	// SessionFromContext 对空 context 应返回 nil
-	session := dbs.SessionFromContext(context.Background())
+	session := dbs.SessionFrom(context.Background())
 	if session != nil {
 		t.Fatalf("SessionFromContext on empty context should return nil, got %T", session)
 	}
@@ -21,8 +21,8 @@ func TestSessionFromContextNil(t *testing.T) {
 func TestContextWithSessionRoundTrip(t *testing.T) {
 	db := open(t)
 
-	ctx := dbs.ContextWithSession(context.Background(), db)
-	session := dbs.SessionFromContext(ctx)
+	ctx := dbs.WithSession(context.Background(), db)
+	session := dbs.SessionFrom(ctx)
 	if session != db {
 		t.Fatalf("round-trip failed: want %p, got %p", db, session)
 	}

@@ -65,7 +65,7 @@ func (db *DB) Mapper() dbs.Mapper {
 }
 
 func (db *DB) Session(ctx context.Context) dbs.Session {
-	if session := dbs.SessionFromContext(ctx); session != nil {
+	if session := dbs.SessionFrom(ctx); session != nil {
 		return session
 	}
 	return db

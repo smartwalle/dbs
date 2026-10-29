@@ -131,7 +131,7 @@ func (db *DB) UseMapper(mapper Mapper) {
 }
 
 func (db *DB) Session(ctx context.Context) Session {
-	if session := SessionFromContext(ctx); session != nil {
+	if session := SessionFrom(ctx); session != nil {
 		return session
 	}
 	return db
@@ -174,11 +174,11 @@ func (db *DB) BeginTx(ctx context.Context, opts *TxOptions) (*Tx, error) {
 
 type sessionKey struct{}
 
-func ContextWithSession(ctx context.Context, session Session) context.Context {
+func WithSession(ctx context.Context, session Session) context.Context {
 	return context.WithValue(ctx, sessionKey{}, session)
 }
 
-func SessionFromContext(ctx context.Context) Session {
+func SessionFrom(ctx context.Context) Session {
 	session, _ := ctx.Value(sessionKey{}).(Session)
 	return session
 }
