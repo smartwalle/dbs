@@ -94,7 +94,7 @@ func (ub *UpdateBuilder) SetValues(values map[string]any) *UpdateBuilder {
 
 func (ub *UpdateBuilder) Where(sql any, args ...any) *UpdateBuilder {
 	if ub.wheres == nil {
-		var conds = AND()
+		var conds = And()
 		conds.ignoreBracket = true
 		ub.wheres = conds
 	}

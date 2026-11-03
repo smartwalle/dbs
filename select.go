@@ -131,7 +131,7 @@ func (sb *SelectBuilder) Join(sql any, args ...any) *SelectBuilder {
 
 func (sb *SelectBuilder) Where(sql any, args ...any) *SelectBuilder {
 	if sb.wheres == nil {
-		var conds = AND()
+		var conds = And()
 		conds.ignoreBracket = true
 		sb.wheres = conds
 	}
@@ -146,7 +146,7 @@ func (sb *SelectBuilder) GroupBy(groupBys ...string) *SelectBuilder {
 
 func (sb *SelectBuilder) Having(sql any, args ...any) *SelectBuilder {
 	if sb.having == nil {
-		var conds = AND()
+		var conds = And()
 		conds.ignoreBracket = true
 		sb.having = conds
 	}

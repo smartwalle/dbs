@@ -308,11 +308,11 @@ func (cs *Conds) Append(sql any, args ...any) *Conds {
 	return cs
 }
 
-func AND(clauses ...SQLClause) *Conds {
+func And(clauses ...SQLClause) *Conds {
 	return NewConds(" AND ", clauses...)
 }
 
-func OR(clauses ...SQLClause) *Conds {
+func Or(clauses ...SQLClause) *Conds {
 	return NewConds(" OR ", clauses...)
 }
 

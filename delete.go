@@ -70,7 +70,7 @@ func (db *DeleteBuilder) Table(table string) *DeleteBuilder {
 
 func (db *DeleteBuilder) Where(sql any, args ...any) *DeleteBuilder {
 	if db.wheres == nil {
-		var conds = AND()
+		var conds = And()
 		conds.ignoreBracket = true
 		db.wheres = conds
 	}
