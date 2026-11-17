@@ -33,7 +33,7 @@ type mapper struct {
 	mu      *sync.Mutex
 }
 
-func NewMapper(tag string) *mapper {
+func NewMapper(tag string) Mapper {
 	var m = &mapper{}
 	m.tag = tag
 	m.structs.Store(make(map[reflect.Type]structMetadata))
@@ -82,7 +82,7 @@ func encodeBase(src any) (reflect.Type, reflect.Value, error) {
 	var srcValue = reflect.ValueOf(src)
 	var srcType = srcValue.Type()
 
-	for srcType.Kind() == reflect.Ptr {
+	for srcType.Kind() == reflect.Pointer {
 		if srcValue.IsNil() {
 			return nil, reflect.Value{}, ErrInvalidEncodeValue
 		}
@@ -109,7 +109,7 @@ func (m *mapper) Decode(rows *sql.Rows, dest any) (rowsAffected int, err error) 
 	var destValue = reflect.ValueOf(dest)
 	var destType = destValue.Type()
 
-	if destValue.Kind() != reflect.Ptr {
+	if destValue.Kind() != reflect.Pointer {
 		return rowsAffected, errors.New("dbs: must pass a pointer")
 	}
 
@@ -178,7 +178,7 @@ func (m *mapper) scanOne(rows *sql.Rows, columns []*sql.ColumnType, dest any, de
 			for idx, value := range values {
 				var field = fields[idx]
 				if field != nil {
-					fields[idx].ValuePool.Put(value)
+					field.ValuePool.Put(value)
 				}
 			}
 		}()
@@ -229,6 +229,7 @@ func (m *mapper) scanOne(rows *sql.Rows, columns []*sql.ColumnType, dest any, de
 				return scanIntoMap[string](rows, false, columns, dest)
 			case reflect.Interface:
 				return scanIntoMap[any](rows, true, columns, dest)
+			default:
 			}
 		}
 		return fmt.Errorf("map[%s]%s is unsupported", destType.Key().Kind(), destType.Elem().Kind())
@@ -243,7 +244,7 @@ func (m *mapper) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest any, 
 	destType = destType.Elem()
 
 	// 判断元素类型是否为指针
-	var isPointer = destType.Kind() == reflect.Ptr
+	var isPointer = destType.Kind() == reflect.Pointer
 
 	if isPointer {
 		destType = destType.Elem()
@@ -256,7 +257,7 @@ func (m *mapper) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest any, 
 			for idx, value := range values {
 				var field = fields[idx]
 				if field != nil {
-					fields[idx].ValuePool.Put(value)
+					field.ValuePool.Put(value)
 				}
 			}
 		}()
@@ -298,12 +299,15 @@ func (m *mapper) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest any, 
 				return err
 			}
 			var nValue = nPointer.Elem().Elem()
-			if nValue.IsValid() {
-				if isPointer {
-					nList = append(nList, nPointer.Elem())
-				} else {
-					nList = append(nList, nValue)
-				}
+
+			if isPointer {
+				// SQL NULL 对应 nil 指针，也需要保留当前行。
+				nList = append(nList, nPointer.Elem())
+			} else if nValue.IsValid() {
+				nList = append(nList, nValue)
+			} else {
+				// 非指针元素遇到 SQL NULL 时使用零值，不能丢弃当前行。
+				nList = append(nList, reflect.Zero(destType))
 			}
 
 			if !rows.Next() {
@@ -349,6 +353,7 @@ func (m *mapper) scanSlice(rows *sql.Rows, columns []*sql.ColumnType, dest any, 
 				return scanIntoMaps[string](rows, false, columns, dest)
 			case reflect.Interface:
 				return scanIntoMaps[any](rows, true, columns, dest)
+			default:
 			}
 		}
 		return fmt.Errorf("[]map[%s]%s is unsupported", destType.Key().Kind(), destType.Elem().Kind())
@@ -474,7 +479,12 @@ func scanIntoStruct(rows *sql.Rows, columns []*sql.ColumnType, fields []*fieldMe
 			} else if value.Type().ConvertibleTo(destValue.Type()) {
 				destValue.Set(value.Convert(destValue.Type()))
 			} else {
-				return fmt.Errorf("dbs: cannot assign column %q value of type %s to %s", columns[idx].Name(), value.Type(), destValue.Type())
+				return fmt.Errorf(
+					"dbs: cannot assign column %q value of type %s to %s",
+					columns[idx].Name(),
+					value.Type(),
+					destValue.Type(),
+				)
 			}
 		}
 	}
@@ -483,11 +493,11 @@ func scanIntoStruct(rows *sql.Rows, columns []*sql.ColumnType, fields []*fieldMe
 
 func base(destType reflect.Type, destValue reflect.Value) (reflect.Type, reflect.Value) {
 	for {
-		if destValue.Kind() == reflect.Ptr && destValue.IsNil() {
+		if destValue.Kind() == reflect.Pointer && destValue.IsNil() {
 			destValue.Set(reflect.New(destType.Elem()))
 		}
 
-		if destValue.Kind() == reflect.Ptr {
+		if destValue.Kind() == reflect.Pointer {
 			destValue = destValue.Elem()
 			destType = destType.Elem()
 			continue
@@ -548,12 +558,20 @@ type element struct {
 	Index []int
 }
 
+// appendFieldIndex 为字段创建独立的索引切片，避免共享底层数组。
+func appendFieldIndex(index []int, fieldIndex int) []int {
+	var result = make([]int, len(index)+1)
+	copy(result, index)
+	result[len(index)] = fieldIndex
+	return result
+}
+
 func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	var mStruct, ok = m.getStructMetadata(destType)
 	if ok {
-		m.mu.Unlock()
 		return mStruct
 	}
 
@@ -584,10 +602,10 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 			}
 
 			if tag == "" {
-				if fieldStruct.Type.Kind() == reflect.Ptr && fieldStruct.Type.Elem().Kind() == reflect.Struct {
+				if fieldStruct.Type.Kind() == reflect.Pointer && fieldStruct.Type.Elem().Kind() == reflect.Struct {
 					queue = append(queue, element{
 						Type:  fieldStruct.Type.Elem(),
-						Index: append(current.Index, i),
+						Index: appendFieldIndex(current.Index, i),
 					})
 					continue
 				}
@@ -595,7 +613,7 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 				if fieldStruct.Type.Kind() == reflect.Struct {
 					queue = append(queue, element{
 						Type:  fieldStruct.Type,
-						Index: append(current.Index, i),
+						Index: appendFieldIndex(current.Index, i),
 					})
 					continue
 				}
@@ -617,7 +635,7 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 			}
 
 			var field = &fieldMetadata{}
-			field.Index = append(current.Index, i)
+			field.Index = appendFieldIndex(current.Index, i)
 			field.Type = fieldStruct.Type
 			field.ValuePool = getValuePool(field.Type)
 			field.UseDefault = tagMap[kTagValueDefault]
@@ -629,7 +647,6 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 	mStruct.fields = fields
 
 	m.setStructMetadata(destType, mStruct)
-	m.mu.Unlock()
 
 	return mStruct
 }
