@@ -22,7 +22,7 @@ const (
 var ErrInvalidEncodeValue = errors.New("dbs: encode value must be a non-nil struct or struct pointer")
 
 type Mapper interface {
-	Encode(src any) (values []FieldValue, err error)
+	Encode(src any) (values []Field, err error)
 
 	Decode(rows *sql.Rows, dest any) (int, error)
 }
@@ -41,7 +41,7 @@ func NewMapper(tag string) Mapper {
 	return m
 }
 
-func (m *mapper) Encode(src any) (values []FieldValue, err error) {
+func (m *mapper) Encode(src any) (fields []Field, err error) {
 	var srcType, srcValue, nErr = encodeBase(src)
 	if nErr != nil {
 		return nil, nErr
@@ -52,7 +52,7 @@ func (m *mapper) Encode(src any) (values []FieldValue, err error) {
 		mStruct = m.buildStructMetadata(srcType)
 	}
 
-	values = make([]FieldValue, 0, len(mStruct.fields))
+	fields = make([]Field, 0, len(mStruct.fields))
 	for _, column := range mStruct.columns {
 		var field = mStruct.fields[column]
 		if field == nil {
@@ -69,9 +69,9 @@ func (m *mapper) Encode(src any) (values []FieldValue, err error) {
 			useDefault = true
 			useValue = SQL("DEFAULT")
 		}
-		values = append(values, FieldValue{Name: column, UseDefault: useDefault, Value: useValue})
+		fields = append(fields, Field{Name: column, UseDefault: useDefault, Value: useValue})
 	}
-	return values, nil
+	return fields, nil
 }
 
 func encodeBase(src any) (reflect.Type, reflect.Value, error) {
@@ -679,7 +679,7 @@ func getValuePool(reflectType reflect.Type) *sync.Pool {
 	return pool.(*sync.Pool)
 }
 
-type FieldValue struct {
+type Field struct {
 	Name       string
 	Value      any
 	UseDefault bool

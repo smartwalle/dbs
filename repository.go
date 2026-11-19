@@ -101,19 +101,19 @@ func (r *repository[E]) SelectBuilder(ctx context.Context) *SelectBuilder {
 }
 
 func (r *repository[E]) Create(ctx context.Context, entity *E) (Result, error) {
-	var fieldValues, err = r.db.Mapper().Encode(entity)
+	var fields, err = r.db.Mapper().Encode(entity)
 	if err != nil {
 		return nil, err
 	}
-	var columns = make([]string, 0, len(fieldValues))
-	var values = make([]any, 0, len(fieldValues))
+	var columns = make([]string, 0, len(fields))
+	var values = make([]any, 0, len(fields))
 
-	for _, fieldValue := range fieldValues {
-		if fieldValue.UseDefault {
+	for _, field := range fields {
+		if field.UseDefault {
 			continue
 		}
-		columns = append(columns, fieldValue.Name)
-		values = append(values, fieldValue.Value)
+		columns = append(columns, field.Name)
+		values = append(values, field.Value)
 	}
 
 	var ib = r.InsertBuilder(ctx)
@@ -134,21 +134,21 @@ func (r *repository[E]) CreateInBatches(ctx context.Context, batchSize int, enti
 	var rows = make([][]any, 0, len(entities))
 
 	for idx, entity := range entities {
-		var fieldValues, err = r.db.Mapper().Encode(entity)
+		var fields, err = r.db.Mapper().Encode(entity)
 		if err != nil {
 			return nil, err
 		}
 
 		if idx == 0 {
-			columns = make([]string, len(fieldValues))
+			columns = make([]string, len(fields))
 		}
 
-		var values = make([]any, len(fieldValues))
-		for i, fieldValue := range fieldValues {
+		var values = make([]any, len(fields))
+		for i, field := range fields {
 			if idx == 0 {
-				columns[i] = fieldValue.Name
+				columns[i] = field.Name
 			}
-			values[i] = fieldValue.Value
+			values[i] = field.Value
 		}
 		rows = append(rows, values)
 	}
