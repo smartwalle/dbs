@@ -40,10 +40,9 @@ func (c Clause) Clone() Clause {
 	if len(c.args) > 0 {
 		nc.args = make([]any, len(c.args))
 		for i, arg := range c.args {
-			switch raw := arg.(type) {
-			case SQLClause:
+			if raw, ok := arg.(SQLClause); ok {
 				nc.args[i] = clone(raw)
-			default:
+			} else {
 				nc.args[i] = arg
 			}
 		}
@@ -408,6 +407,8 @@ func clone(clause SQLClause) SQLClause {
 	case Set:
 		return raw.Clone()
 	case Parts:
+		return raw.Clone()
+	case *CaseClause:
 		return raw.Clone()
 	default:
 		return clause
