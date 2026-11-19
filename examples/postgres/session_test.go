@@ -47,7 +47,7 @@ func TestDBSessionInTransaction(t *testing.T) {
 		// 事务内 DB.Session(ctx) 应返回 *Tx
 		sessionInTx = db.Session(ctx)
 		return nil
-	}, nil)
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +65,7 @@ func TestRepositorySessionInTransaction(t *testing.T) {
 	err := repo.Transaction(context.Background(), func(ctx context.Context) error {
 		sessionInTx = repo.Database().Session(ctx)
 		return nil
-	}, nil)
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,8 +87,8 @@ func TestSessionInNestedTransaction(t *testing.T) {
 		return repo.Transaction(ctx, func(innerCtx context.Context) error {
 			innerSession = db.Session(innerCtx)
 			return nil
-		}, nil)
-	}, nil)
+		})
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,8 +130,8 @@ func TestNestedTransactionSuccess(t *testing.T) {
 				return fmt.Errorf("inner create: %w", err)
 			}
 			return nil
-		}, nil)
-	}, nil)
+		})
+	})
 	if err != nil {
 		t.Fatalf("nested transaction should succeed: %v", err)
 	}
@@ -169,8 +169,8 @@ func TestNestedTransactionFailure(t *testing.T) {
 		// 嵌套事务返回 error，连累外层回滚
 		return repo.Transaction(ctx, func(innerCtx context.Context) error {
 			return sentinelErr
-		}, nil)
-	}, nil)
+		})
+	})
 
 	if !errors.Is(err, sentinelErr) {
 		t.Fatalf("expected sentinel error from nested tx, got: %v", err)

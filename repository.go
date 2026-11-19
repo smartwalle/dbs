@@ -44,9 +44,9 @@ type Repository[E Entity] interface {
 
 	FindOrderedList(ctx context.Context, columns, orderBy, conds string, args ...any) ([]*E, error)
 
-	Transaction(ctx context.Context, fn func(ctx context.Context) error, opts *TxOptions) error
+	Tx(ctx context.Context, fn func(ctx context.Context) error, opts *TxOptions) error
 
-	Tx(ctx context.Context, fn func(ctx context.Context) error) error
+	Transaction(ctx context.Context, fn func(ctx context.Context) error) error
 }
 
 type repository[E Entity] struct {
@@ -174,7 +174,7 @@ func (r *repository[E]) CreateInBatches(ctx context.Context, batchSize int, enti
 			results = append(results, result)
 		}
 		return nil
-	}, nil)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +241,7 @@ func (r *repository[E]) FindOrderedList(ctx context.Context, columns, orderBy, c
 	return entityList, nil
 }
 
-func (r *repository[E]) Transaction(ctx context.Context, fn func(ctx context.Context) error, opts *TxOptions) (err error) {
+func (r *repository[E]) Tx(ctx context.Context, fn func(ctx context.Context) error, opts *TxOptions) (err error) {
 	var tx, _ = SessionFrom(ctx).(*Tx)
 	if tx == nil {
 		tx, err = r.db.BeginTx(ctx, opts)
@@ -263,8 +263,8 @@ func (r *repository[E]) Transaction(ctx context.Context, fn func(ctx context.Con
 	return fn(ctx)
 }
 
-func (r *repository[E]) Tx(ctx context.Context, fn func(ctx context.Context) error) (err error) {
-	return r.Transaction(ctx, fn, nil)
+func (r *repository[E]) Transaction(ctx context.Context, fn func(ctx context.Context) error) (err error) {
+	return r.Tx(ctx, fn, nil)
 }
 
 type insertResults []Result
