@@ -36,7 +36,7 @@ type Repository[E Entity] interface {
 
 	Update(ctx context.Context, id any, values map[string]any) (Result, error)
 
-	Find(ctx context.Context, id any, columns string) (*E, error)
+	Find(ctx context.Context, id any, columns ...string) (*E, error)
 
 	FindOne(ctx context.Context, columns, conds string, args ...any) (*E, error)
 
@@ -194,9 +194,13 @@ func (r *repository[E]) Update(ctx context.Context, id any, values map[string]an
 	return ub.Exec(withTraceDepth(ctx, kRepositoryTraceDepth))
 }
 
-func (r *repository[E]) Find(ctx context.Context, id any, columns string) (entity *E, err error) {
+func (r *repository[E]) Find(ctx context.Context, id any, columns ...string) (entity *E, err error) {
 	var sb = r.SelectBuilder(ctx)
-	sb.Selects(columns)
+	if len(columns) > 0 {
+		sb.Selects(columns...)
+	} else {
+		sb.Selects("*")
+	}
 	sb.Limit(1)
 	sb.Where(r.entity.PrimaryKey()+" = ?", id)
 
@@ -208,7 +212,11 @@ func (r *repository[E]) Find(ctx context.Context, id any, columns string) (entit
 
 func (r *repository[E]) FindOne(ctx context.Context, columns string, conds string, args ...any) (entity *E, err error) {
 	var sb = r.SelectBuilder(ctx)
-	sb.Selects(columns)
+	if columns != "" {
+		sb.Selects(columns)
+	} else {
+		sb.Selects("*")
+	}
 	sb.Limit(1)
 	sb.Where(conds, args...)
 
@@ -220,7 +228,11 @@ func (r *repository[E]) FindOne(ctx context.Context, columns string, conds strin
 
 func (r *repository[E]) FindList(ctx context.Context, columns, conds string, args ...any) (entityList []*E, err error) {
 	var sb = r.SelectBuilder(ctx)
-	sb.Selects(columns)
+	if columns != "" {
+		sb.Selects(columns)
+	} else {
+		sb.Selects("*")
+	}
 	sb.Where(conds, args...)
 
 	if err = sb.Scan(withTraceDepth(ctx, kRepositoryTraceDepth), &entityList); err != nil {
@@ -231,7 +243,11 @@ func (r *repository[E]) FindList(ctx context.Context, columns, conds string, arg
 
 func (r *repository[E]) FindOrderedList(ctx context.Context, columns, orderBy, conds string, args ...any) (entityList []*E, err error) {
 	var sb = r.SelectBuilder(ctx)
-	sb.Selects(columns)
+	if columns != "" {
+		sb.Selects(columns)
+	} else {
+		sb.Selects("*")
+	}
 	sb.OrderBy(orderBy)
 	sb.Where(conds, args...)
 
