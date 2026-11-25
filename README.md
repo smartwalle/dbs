@@ -124,6 +124,38 @@ sb.Selects("*").From("user").Where("id = ?", 1)
 err := sb.UseSession(db).Scan(context.Background(), &user)
 ```
 
+### 结果映射规则
+
+`dbs` 用结构体字段上的 `sql` 标签把列和字段对应起来：
+
+```go
+type User struct {
+    Id      int64     `sql:"id"`
+    Name    string    `sql:"name"`
+    Nick    *string   `sql:"nick"`         // 可空列
+    Created time.Time `sql:"created_at"`
+    Profile *Profile                         // 没有标签的结构体，字段会展开
+    Remark  string    `sql:"remark;default"` // 值是零值时写 DEFAULT
+    Ignore  string    `sql:"-"`              // 不参与映射
+}
+```
+
+几个要注意的地方：
+
+* **可空列对应到指针类型**（`*string`、`*time.Time` 等）。
+  指针能接住 `NULL`，解码最快，也不会把「NULL」和「零值」混在一起。
+  对应到值类型（`string`、`time.Time`）时，`NULL` 会被解成零值，
+  而且解码要走兼容路径（整行重扫一遍），比指针慢不少。
+* **嵌套结构体**：没有 `sql` 标签的结构体和结构体指针会展开，
+  用里面的字段当列名；路径中间的指针是 `nil` 时会自动分配。
+* **实现了 `sql.Scanner` 的字段**逐行新建实例，
+  字段内部的状态不会在多行之间串行。
+* **`[]byte` 和 `sql.RawBytes` 字段**每一行都是独立的数据，不会被下一行覆盖。
+* 解码出来的数据是**拷贝**，不和内部复用的扫描目标共享内存，
+  查出来的 A 不会被后一次查询 B 改写。
+* 解到**单个**基础类型时，列是 `NULL` 会保持目标原来的值（不写零值）；
+  解到**切片**时则是零值，并且这一行会保留。
+
 ### 事务管理
 
 `dbs` 支持通过 `Transaction` 方法方便地处理事务：
