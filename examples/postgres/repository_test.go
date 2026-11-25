@@ -12,7 +12,7 @@ func TestRepositoryFind(t *testing.T) {
 	db := open(t)
 	repo := dbs.NewRepository[Mail](db)
 
-	mail, err := repo.Find(context.Background(), 1, "*")
+	mail, err := repo.Find(context.Background(), 1)
 	if err != nil {
 		t.Fatal(err)
 	}
