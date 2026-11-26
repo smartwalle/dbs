@@ -328,36 +328,36 @@ func (m *mapper) scanOne(rows *sql.Rows, dest any, destType reflect.Type, destVa
 		if destType.Key().Kind() == reflect.String {
 			switch destType.Elem().Kind() {
 			case reflect.Bool:
-				return scanIntoMap[bool](rows, false, columns, dest)
+				return scanIntoMap[bool](rows, columns, dest)
 			case reflect.Int:
-				return scanIntoMap[int](rows, false, columns, dest)
+				return scanIntoMap[int](rows, columns, dest)
 			case reflect.Int8:
-				return scanIntoMap[int8](rows, false, columns, dest)
+				return scanIntoMap[int8](rows, columns, dest)
 			case reflect.Int16:
-				return scanIntoMap[int16](rows, false, columns, dest)
+				return scanIntoMap[int16](rows, columns, dest)
 			case reflect.Int32:
-				return scanIntoMap[int32](rows, false, columns, dest)
+				return scanIntoMap[int32](rows, columns, dest)
 			case reflect.Int64:
-				return scanIntoMap[int64](rows, false, columns, dest)
+				return scanIntoMap[int64](rows, columns, dest)
 			case reflect.Uint:
-				return scanIntoMap[uint](rows, false, columns, dest)
+				return scanIntoMap[uint](rows, columns, dest)
 			case reflect.Uint8:
-				return scanIntoMap[uint8](rows, false, columns, dest)
+				return scanIntoMap[uint8](rows, columns, dest)
 			case reflect.Uint16:
-				return scanIntoMap[uint16](rows, false, columns, dest)
+				return scanIntoMap[uint16](rows, columns, dest)
 			case reflect.Uint32:
-				return scanIntoMap[uint32](rows, false, columns, dest)
+				return scanIntoMap[uint32](rows, columns, dest)
 			case reflect.Uint64:
-				return scanIntoMap[uint64](rows, false, columns, dest)
+				return scanIntoMap[uint64](rows, columns, dest)
 			case reflect.Float32:
-				return scanIntoMap[float32](rows, false, columns, dest)
+				return scanIntoMap[float32](rows, columns, dest)
 			case reflect.Float64:
-				return scanIntoMap[float64](rows, false, columns, dest)
+				return scanIntoMap[float64](rows, columns, dest)
 			case reflect.String:
-				return scanIntoMap[string](rows, false, columns, dest)
+				return scanIntoMap[string](rows, columns, dest)
 			case reflect.Interface:
 				// map[string]any 按列声明的类型接收，所以要列类型。
-				return scanIntoMap[any](rows, true, columns, dest)
+				return scanIntoMapAny(rows, columns, dest)
 			default:
 				// 其他元素类型不支持。
 			}
@@ -403,6 +403,9 @@ func (m *mapper) scanSlice(rows *sql.Rows, dest any, destType reflect.Type, dest
 		var list = reflect.New(destValue.Type()).Elem()
 		list.Set(destValue)
 
+		// 零值每行都一样，先取好，循环里直接用。
+		var zeroValue = m.getZeroValue(destType)
+
 		// index 是下一个要写的下标，从已有内容的后面开始。
 		var index = list.Len()
 		// scanned 是已经扫过的行数，用来判断值不值得提前准备内层指针。
@@ -427,7 +430,7 @@ func (m *mapper) scanSlice(rows *sql.Rows, dest any, destType reflect.Type, dest
 			} else {
 				// 复用容量时槽位里可能是上一轮的数据，先清零，
 				// 这一轮没有查到的字段就是零值。
-				slot.Set(m.getZeroValue(destType))
+				slot.Set(zeroValue)
 			}
 
 			// 把当前行扫进目标对象。
@@ -460,14 +463,23 @@ func (m *mapper) scanSlice(rows *sql.Rows, dest any, destType reflect.Type, dest
 		// 扫描目标在多行之间复用，扫描后立刻把值取走。
 		// 目标是类型本身的指针，database/sql 直接往里写。
 		var target = reflect.New(destType)
+		// 目标转成 any 的结果每行都一样，先转好，循环里直接用。
+		var targetAny = target.Interface()
 		// 兼容目标，用双层指针，NULL 落在非指针类型上时用它重扫。
 		var compat reflect.Value
+		// 兼容目标转成 any 的结果，兼容路径第一次用到时才准备。
+		var compatAny any
+		// 零值每行都一样，先取好，循环里直接用。
+		var zeroValue = m.getZeroValue(destType)
 		// 指针元素的目标。
 		var pointer reflect.Value
+		// 指针元素的目标转成 any 的结果，每行都一样，先转好。
+		var pointerAny any
 		if isPointer {
 			// 指针元素：database/sql 会为每一行分配新的实例，
 			// SQL NULL 对应 nil 指针，也需要保留当前行。
 			pointer = reflect.New(reflect.PointerTo(destType))
+			pointerAny = pointer.Interface()
 		}
 		// list 是目标切片的可寻址副本，理由和结构体分支一样。
 		var list = reflect.New(destValue.Type()).Elem()
@@ -486,14 +498,14 @@ func (m *mapper) scanSlice(rows *sql.Rows, dest any, destType reflect.Type, dest
 			if isPointer {
 				// 指针元素：扫进双层指针，database/sql 会给这一行新建一个实例，
 				// NULL 时是 nil 指针。
-				if err := rows.Scan(pointer.Interface()); err != nil {
+				if err := rows.Scan(pointerAny); err != nil {
 					return err
 				}
 				// 把实例存进槽位，取走的是指针，实例由这一行独占。
 				slot.Set(pointer.Elem())
 			} else {
 				var nValue reflect.Value
-				if err := rows.Scan(target.Interface()); err == nil {
+				if err := rows.Scan(targetAny); err == nil {
 					// 快路径：值直接写进了 target。
 					nValue = target.Elem()
 				} else {
@@ -501,8 +513,9 @@ func (m *mapper) scanSlice(rows *sql.Rows, dest any, destType reflect.Type, dest
 					// 改用双层指针重扫同一行，NULL 还原成零值。
 					if !compat.IsValid() {
 						compat = reflect.New(reflect.PointerTo(destType))
+						compatAny = compat.Interface()
 					}
-					if err = rows.Scan(compat.Interface()); err != nil {
+					if err = rows.Scan(compatAny); err != nil {
 						return err
 					}
 					// 取两次 Elem：第一次拿到指针，第二次拿到值。
@@ -513,7 +526,7 @@ func (m *mapper) scanSlice(rows *sql.Rows, dest any, destType reflect.Type, dest
 					slot.Set(nValue)
 				} else {
 					// 非指针元素遇到 SQL NULL 时使用零值，不能丢弃当前行。
-					slot.Set(m.getZeroValue(destType))
+					slot.Set(zeroValue)
 				}
 			}
 
@@ -534,35 +547,35 @@ func (m *mapper) scanSlice(rows *sql.Rows, dest any, destType reflect.Type, dest
 		if destType.Key().Kind() == reflect.String {
 			switch destType.Elem().Kind() {
 			case reflect.Bool:
-				return scanIntoMaps[bool](rows, false, columns, dest)
+				return scanIntoMaps[bool](rows, columns, dest)
 			case reflect.Int:
-				return scanIntoMaps[int](rows, false, columns, dest)
+				return scanIntoMaps[int](rows, columns, dest)
 			case reflect.Int8:
-				return scanIntoMaps[int8](rows, false, columns, dest)
+				return scanIntoMaps[int8](rows, columns, dest)
 			case reflect.Int16:
-				return scanIntoMaps[int16](rows, false, columns, dest)
+				return scanIntoMaps[int16](rows, columns, dest)
 			case reflect.Int32:
-				return scanIntoMaps[int32](rows, false, columns, dest)
+				return scanIntoMaps[int32](rows, columns, dest)
 			case reflect.Int64:
-				return scanIntoMaps[int64](rows, false, columns, dest)
+				return scanIntoMaps[int64](rows, columns, dest)
 			case reflect.Uint:
-				return scanIntoMaps[uint](rows, false, columns, dest)
+				return scanIntoMaps[uint](rows, columns, dest)
 			case reflect.Uint8:
-				return scanIntoMaps[uint8](rows, false, columns, dest)
+				return scanIntoMaps[uint8](rows, columns, dest)
 			case reflect.Uint16:
-				return scanIntoMaps[uint16](rows, false, columns, dest)
+				return scanIntoMaps[uint16](rows, columns, dest)
 			case reflect.Uint32:
-				return scanIntoMaps[uint32](rows, false, columns, dest)
+				return scanIntoMaps[uint32](rows, columns, dest)
 			case reflect.Uint64:
-				return scanIntoMaps[uint64](rows, false, columns, dest)
+				return scanIntoMaps[uint64](rows, columns, dest)
 			case reflect.Float32:
-				return scanIntoMaps[float32](rows, false, columns, dest)
+				return scanIntoMaps[float32](rows, columns, dest)
 			case reflect.Float64:
-				return scanIntoMaps[float64](rows, false, columns, dest)
+				return scanIntoMaps[float64](rows, columns, dest)
 			case reflect.String:
-				return scanIntoMaps[string](rows, false, columns, dest)
+				return scanIntoMaps[string](rows, columns, dest)
 			case reflect.Interface:
-				return scanIntoMaps[any](rows, true, columns, dest)
+				return scanIntoMapsAny(rows, columns, dest)
 			default:
 			}
 		}
@@ -743,29 +756,31 @@ func scanScalar(rows *sql.Rows, destType reflect.Type) (reflect.Value, error) {
 
 // scanIntoMap 把查询结果解到一个 map 里。
 //
-// useColumnType 为 true 时按列声明的类型接收驱动返回的值，
-// map 里的值类型和列类型一致；为 false 时按 map 的元素类型接收。
+// map 的元素类型是基础类型时，按元素类型接收驱动返回的值，
+// map 里的值类型和元素类型一致。
 //
 // 这个文件和下面几个 map 函数都是泛型函数，
 // Go 不允许定义泛型方法，所以只能放在包级。
-func scanIntoMap[T any](rows *sql.Rows, useColumnType bool, columns []*sql.ColumnType, dest any) error {
+func scanIntoMap[T any](rows *sql.Rows, columns []*sql.ColumnType, dest any) error {
 	// dest 必须是 *map[string]T。
 	var mapValue, ok = dest.(*map[string]T)
 	if !ok {
 		return fmt.Errorf("%+v is unsupported", dest)
 	}
 	// 调用方传进来的是 nil map，这里建一个。
+	// 列数是已知的，预先给足容量，省掉中途扩容。
 	if *mapValue == nil {
-		*mapValue = map[string]T{}
+		*mapValue = make(map[string]T, len(columns))
 	}
 	// 扫描目标在多行之间复用，这里只有一行。
-	return scanIntoMapValue[T](rows, columns, mapTargets[T](columns, useColumnType), *mapValue)
+	var targets = mapValueTargets[T](columns)
+	return scanIntoMapValue[T](rows, targets, *mapValue)
 }
 
 // scanIntoMaps 把查询结果解到 map 切片里，一行一个 map。
 //
 // 每一行都新建一个 map，行与行之间不共享内存。
-func scanIntoMaps[T any](rows *sql.Rows, useColumnType bool, columns []*sql.ColumnType, dest any) error {
+func scanIntoMaps[T any](rows *sql.Rows, columns []*sql.ColumnType, dest any) error {
 	// dest 必须是 *[]map[string]T。
 	var mapValues, ok = dest.(*[]map[string]T)
 	if !ok {
@@ -777,11 +792,11 @@ func scanIntoMaps[T any](rows *sql.Rows, useColumnType bool, columns []*sql.Colu
 	}
 
 	// 扫描目标在多行之间复用，每一行扫完就把值取走。
-	var targets = mapTargets[T](columns, useColumnType)
+	var targets = mapValueTargets[T](columns)
 	for {
 		// 每一行都新建一个 map，行与行之间不共享内存。
-		var mapValue = make(map[string]T)
-		if err := scanIntoMapValue[T](rows, columns, targets, mapValue); err != nil {
+		var mapValue = make(map[string]T, len(columns))
+		if err := scanIntoMapValue[T](rows, targets, mapValue); err != nil {
 			return err
 		}
 		*mapValues = append(*mapValues, mapValue)
@@ -796,71 +811,228 @@ func scanIntoMaps[T any](rows *sql.Rows, useColumnType bool, columns []*sql.Colu
 	return nil
 }
 
-// mapTargets 准备 map 扫描用的目标，多行之间可以复用。
+// mapTargets 准备基础类型 map 的扫描目标，多行之间可以复用。
 //
-// 按列声明的类型接收时，目标是「指向列类型的指针的指针」，
-// NULL 会变成空指针，值取零值；
-// 按 map 的元素类型接收时，目标是「指向元素类型的指针」。
-func mapTargets[T any](columns []*sql.ColumnType, useColumnType bool) []any {
-	// 每一列一个扫描目标。
-	var values = make([]any, len(columns))
-	for idx, column := range columns {
-		if useColumnType && column.ScanType() != nil {
-			// 按列声明的类型接收：目标是「指向列类型的指针的指针」，
-			// 用两层指针是为了让 NULL 变成空指针，值取零值。
-			values[idx] = reflect.New(reflect.PointerTo(column.ScanType())).Interface()
-		} else {
-			// 按 map 的元素类型接收：目标是「指向元素类型的指针」。
-			var val T
-			values[idx] = &val
-		}
+// 目标是「指向元素类型的指针」，database/sql 直接把驱动返回的值
+// 转成元素类型写进去，不用为每一行分配对象。
+type mapTargets[T any] struct {
+	// fast 是扫描目标。
+	fast []any
+	// names 是列名，扫描之前先取好，扫描的时候直接用。
+	names []string
+}
+
+// mapValueTargets 准备基础类型 map 的扫描目标。
+func mapValueTargets[T any](columns []*sql.ColumnType) *mapTargets[T] {
+	var targets = &mapTargets[T]{
+		fast:  make([]any, len(columns)),
+		names: make([]string, len(columns)),
 	}
-	return values
+	for idx, column := range columns {
+		targets.names[idx] = column.Name()
+		// 每一列一个「指向元素类型的指针」。
+		var val T
+		targets.fast[idx] = &val
+	}
+	return targets
 }
 
 // scanIntoMapValue 把当前行扫描进一个 map。
 //
 // 扫描之后把值取出来写进 map，写进去的是值的副本，
 // 不会和扫描目标共享内存。
-func scanIntoMapValue[T any](rows *sql.Rows, columns []*sql.ColumnType, values []any, mapValue map[string]T) (err error) {
+func scanIntoMapValue[T any](rows *sql.Rows, targets *mapTargets[T], mapValue map[string]T) error {
 	// 把这一行扫进扫描目标。
-	if err = rows.Scan(values...); err != nil {
+	if err := rows.Scan(targets.fast...); err != nil {
 		return err
 	}
 
-	// 取不到值时用零值。
-	var zeroValue T
-	for idx, column := range columns {
-		var name = column.Name()
-
-		// 取两次 Elem 拿到值：
-		// 目标是「指向列类型的指针的指针」时是两层，
-		// 目标是「指向元素类型的指针」时是一次。
-		if reflectValue := reflect.Indirect(reflect.Indirect(reflect.ValueOf(values[idx]))); reflectValue.IsValid() {
-			var value = reflectValue.Interface()
-
-			// 实现了 driver.Valuer 的值先转成驱动能用的类型。
-			if valuer, ok := value.(driver.Valuer); ok {
-				value, err = valuer.Value()
-				if err != nil {
-					return err
-				}
-			} else if b, ok := value.(sql.RawBytes); ok {
-				// RawBytes 的数据来自驱动缓冲区，转成字符串断开引用。
-				value = string(b)
-			}
-
-			// 类型对不上就报错。
-			var nValue, ok = value.(T)
-			if !ok {
-				return fmt.Errorf("dbs: cannot assign column %q value of type %T to map value", name, value)
-			}
-			// 写进 map 的是值的副本，不和扫描目标共享内存。
-			mapValue[name] = nValue
-		} else {
-			// 列是 NULL，map 里放零值。
-			mapValue[name] = zeroValue
+	for idx, name := range targets.names {
+		// 扫描目标是「指向元素类型的指针」，断言之后直接取到值：
+		// 不用反射，也不用把值装箱成接口，省掉每行每列的一次分配。
+		pointer, ok := targets.fast[idx].(*T)
+		if !ok {
+			return fmt.Errorf("dbs: cannot assign column %q value to map value", name)
 		}
+		// 写进 map 的是值的副本，不和扫描目标共享内存。
+		mapValue[name] = *pointer
+	}
+	return nil
+}
+
+// scanIntoMapAny 把查询结果解到一个 map[string]any 里。
+//
+// 值按列声明的类型接收，所以 map 里的值类型和列类型一致。
+func scanIntoMapAny(rows *sql.Rows, columns []*sql.ColumnType, dest any) error {
+	// dest 必须是 *map[string]any。
+	var mapValue, ok = dest.(*map[string]any)
+	if !ok {
+		return fmt.Errorf("%+v is unsupported", dest)
+	}
+	// 调用方传进来的是 nil map，这里建一个。
+	// 列数是已知的，预先给足容量，省掉中途扩容。
+	if *mapValue == nil {
+		*mapValue = make(map[string]any, len(columns))
+	}
+	var targets = newMapAnyTargets(columns)
+	return scanIntoMapAnyValue(rows, targets, *mapValue)
+}
+
+// scanIntoMapsAny 把查询结果解到 map 切片里，一行一个 map。
+//
+// 每一行都新建一个 map，行与行之间不共享内存。
+func scanIntoMapsAny(rows *sql.Rows, columns []*sql.ColumnType, dest any) error {
+	// dest 必须是 *[]map[string]any。
+	var mapValues, ok = dest.(*[]map[string]any)
+	if !ok {
+		return fmt.Errorf("%+v is unsupported", dest)
+	}
+
+	if *mapValues == nil {
+		*mapValues = []map[string]any{}
+	}
+
+	var targets = newMapAnyTargets(columns)
+	for {
+		// 每一行都新建一个 map，行与行之间不共享内存。
+		var mapValue = make(map[string]any, len(columns))
+		if err := scanIntoMapAnyValue(rows, targets, mapValue); err != nil {
+			return err
+		}
+		*mapValues = append(*mapValues, mapValue)
+
+		if !rows.Next() {
+			break
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// mapAnyTargets 按列声明的类型准备 map[string]any 的扫描目标，多行之间可以复用。
+//
+// 快路径目标是「指向列类型的指针」，database/sql 直接把值转成列类型写进去，
+// 不用为每一行分配对象；NULL 落在非指针列类型上时快路径会报错。
+//
+// 兼容路径目标是「指向列类型的指针的指针」，NULL 会变成空指针，
+// 快路径失败时用它重扫同一行，值取零值。
+// 兼容目标只有真的遇到 NULL 才用得上，所以等第一次失败时再准备。
+type mapAnyTargets struct {
+	// fast 是快路径扫描目标。
+	fast []any
+	// compat 是兼容路径扫描目标，第一次遇到 NULL 时才准备。
+	compat []any
+	// names 是列名，扫描之前先取好，扫描的时候直接用。
+	names []string
+	// columns 是原始的列信息，准备兼容目标的时候还要用。
+	columns []*sql.ColumnType
+}
+
+// newMapAnyTargets 按列声明的类型准备扫描目标。
+func newMapAnyTargets(columns []*sql.ColumnType) *mapAnyTargets {
+	var targets = &mapAnyTargets{
+		fast:    make([]any, len(columns)),
+		names:   make([]string, len(columns)),
+		columns: columns,
+	}
+
+	for idx, column := range columns {
+		targets.names[idx] = column.Name()
+
+		var scanType = column.ScanType()
+		if scanType != nil {
+			// 快路径：指向列类型的指针。
+			targets.fast[idx] = reflect.New(scanType).Interface()
+		} else {
+			// 驱动没有给列类型，按驱动返回的原始值接收。
+			// 快路径目标是 any，NULL 会被写成 nil，不会报错。
+			var val any
+			targets.fast[idx] = &val
+		}
+	}
+	return targets
+}
+
+// buildCompat 在第一次需要兼容路径时准备兼容目标。
+//
+// 兼容目标是「指向列类型的指针的指针」，用两层指针是为了让 NULL 变成空指针。
+// 目标建好之后多行之间一直复用。
+func (t *mapAnyTargets) buildCompat() {
+	if t.compat != nil {
+		return
+	}
+	// any 本身的类型，没有列类型的列用它建「any 的指针的指针」。
+	var anyType = reflect.TypeOf((*any)(nil)).Elem()
+
+	t.compat = make([]any, len(t.fast))
+	for idx, column := range t.columns {
+		var scanType = column.ScanType()
+		if scanType != nil {
+			t.compat[idx] = reflect.New(reflect.PointerTo(scanType)).Interface()
+		} else {
+			// 两层指针和快路径一样，取值时不会多剥一层。
+			t.compat[idx] = reflect.New(reflect.PointerTo(anyType)).Interface()
+		}
+	}
+}
+
+// scanIntoMapAnyValue 把当前行扫描进一个 map。
+//
+// 扫描之后把值取出来写进 map，写进去的是值的副本，
+// 不会和扫描目标共享内存。
+func scanIntoMapAnyValue(rows *sql.Rows, targets *mapAnyTargets, mapValue map[string]any) error {
+	// 快路径：目标是「指向列类型的指针」，不用为每一行分配对象。
+	if err := rows.Scan(targets.fast...); err != nil {
+		// 兼容路径：NULL 落在非指针列类型上时快路径会报错，
+		// 用兼容目标重扫同一行，NULL 变成空指针，值取零值。
+		targets.buildCompat()
+		if err = rows.Scan(targets.compat...); err != nil {
+			return err
+		}
+		return fillMapAny(targets, targets.compat, mapValue, true)
+	}
+	return fillMapAny(targets, targets.fast, mapValue, false)
+}
+
+// fillMapAny 把扫描目标里的值写进 map。
+//
+// compat 为 true 时目标多一层指针，取两次 Elem；
+// 取不到值说明这一列是 NULL，map 里放零值。
+//
+// 驱动没有给列类型时，目标是 any，NULL 会写成 nil，
+// 取出来的也是一个合法的 nil 值，和其他列的 NULL 一样放进 map。
+func fillMapAny(targets *mapAnyTargets, values []any, mapValue map[string]any, compat bool) (err error) {
+	for idx, name := range targets.names {
+		// 快路径目标是「指向列类型的指针」，取一次 Elem 就是值；
+		// 兼容路径目标多一层指针，取两次 Elem。
+		var value reflect.Value
+		if compat {
+			value = reflect.Indirect(reflect.Indirect(reflect.ValueOf(values[idx])))
+		} else {
+			value = reflect.Indirect(reflect.ValueOf(values[idx]))
+		}
+
+		if !value.IsValid() {
+			// 列是 NULL，map 里放零值。
+			mapValue[name] = nil
+			continue
+		}
+
+		// 取出值。实现了 driver.Valuer 的值先转成驱动能用的类型。
+		var nValue = value.Interface()
+		if valuer, ok := nValue.(driver.Valuer); ok {
+			if nValue, err = valuer.Value(); err != nil {
+				return err
+			}
+		} else if b, ok := nValue.(sql.RawBytes); ok {
+			// RawBytes 的数据来自驱动缓冲区，转成字符串断开引用。
+			nValue = string(b)
+		}
+
+		// 写进 map 的是值的副本，不和扫描目标共享内存。
+		mapValue[name] = nValue
 	}
 	return nil
 }
