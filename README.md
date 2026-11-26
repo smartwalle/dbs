@@ -135,7 +135,7 @@ type User struct {
     Nick    *string   `sql:"nick"`         // 可空列
     Created time.Time `sql:"created_at"`
     Profile *Profile                         // 没有标签的结构体，字段会展开
-    Remark  string    `sql:"remark;default"` // 值是零值时写 DEFAULT
+    Remark  string    `sql:"remark;default"` // 写入时值是零值，由数据库填默认值
     Ignore  string    `sql:"-"`              // 不参与映射
 }
 ```
@@ -144,8 +144,11 @@ type User struct {
 
 * **可空列对应到指针类型**（`*string`、`*time.Time` 等）。
   指针能接住 `NULL`，解码最快，也不会把「NULL」和「零值」混在一起。
-  对应到值类型（`string`、`time.Time`）时，`NULL` 会被解成零值，
-  而且解码要走兼容路径（整行重扫一遍），比指针慢不少。
+  值类型遇到 `NULL` 会解成零值，但要走兼容路径重扫这一行，慢 3 倍多，
+  详见「可空列要用指针类型」。
+* **`default` 标签**只影响写入：字段值是零值时由数据库填列的默认值
+  （`Repository.Create` 会跳过这个字段，自己拼 `INSERT` 时值写成 `DEFAULT`）；
+  解码时忽略这个标记。
 * **嵌套结构体**：没有 `sql` 标签的结构体和结构体指针会展开，
   用里面的字段当列名；路径中间的指针是 `nil` 时会自动分配。
 * **实现了 `sql.Scanner` 的字段**逐行新建实例，
@@ -155,6 +158,32 @@ type User struct {
   查出来的 A 不会被后一次查询 B 改写。
 * 解到**单个**基础类型时，列是 `NULL` 会保持目标原来的值（不写零值）；
   解到**切片**时则是零值，并且这一行会保留。
+
+#### 可空列要用指针类型
+
+`NULL` 落在值类型字段上时 `database/sql` 会报错，
+`dbs` 只能改用双层指针把这行重扫一遍，`NULL` 取零值。
+重扫要多扫一次，且每行每列都要新建一个实例。
+
+1000 行 3 列、2/3 的行该列为 `NULL` 的实测：
+
+| 字段类型 | 耗时 | 分配次数 |
+| --- | --- | --- |
+| `time.Time` | 296µs | 6,021 |
+| `*time.Time` | 94µs | 360 |
+
+可空列一律用指针：
+
+```go
+type User struct {
+    Id       int64      `sql:"id"`
+    Name     string     `sql:"name"`
+    BirthDay *time.Time `sql:"birth_day"`
+}
+```
+
+`map` 的值类型固定，接不住 `NULL`：`map[string]int64` 遇到 `NULL` 直接报错，
+有 `NULL` 的列用 `map[string]any`，`NULL` 解成 `nil`。
 
 ### 事务管理
 

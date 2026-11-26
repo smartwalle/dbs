@@ -193,6 +193,10 @@ func (m *mapper) Decode(rows *sql.Rows, dest any) (rowsAffected int, err error) 
 //
 // 两套目标读值的方式一致，都是取内层指针的 Elem，所以扫描和取值都不需要区分路径。
 //
+// 兼容路径要多扫一次，database/sql 还要为这一行新建实例，每行每列多一次分配。
+// 可空列对应到值类型字段时走的都是兼容路径，实测比指针类型慢 3 倍多，
+// 所以可空列要用指针类型字段。
+//
 // 实现了 sql.Scanner 的字段不能走快路径：快路径会复用同一个实例，
 // 字段内部的状态会在多行之间串行，这类字段改用兼容目标逐行新建实例。
 func (m *mapper) prepare(destType reflect.Type, columns []string) scanTargets {
@@ -539,6 +543,8 @@ func (m *mapper) scanSlice(rows *sql.Rows, dest any, destType reflect.Type, dest
 				} else {
 					// 兼容路径：NULL 落在非指针类型上时 database/sql 会报错，
 					// 改用双层指针重扫同一行，NULL 还原成零值。
+					// 这一行要扫两遍，还要新建实例，
+					// 可空列用指针类型（*int、*string）不会走这条路。
 					if !compat.IsValid() {
 						compat = reflect.New(reflect.PointerTo(destType))
 						compatAny = compat.Interface()
@@ -722,6 +728,9 @@ type scannerEntry struct {
 // 先用快路径目标扫描，失败基本只有一种原因：NULL 落在了非指针字段上，
 // 此时 database/sql 会报错，改用兼容目标重扫同一行，NULL 会被转成空指针，
 // 字段取零值，真正的类型错误则原样返回。
+//
+// 兼容路径要多扫一次，还要为这一行新建实例，
+// 可空列对应到值类型字段时每行都要走一遍，所以可空列要用指针类型字段。
 //
 // 取值时都是把扫描目标里的值拷贝进结构体，调用方拿到的是拷贝，
 // 不会和扫描目标共享内存，后面再解一行也不会改写已经解出来的内容。
@@ -916,6 +925,9 @@ func scanScalar(rows *sql.Rows, destType reflect.Type) (reflect.Value, error) {
 //
 // map 的元素类型是基础类型时，按元素类型接收驱动返回的值，
 // map 里的值类型和元素类型一致。
+//
+// map 的值类型固定，接不住 NULL：map[string]int64 遇到 NULL 列会直接报错，
+// 有 NULL 的列用 map[string]any，NULL 解成 nil。
 //
 // 这个文件和下面几个 map 函数都是泛型函数，
 // Go 不允许定义泛型方法，所以只能放在包级。
