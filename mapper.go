@@ -229,12 +229,32 @@ func (m *mapper) prepare(destType reflect.Type, columns []string) scanTargets {
 		fieldCount: len(mStruct.columns),
 	}
 
+	// 标记命中的字段，用来去重计数。
+	//
+	// 同一个字段可能被多列命中（SELECT id, id），
+	// 命中次数不等于命中的字段数，按次数算会多算，
+	// 多算会让「所有字段都覆盖了」的判断出错，
+	// 没查到的字段就清不掉了。
+	//
+	// 标记数组放在栈上，字段少的时候不用分配内存。
+	var buf [64]bool
+	var marks []bool
+	if len(mStruct.columns) <= len(buf) {
+		marks = buf[:len(mStruct.columns)]
+	} else {
+		marks = make([]bool, len(mStruct.columns))
+	}
+
 	for idx, column := range columns {
 		// 找这一列对应的结构体字段。
 		var field = mStruct.Field(column)
 		if field != nil {
 			targets.fields[idx] = field
-			targets.matched++
+			// 同一个字段被多列命中时只算一次。
+			if !marks[field.Order] {
+				marks[field.Order] = true
+				targets.matched++
+			}
 
 			// 兼容目标从对象池里拿，内层指针已经分配好了。
 			// 池是按字段类型分的，所以同一类型的字段共用一个池。
@@ -1640,6 +1660,8 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 			// RawBytes 的数据来自驱动缓冲区，要复制。
 			field.RawBytes = m.isRawBytesField(field.Type)
 			field.UseDefault = tagMap[kTagValueDefault]
+			// 字段的序号就是它在可映射字段里的位置。
+			field.Order = len(columns)
 			fields[fieldName] = field
 			columns = append(columns, fieldName)
 		}
@@ -1691,6 +1713,13 @@ type scanTargets struct {
 type fieldMetadata struct {
 	// Index 是字段在结构体里的路径，展开嵌套结构体时会有多层。
 	Index []int
+
+	// Order 是这个字段在「结构体能解出来的字段」里的序号。
+	//
+	// 用来给命中的字段去重计数：
+	// 同一个字段可能被多列命中（SELECT id, id），
+	// 这种情况下只能算一次。
+	Order int
 
 	// Type 是字段的类型。
 	Type reflect.Type
