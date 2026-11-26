@@ -388,10 +388,25 @@ func (m *mapper) scanOne(rows *sql.Rows, dest any, destType reflect.Type, destVa
 	return nil
 }
 
+// appendSlice 把扫出来的结果接到目标切片后面。
+//
+// 目标切片是空的，直接把临时切片交给调用方，省掉一次拷贝。
+// 目标切片已经有内容了，就接到它后面，原来的内容不动。
+func appendSlice(destValue, list reflect.Value) reflect.Value {
+	if destValue.Len() == 0 {
+		return list
+	}
+	return reflect.AppendSlice(destValue, list)
+}
+
 // scanSlice 把查询结果解到切片里。
 //
 // 切片可以是结构体切片、结构体指针切片、基础类型切片、map 切片。
 // 切片里已有的内容不会被破坏，新解出来的行追加在后面。
+//
+// 解码失败的时候目标切片完全不受影响：
+// 长度不变，长度范围内的内容不变，底层数组也不会被动过。
+// 做法是先扫进临时切片，全部成功之后再写回目标切片。
 func (m *mapper) scanSlice(rows *sql.Rows, dest any, destType reflect.Type, destValue reflect.Value) error {
 	// 取切片的元素类型。
 	destType = destType.Elem()
@@ -413,23 +428,16 @@ func (m *mapper) scanSlice(rows *sql.Rows, dest any, destType reflect.Type, dest
 		var targets = m.prepare(destType, columns)
 		defer m.releaseTargets(targets)
 
-		// 直接把每一行写进目标切片：不用为每一行单独分配元素对象，也不需要中间切片。
-		// 出错时目标切片的长度保持不变，调用方已有的内容不会被破坏。
+		// 先把每一行扫进临时切片，全部成功之后再写回目标切片。
+		// 这样解码失败的时候目标切片完全不受影响：
+		// 长度不变，长度范围内的内容不变，连底层数组都不会被动过。
 		//
-		// list 是目标切片的可寻址副本：Grow 和 SetLen 需要可寻址的值，
-		// 扫描过程中改的是副本，全部成功之后才写回 destValue，
-		// 出错时目标切片的长度不变。
-		//
-		// 注意切片赋值只复制切片头，list 和目标切片共用同一个底层数组。
-		// 所以出错时，目标切片长度之外的那段备用容量里可能留下半截数据，
-		// 但目标切片的长度和里面的内容都不受影响，调用方看不到那些数据。
+		// 临时切片是全新的，槽位一开始就是零值，不用再清零。
+		// Grow 和 SetLen 需要可寻址的值，所以先造一个可寻址的值再放进去。
 		var list = reflect.New(destValue.Type()).Elem()
-		list.Set(destValue)
+		list.Set(reflect.MakeSlice(destValue.Type(), 0, 0))
 
-		// 零值每行都一样，先取好，循环里直接用。
-		var zeroValue = m.getZeroValue(destType)
-
-		// index 是下一个要写的下标，从已有内容的后面开始。
+		// index 是下一个要写的下标。
 		var index = list.Len()
 		// scanned 是已经扫过的行数，用来判断值不值得提前准备内层指针。
 		var scanned int
@@ -450,10 +458,6 @@ func (m *mapper) scanSlice(rows *sql.Rows, dest any, destType reflect.Type, dest
 				var pointer = reflect.New(destType)
 				slot.Set(pointer)
 				target = pointer.Elem()
-			} else {
-				// 复用容量时槽位里可能是上一轮的数据，先清零，
-				// 这一轮没有查到的字段就是零值。
-				slot.Set(zeroValue)
 			}
 
 			// 把当前行扫进目标对象。
@@ -477,8 +481,8 @@ func (m *mapper) scanSlice(rows *sql.Rows, dest any, destType reflect.Type, dest
 			return err
 		}
 
-		// 长度正好是写进去的行数，写回目标切片。
-		destValue.Set(list)
+		// 全部成功，把扫出来的结果接到目标切片后面。
+		destValue.Set(appendSlice(destValue, list))
 	case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 		reflect.Float32, reflect.Float64,
@@ -504,9 +508,10 @@ func (m *mapper) scanSlice(rows *sql.Rows, dest any, destType reflect.Type, dest
 			pointer = reflect.New(reflect.PointerTo(destType))
 			pointerAny = pointer.Interface()
 		}
-		// list 是目标切片的可寻址副本，理由和结构体分支一样。
+		// 临时切片，理由和结构体分支一样：
+		// 解码失败的时候目标切片完全不受影响。
 		var list = reflect.New(destValue.Type()).Elem()
-		list.Set(destValue)
+		list.Set(reflect.MakeSlice(destValue.Type(), 0, 0))
 
 		var index = list.Len()
 		for {
@@ -560,7 +565,8 @@ func (m *mapper) scanSlice(rows *sql.Rows, dest any, destType reflect.Type, dest
 		if err := rows.Err(); err != nil {
 			return err
 		}
-		destValue.Set(list)
+		// 全部成功，把扫出来的结果接到目标切片后面。
+		destValue.Set(appendSlice(destValue, list))
 	case reflect.Map:
 		// map[string]any 要按列声明的类型接收驱动返回的值，所以这里需要列类型。
 		var columns, err = rows.ColumnTypes()
@@ -939,9 +945,9 @@ func scanIntoMaps[T any](rows *sql.Rows, columns []*sql.ColumnType, dest any) er
 		return fmt.Errorf("%+v is unsupported", dest)
 	}
 
-	if *mapValues == nil {
-		*mapValues = []map[string]T{}
-	}
+	// 先扫进临时切片，全部成功之后再接到目标切片后面，
+	// 这样失败的时候目标切片完全不受影响。
+	var staged = make([]map[string]T, 0, len(columns))
 
 	// 扫描目标在多行之间复用，每一行扫完就把值取走。
 	var targets = mapValueTargets[T](columns)
@@ -951,7 +957,7 @@ func scanIntoMaps[T any](rows *sql.Rows, columns []*sql.ColumnType, dest any) er
 		if err := scanIntoMapValue[T](rows, targets, mapValue); err != nil {
 			return err
 		}
-		*mapValues = append(*mapValues, mapValue)
+		staged = append(staged, mapValue)
 
 		if !rows.Next() {
 			break
@@ -959,6 +965,13 @@ func scanIntoMaps[T any](rows *sql.Rows, columns []*sql.ColumnType, dest any) er
 	}
 	if err := rows.Err(); err != nil {
 		return err
+	}
+
+	// 目标切片是空的，直接把临时切片交给调用方，省掉一次拷贝。
+	if len(*mapValues) == 0 {
+		*mapValues = staged
+	} else {
+		*mapValues = append(*mapValues, staged...)
 	}
 	return nil
 }
@@ -1041,9 +1054,9 @@ func scanIntoMapsAny(rows *sql.Rows, columns []*sql.ColumnType, dest any) error 
 		return fmt.Errorf("%+v is unsupported", dest)
 	}
 
-	if *mapValues == nil {
-		*mapValues = []map[string]any{}
-	}
+	// 先扫进临时切片，全部成功之后再接到目标切片后面，
+	// 这样失败的时候目标切片完全不受影响。
+	var staged = make([]map[string]any, 0, len(columns))
 
 	var targets = newMapAnyTargets(columns)
 	for {
@@ -1052,7 +1065,7 @@ func scanIntoMapsAny(rows *sql.Rows, columns []*sql.ColumnType, dest any) error 
 		if err := scanIntoMapAnyValue(rows, targets, mapValue); err != nil {
 			return err
 		}
-		*mapValues = append(*mapValues, mapValue)
+		staged = append(staged, mapValue)
 
 		if !rows.Next() {
 			break
@@ -1060,6 +1073,13 @@ func scanIntoMapsAny(rows *sql.Rows, columns []*sql.ColumnType, dest any) error 
 	}
 	if err := rows.Err(); err != nil {
 		return err
+	}
+
+	// 目标切片是空的，直接把临时切片交给调用方，省掉一次拷贝。
+	if len(*mapValues) == 0 {
+		*mapValues = staged
+	} else {
+		*mapValues = append(*mapValues, staged...)
 	}
 	return nil
 }
@@ -1557,6 +1577,11 @@ func (m *mapper) cloneRawBytes(value reflect.Value) reflect.Value {
 			return value
 		}
 		var inner = value.Elem()
+		// 里面是 nil 就还是 nil，
+		// 换成空切片的话调用方就分不清「列是 NULL」和「列是空内容」了。
+		if inner.IsNil() {
+			return reflect.New(m.rawBytesType)
+		}
 		var cloned = reflect.MakeSlice(m.rawBytesType, inner.Len(), inner.Len())
 		reflect.Copy(cloned, inner)
 		var pointer = reflect.New(m.rawBytesType)
@@ -1564,6 +1589,11 @@ func (m *mapper) cloneRawBytes(value reflect.Value) reflect.Value {
 		return pointer
 	}
 	// 字段类型是 sql.RawBytes，复制内容。
+	// 源是 nil 就还是 nil，理由和上面一样：
+	// 保持 nil 才能和兼容路径（NULL 时直接取零值）的结果一致。
+	if value.IsNil() {
+		return reflect.Zero(m.rawBytesType)
+	}
 	var cloned = reflect.MakeSlice(m.rawBytesType, value.Len(), value.Len())
 	reflect.Copy(cloned, value)
 	return cloned
