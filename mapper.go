@@ -678,7 +678,7 @@ type scannerTarget struct {
 	// slot 是装着实例的那个槽，类型是「指向 Scanner 的指针」。
 	slot reflect.Value
 
-	// value 是这一行的值，列是 NULL 时是无效值。
+	// value 是这一行的值，指针字段遇到 NULL 时是无效值。
 	value reflect.Value
 
 	// pointerField 表示字段本身是指针类型，值取实例的指针。
@@ -722,8 +722,12 @@ func (t *scannerTarget) Scan(src any) error {
 	t.err = nil
 	t.value = reflect.Value{}
 
-	// 列是 NULL：字段取零值，不调用底层 Scanner。
-	if src == nil {
+	// 列是 NULL。
+	// 指针类型的字段置 nil，和别的指针字段（*string 这些）保持一致，
+	// 不调用底层 Scanner。
+	// 值类型的字段把 nil 交给底层 Scanner，由 Scanner 自己决定 NULL 长什么样。
+	// 这和 database/sql 的做法一致：Scanner 一定会被调用，src 可能是 nil。
+	if src == nil && t.pointerField {
 		return nil
 	}
 
@@ -903,7 +907,7 @@ func (m *mapper) scanIntoStruct(rows *sql.Rows, columns []string, targets scanTa
 			// 后面再解一行，也不会改写已经写好的内容。
 			fieldByIndex(destValue, field.Index).Set(value)
 		} else {
-			// 列是 NULL，字段取零值。
+			// 指针字段遇到 NULL，字段置 nil。
 			fieldByIndex(destValue, field.Index).Set(reflect.Zero(field.Type))
 		}
 	}
