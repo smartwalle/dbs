@@ -1644,8 +1644,10 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 			}
 
 			// 把剩下的标签值转成开关集合，比如 default。
+			// 第一个值是列名，不算开关：
+			// 列名叫 default 的字段不能被当成用了 default 标签。
 			var tagMap = make(map[string]bool)
-			for _, tagValue := range tagValues {
+			for _, tagValue := range tagValues[1:] {
 				tagMap[strings.ToLower(strings.TrimSpace(tagValue))] = true
 			}
 
