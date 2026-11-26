@@ -223,9 +223,10 @@ func (m *mapper) prepare(destType reflect.Type, columns []string) scanTargets {
 
 	// 几组数据都按列的下标一一对应。
 	var targets = scanTargets{
-		fields: make([]*fieldMetadata, len(columns)),
-		compat: make([]any, len(columns)),
-		fast:   make([]any, len(columns)),
+		fields:     make([]*fieldMetadata, len(columns)),
+		compat:     make([]any, len(columns)),
+		fast:       make([]any, len(columns)),
+		fieldCount: len(mStruct.columns),
 	}
 
 	for idx, column := range columns {
@@ -233,6 +234,7 @@ func (m *mapper) prepare(destType reflect.Type, columns []string) scanTargets {
 		var field = mStruct.Field(column)
 		if field != nil {
 			targets.fields[idx] = field
+			targets.matched++
 
 			// 兼容目标从对象池里拿，内层指针已经分配好了。
 			// 池是按字段类型分的，所以同一类型的字段共用一个池。
@@ -342,13 +344,20 @@ func (m *mapper) scanOne(rows *sql.Rows, dest any, destType reflect.Type, destVa
 		var targets = m.prepare(destType, columns)
 		defer m.releaseTargets(targets)
 
-		return m.scanIntoStruct(rows, columns, targets, destValue)
+		if err = m.scanIntoStruct(rows, columns, targets, destValue); err != nil {
+			return err
+		}
+		// 解码成功了，把这次没查到的字段清零：
+		// 复用同一个结构体解码不同的列集合时，
+		// 上一次的字段值不能留在这里。
+		m.resetUncovered(destValue, destType, targets)
+		return nil
 	case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 		reflect.Float32, reflect.Float64,
 		reflect.String:
 		// 基础类型：一列一个值，扫进来直接写进目标。
-		var nValue, err = scanScalar(rows, destType)
+		var nValue, err = m.scanScalar(rows, destType)
 		if err != nil {
 			return err
 		}
@@ -517,6 +526,9 @@ func (m *mapper) scanSlice(rows *sql.Rows, dest any, destType reflect.Type, dest
 		var compatAny any
 		// 零值每行都一样，先取好，循环里直接用。
 		var zeroValue = m.getZeroValue(destType)
+		// 元素实现了 sql.Scanner 时不走兼容路径，
+		// 原因和 scanScalar 一样：重扫会再调一次 Scanner。
+		var isScanner = m.isScannerField(destType)
 		// 指针元素的目标。
 		var pointer reflect.Value
 		// 指针元素的目标转成 any 的结果，每行都一样，先转好。
@@ -551,10 +563,24 @@ func (m *mapper) scanSlice(rows *sql.Rows, dest any, destType reflect.Type, dest
 				// 把实例存进槽位，取走的是指针，实例由这一行独占。
 				slot.Set(pointer.Elem())
 			} else {
+				// 扫描目标：普通元素复用同一个，扫描后立刻把值取走；
+				// 实现了 sql.Scanner 的元素每一行都要新建实例，
+				// 否则 Scanner 的内部状态会在行之间串行。
+				var scanTarget = target
+				var scanAny = targetAny
+				if isScanner {
+					scanTarget = reflect.New(destType)
+					scanAny = scanTarget.Interface()
+				}
+
 				var nValue reflect.Value
-				if err := rows.Scan(targetAny); err == nil {
-					// 快路径：值直接写进了 target。
-					nValue = target.Elem()
+				if err := rows.Scan(scanAny); err == nil {
+					// 快路径：值直接写进了 scanTarget。
+					nValue = scanTarget.Elem()
+				} else if isScanner {
+					// 元素实现了 sql.Scanner：错误就是 Scanner 自己报的，
+					// 不重扫，直接返回，Scanner 的副作用只会有一次。
+					return err
 				} else {
 					// 兼容路径：NULL 落在非指针类型上时 database/sql 会报错，
 					// 改用双层指针重扫同一行，NULL 还原成零值。
@@ -736,6 +762,88 @@ type scannerEntry struct {
 
 	// target 是这一列的扫描目标。
 	target *scannerTarget
+}
+
+// resetUncovered 把这次结果没覆盖到的字段清零。
+//
+// 解码是原地更新结构体的，列集合变了的时候，
+// 这次没查的字段会留着上一次的旧值，调用方会拿到过期的数据。
+// 解到切片里没有这个问题：切片的每一行都是新元素，本来就是空的。
+//
+// 只清零参与映射的字段：
+//   - `sql:"-"` 的字段和没有标签的字段不参与映射，不归这里管；
+//   - 路径中间的指针是 nil 时说明那一层本来就是空的，也不用清。
+func (m *mapper) resetUncovered(destValue reflect.Value, destType reflect.Type, targets scanTargets) {
+	// 结果覆盖了结构体的全部字段时不用清零，这是最常见的情况。
+	if targets.matched >= targets.fieldCount {
+		return
+	}
+
+	var mStruct, ok = m.getStructMetadata(destType)
+	if !ok {
+		return
+	}
+
+	// 按顶层字段分组：一个顶层字段下面可能有多个叶子（展开的嵌套结构体）。
+	var groups = make(map[int][]*fieldMetadata)
+	for _, name := range mStruct.columns {
+		var field = mStruct.fields[name]
+		var top = field.Index[0]
+		groups[top] = append(groups[top], field)
+	}
+
+	for top, leaves := range groups {
+		// 这个顶层字段下面，有几个叶子被这次的结果覆盖。
+		var hit int
+		for _, leaf := range leaves {
+			if isCoveredField(targets.fields, leaf) {
+				hit++
+			}
+		}
+		if hit == len(leaves) {
+			// 全覆盖了，不用清。
+			continue
+		}
+
+		// 顶层字段本身就是一个映射字段，不是展开的结构体。
+		var isLeaf = len(leaves) == 1 && len(leaves[0].Index) == 1
+
+		if hit == 0 && !isLeaf {
+			// 展开的结构体这次一个叶子都没查到，整个清掉：
+			// 嵌套指针也置成 nil，和新解码出来的一样。
+			var field = destValue.Field(top)
+			if field.Kind() == reflect.Pointer {
+				field.Set(reflect.Zero(field.Type()))
+				continue
+			}
+		}
+
+		// 清掉没覆盖的叶子。
+		for _, leaf := range leaves {
+			if isCoveredField(targets.fields, leaf) {
+				continue
+			}
+			// 路径中间的指针是 nil，取不到这个字段，说明它本来就是空的。
+			var value, found = findFieldByIndex(destValue, leaf.Index)
+			if !found {
+				continue
+			}
+			value.Set(reflect.Zero(leaf.Type))
+		}
+	}
+}
+
+// isCoveredField 判断字段有没有被这一次的列覆盖。
+//
+// targets.fields 是按列的下标记的，
+// 里面的字段和元数据里的是同一个指针，直接比指针就行。
+func isCoveredField(covered []*fieldMetadata, field *fieldMetadata) bool {
+	for _, item := range covered {
+		if item == field {
+			return true
+		}
+	}
+	return false
 }
 
 // scanIntoStruct 把当前行扫描进结构体。
@@ -920,17 +1028,28 @@ func scanSingleColumn(rows *sql.Rows, name string, target any, destValue reflect
 //
 // 快路径用类型本身的指针作目标，database/sql 可以直接写进去，不用分配中间对象；
 // NULL 在非指针目标上会报错，这时改用双层指针重扫，NULL 还原成零值。
-func scanScalar(rows *sql.Rows, destType reflect.Type) (reflect.Value, error) {
+//
+// 实现了 sql.Scanner 的类型不走兼容路径：
+// 快路径失败就是 Scanner 自己报的错，再重扫一遍会再调一次 Scanner，
+// 它的副作用会被执行两次，所以这里直接返回错误。
+func (m *mapper) scanScalar(rows *sql.Rows, destType reflect.Type) (reflect.Value, error) {
 	// 快路径：目标是类型本身的指针，database/sql 直接写进去。
 	var target = reflect.New(destType)
-	if err := rows.Scan(target.Interface()); err == nil {
+	var err = rows.Scan(target.Interface())
+	if err == nil {
 		return target.Elem(), nil
+	}
+
+	// 实现了 sql.Scanner 的类型：错误就是 Scanner 自己报的，
+	// 不重扫，直接返回，Scanner 的副作用只会有一次。
+	if m.isScannerField(destType) {
+		return reflect.Value{}, err
 	}
 
 	// 兼容路径：NULL 落在非指针目标上会报错，
 	// 改用双层指针重扫同一行，NULL 还原成零值。
 	var compat = reflect.New(reflect.PointerTo(destType))
-	if err := rows.Scan(compat.Interface()); err != nil {
+	if err = rows.Scan(compat.Interface()); err != nil {
 		return reflect.Value{}, err
 	}
 	return compat.Elem().Elem(), nil
@@ -1536,6 +1655,12 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 type scanTargets struct {
 	// fields 是每一列对应的字段信息，没有对应字段的列是 nil。
 	fields []*fieldMetadata
+
+	// matched 是结果里能对应到结构体字段的列数。
+	matched int
+
+	// fieldCount 是结构体里能解出来的字段数。
+	fieldCount int
 
 	// compat 是兼容目标，每一列一个，指向「指向字段类型的指针的指针」。
 	compat []any
