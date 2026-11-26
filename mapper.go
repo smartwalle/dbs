@@ -221,10 +221,18 @@ func (m *mapper) prepare(destType reflect.Type, columns []string) scanTargets {
 			targets.compat[idx] = compat
 
 			if field.Scanner {
-				// 实现了 sql.Scanner 的字段需要逐行新建实例，
-				// 所以快路径目标用外层指针，
-				// 让 database/sql 每行都分配一个新的实例。
-				targets.fast[idx] = compat
+				// 实现了 sql.Scanner 的字段用包装器做扫描目标：
+				// 包装器逐行新建实例，实例只属于这一行，
+				// 兼容路径重扫同一行时也不会重复调用底层 Scanner。
+				var wrapper = newScannerTarget(compat, field.Type)
+				targets.scanners = append(targets.scanners, scannerEntry{
+					index:  idx,
+					target: wrapper,
+				})
+				// 快路径和兼容路径用同一个包装器，
+				// 重扫时包装器会记得这一行已经调用过，不再重复调用。
+				targets.fast[idx] = wrapper
+				targets.compat[idx] = wrapper
 			} else {
 				// 普通字段用内层指针，也就是字段类型本身，
 				// database/sql 直接往里写，不用为每一行分配对象。
@@ -247,10 +255,14 @@ func (m *mapper) prepare(destType reflect.Type, columns []string) scanTargets {
 // 内层指针指向的是目标对象里那个指针变量，地址一直不变，
 // 兼容扫描把内层指针换掉时它照样指向新的那个，
 // 所以可以提前取好，取值时直接用它的 Elem。
-func innerTargets(compat []any) []reflect.Value {
-	var inner = make([]reflect.Value, len(compat))
-	for idx := range compat {
-		inner[idx] = reflect.ValueOf(compat[idx]).Elem()
+func innerTargets(targets scanTargets) []reflect.Value {
+	var inner = make([]reflect.Value, len(targets.compat))
+	for idx, field := range targets.fields {
+		// Scanner 字段的扫描目标是包装器，取值不走这里。
+		if field != nil && field.Scanner {
+			continue
+		}
+		inner[idx] = reflect.ValueOf(targets.compat[idx]).Elem()
 	}
 	return inner
 }
@@ -273,9 +285,16 @@ func (m *mapper) releaseTargets(targets scanTargets) {
 			continue
 		}
 
-		// compat[idx] 是「指向字段类型的指针的指针」，
+		// Scanner 字段的扫描目标是包装器，
+		// 真正要还回池子的是它里面的目标。
+		var holder = targets.compat[idx]
+		if wrapper, ok := holder.(*scannerTarget); ok {
+			holder = wrapper.holder
+		}
+
+		// holder 是「指向字段类型的指针的指针」，
 		// 取一次 Elem 拿到内层指针，也就是扫描目标本身。
-		var target = reflect.ValueOf(targets.compat[idx]).Elem()
+		var target = reflect.ValueOf(holder).Elem()
 
 		// 内层指针是空的话要补一个。
 		// 兼容扫描遇到 NULL 会把内层指针置空，
@@ -286,7 +305,7 @@ func (m *mapper) releaseTargets(targets scanTargets) {
 
 		// 还回池子。下一个解码会直接拿到这个对象继续用，
 		// 所以池里的对象不能交到调用方手里，取值时必须拷贝。
-		field.ValuePool.Put(targets.compat[idx])
+		field.ValuePool.Put(holder)
 	}
 }
 
@@ -399,7 +418,11 @@ func (m *mapper) scanSlice(rows *sql.Rows, dest any, destType reflect.Type, dest
 		//
 		// list 是目标切片的可寻址副本：Grow 和 SetLen 需要可寻址的值，
 		// 扫描过程中改的是副本，全部成功之后才写回 destValue，
-		// 出错时目标切片不受影响。
+		// 出错时目标切片的长度不变。
+		//
+		// 注意切片赋值只复制切片头，list 和目标切片共用同一个底层数组。
+		// 所以出错时，目标切片长度之外的那段备用容量里可能留下半截数据，
+		// 但目标切片的长度和里面的内容都不受影响，调用方看不到那些数据。
 		var list = reflect.New(destValue.Type()).Elem()
 		list.Set(destValue)
 
@@ -447,7 +470,7 @@ func (m *mapper) scanSlice(rows *sql.Rows, dest any, destType reflect.Type, dest
 			// 后面还有行，提前把内层指针取好，后面的行就不用每一行重新取了。
 			// 只扫两三行的话提前取不划算，所以扫到第三行才准备。
 			if scanned >= 2 && targets.inner == nil {
-				targets.inner = innerTargets(targets.compat)
+				targets.inner = innerTargets(targets)
 			}
 		}
 		if err = rows.Err(); err != nil {
@@ -586,6 +609,108 @@ func (m *mapper) scanSlice(rows *sql.Rows, dest any, destType reflect.Type, dest
 	return nil
 }
 
+// scannerTarget 是 sql.Scanner 字段的扫描目标。
+//
+// 它交给 database/sql 的 Scan，database/sql 把列值交给它，由它转交给底层 Scanner。
+// 它负责三件事：
+//   - 每一行新建一个 Scanner 实例，实例只属于这一行，
+//     字段内部的状态不会在行之间串；
+//   - 兼容路径重扫同一行时不再重复调用底层 Scanner，
+//     只把上一次的错误返回回去，避免副作用被执行两次；
+//   - 把这一行的值取出来交给上层，复制进结构体。
+type scannerTarget struct {
+	// holder 是「指向字段类型的指针的指针」，实例就装在它的内层指针里。
+	holder any
+
+	// slot 是装着实例的那个槽，类型是「指向 Scanner 的指针」。
+	slot reflect.Value
+
+	// value 是这一行的值，列是 NULL 时是无效值。
+	value reflect.Value
+
+	// pointerField 表示字段本身是指针类型，值取实例的指针。
+	pointerField bool
+
+	// called 表示这一行已经调用过底层 Scanner。
+	called bool
+
+	// err 是底层 Scanner 返回的错误。
+	err error
+}
+
+// newScannerTarget 包装一个扫描目标，给 sql.Scanner 字段用。
+//
+// holder 是「指向字段类型的指针的指针」，
+// 实例装在它的内层指针里，每一行都会换成新的。
+func newScannerTarget(holder any, fieldType reflect.Type) *scannerTarget {
+	var t = &scannerTarget{
+		holder:       holder,
+		pointerField: fieldType.Kind() == reflect.Pointer,
+	}
+
+	// holder 取一次 Elem 是「指向字段类型的指针」，
+	// 字段是指针类型时，实例在它的下一层。
+	var slot = reflect.ValueOf(holder).Elem()
+	if t.pointerField {
+		slot = slot.Elem()
+	}
+	t.slot = slot
+	return t
+}
+
+// Scan 实现 sql.Scanner，database/sql 会把列值交给它。
+func (t *scannerTarget) Scan(src any) error {
+	// 兼容路径重扫同一行：直接返回上一次的结果，
+	// 不再重复调用底层 Scanner，副作用只会有一次。
+	if t.called {
+		return t.err
+	}
+	t.called = true
+	t.err = nil
+	t.value = reflect.Value{}
+
+	// 列是 NULL：字段取零值，不调用底层 Scanner。
+	if src == nil {
+		return nil
+	}
+
+	// 每一行新建一个实例，实例只属于这一行。
+	var instance = reflect.New(t.slot.Type().Elem())
+	t.slot.Set(instance)
+
+	// 调用底层 Scanner。
+	var scanner, ok = instance.Interface().(sql.Scanner)
+	if !ok {
+		t.err = fmt.Errorf("dbs: %s does not implement sql.Scanner", t.slot.Type().Elem())
+		return t.err
+	}
+	t.err = scanner.Scan(src)
+
+	// 值类型字段取实例的内容，指针类型字段取实例的指针。
+	if t.pointerField {
+		t.value = t.slot
+	} else {
+		t.value = t.slot.Elem()
+	}
+	return t.err
+}
+
+// reset 清掉上一行的状态，下一行重新开始。
+func (t *scannerTarget) reset() {
+	t.called = false
+	t.err = nil
+	t.value = reflect.Value{}
+}
+
+// scannerEntry 记着 Scanner 字段的列下标和它的扫描目标。
+type scannerEntry struct {
+	// index 是列的下标。
+	index int
+
+	// target 是这一列的扫描目标。
+	target *scannerTarget
+}
+
 // scanIntoStruct 把当前行扫描进结构体。
 //
 // 先用快路径目标扫描，失败基本只有一种原因：NULL 落在了非指针字段上，
@@ -611,6 +736,11 @@ func (m *mapper) scanIntoStruct(rows *sql.Rows, columns []string, targets scanTa
 		return scanSingleColumn(rows, columns[0], &val, destValue)
 	}
 
+	// 每一行都重新开始，Scanner 字段的包装器要清掉上一行的状态。
+	for _, entry := range targets.scanners {
+		entry.target.reset()
+	}
+
 	// useCompat 表示这一行走的是兼容路径。
 	var useCompat = false
 
@@ -626,10 +756,28 @@ func (m *mapper) scanIntoStruct(rows *sql.Rows, columns []string, targets scanTa
 		useCompat = true
 	}
 
+	// Scanner 字段的值由包装器保管，单独写进结构体。
+	for _, entry := range targets.scanners {
+		var field = targets.fields[entry.index]
+		var value = entry.target.value
+		if value.IsValid() {
+			// 写进去的是值的拷贝，结构体和扫描目标不共享内存。
+			// 后面再解一行，也不会改写已经写好的内容。
+			fieldByIndex(destValue, field.Index).Set(value)
+		} else {
+			// 列是 NULL，字段取零值。
+			fieldByIndex(destValue, field.Index).Set(reflect.Zero(field.Type))
+		}
+	}
+
 	// 把扫描目标里的值写进结构体。
 	for idx, field := range targets.fields {
 		// 没有对应字段的列不用管。
 		if field == nil {
+			continue
+		}
+		// Scanner 字段的值上面已经写进去了。
+		if field.Scanner {
 			continue
 		}
 
@@ -675,6 +823,10 @@ func (m *mapper) scanIntoStruct(rows *sql.Rows, columns []string, targets scanTa
 func (m *mapper) refreshFast(targets scanTargets) {
 	for idx, field := range targets.fields {
 		if field == nil {
+			continue
+		}
+		// Scanner 字段的实例由包装器自己换，这里不用管。
+		if field.Scanner {
 			continue
 		}
 
@@ -818,6 +970,7 @@ func scanIntoMaps[T any](rows *sql.Rows, columns []*sql.ColumnType, dest any) er
 type mapTargets[T any] struct {
 	// fast 是扫描目标。
 	fast []any
+
 	// names 是列名，扫描之前先取好，扫描的时候直接用。
 	names []string
 }
@@ -922,10 +1075,13 @@ func scanIntoMapsAny(rows *sql.Rows, columns []*sql.ColumnType, dest any) error 
 type mapAnyTargets struct {
 	// fast 是快路径扫描目标。
 	fast []any
+
 	// compat 是兼容路径扫描目标，第一次遇到 NULL 时才准备。
 	compat []any
+
 	// names 是列名，扫描之前先取好，扫描的时候直接用。
 	names []string
+
 	// columns 是原始的列信息，准备兼容目标的时候还要用。
 	columns []*sql.ColumnType
 }
@@ -1118,8 +1274,40 @@ func (m *mapper) setStructMetadata(key reflect.Type, value structMetadata) {
 //
 // Type 是当前这一层的结构体类型，Index 是到这一层为止的字段路径。
 type element struct {
-	Type  reflect.Type
+	// Type 是要展开的结构体类型。
+	Type reflect.Type
+
+	// Index 是这个结构体在外层结构体里的字段路径。
 	Index []int
+
+	// Ancestors 是展开到当前类型经过的类型，按从外到内的顺序。
+	//
+	// 展开的时候用它判断是不是递归：
+	// 路径上已经出现过的类型不再展开，
+	// 不然像「父节点指向自己」这种结构会一直展开下去。
+	// 只看当前路径，不看全局，
+	// 所以同一个类型通过不同的兄弟字段出现时仍然会正常展开。
+	Ancestors []reflect.Type
+}
+
+// appendAncestor 在展开路径上追加一个类型，返回新的路径。
+//
+// 复制一份再追加，兄弟分支之间才不会互相影响。
+func appendAncestor(ancestors []reflect.Type, t reflect.Type) []reflect.Type {
+	var nAncestors = make([]reflect.Type, len(ancestors)+1)
+	copy(nAncestors, ancestors)
+	nAncestors[len(ancestors)] = t
+	return nAncestors
+}
+
+// hasAncestor 判断类型是不是已经在展开路径上出现过。
+func hasAncestor(ancestors []reflect.Type, t reflect.Type) bool {
+	for _, item := range ancestors {
+		if item == t {
+			return true
+		}
+	}
+	return false
 }
 
 // appendFieldIndex 给字段路径追加一层，返回一个新的切片。
@@ -1157,6 +1345,9 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 	queue = append(queue, element{
 		Type:  destType,
 		Index: nil,
+		// Ancestors 是展开到当前类型经过的类型，
+		// 用来发现递归：路径上已经出现过的类型不再展开。
+		Ancestors: nil,
 	})
 
 	// 列名到字段信息的对应关系。
@@ -1190,17 +1381,27 @@ func (m *mapper) buildStructMetadata(destType reflect.Type) structMetadata {
 			// 用里面的字段当列；其他字段没有列名，直接忽略。
 			if tag == "" {
 				if fieldStruct.Type.Kind() == reflect.Pointer && fieldStruct.Type.Elem().Kind() == reflect.Struct {
+					// 递归结构体（比如父节点指向自己）在这里停下，
+					// 不然会一直展开下去。
+					if hasAncestor(current.Ancestors, fieldStruct.Type.Elem()) {
+						continue
+					}
 					queue = append(queue, element{
-						Type:  fieldStruct.Type.Elem(),
-						Index: appendFieldIndex(current.Index, i),
+						Type:      fieldStruct.Type.Elem(),
+						Index:     appendFieldIndex(current.Index, i),
+						Ancestors: appendAncestor(current.Ancestors, current.Type),
 					})
 					continue
 				}
 
 				if fieldStruct.Type.Kind() == reflect.Struct {
+					if hasAncestor(current.Ancestors, fieldStruct.Type) {
+						continue
+					}
 					queue = append(queue, element{
-						Type:  fieldStruct.Type,
-						Index: appendFieldIndex(current.Index, i),
+						Type:      fieldStruct.Type,
+						Index:     appendFieldIndex(current.Index, i),
+						Ancestors: appendAncestor(current.Ancestors, current.Type),
 					})
 					continue
 				}
@@ -1261,6 +1462,10 @@ type scanTargets struct {
 	// fast 是快路径目标，每一列一个，指向字段类型本身。
 	fast []any
 
+	// scanners 是 sql.Scanner 字段的扫描目标，
+	// 只有实现了 sql.Scanner 的字段才有，其他列不占位置。
+	scanners []scannerEntry
+
 	// inner 是兼容目标的内层指针，每一列一个。
 	//
 	// inner 指向的是目标对象里那个指针变量，地址不会变，
@@ -1318,9 +1523,11 @@ func (s structMetadata) Field(name string) *fieldMetadata {
 // 字段内部的状态在多行之间串行，因此必须逐行新建。
 // 这类字段的快路径目标改成兼容目标，让 database/sql 每行新建实例。
 func (m *mapper) isScannerField(fieldType reflect.Type) bool {
-	if fieldType.Kind() == reflect.Pointer {
-		return false
+	// 字段本身实现了 sql.Scanner，一般是指针类型。
+	if fieldType.Implements(m.scannerType) {
+		return true
 	}
+	// 字段是值类型，取地址之后实现了 sql.Scanner。
 	return reflect.PointerTo(fieldType).Implements(m.scannerType)
 }
 
