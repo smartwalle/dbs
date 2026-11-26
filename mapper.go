@@ -164,8 +164,23 @@ func (m *mapper) Decode(rows *sql.Rows, dest any) (rowsAffected int, err error) 
 		return rowsAffected, sql.ErrNoRows
 	}
 
+	// restore 记着 base 分配过的指针位置，失败的时候要还原。
+	var restore []reflect.Value
+
 	// 剥掉 dest 前面的指针，拿到真正的目标类型和值。
-	destType, destValue = base(destType, destValue)
+	// base 会把中间的 nil 指针分配出来，这些位置要记下来。
+	destType, destValue, restore = base(destType, destValue)
+
+	// 解码失败的时候把 base 分配出来的指针还原成 nil，
+	// 调用方看到的还是原来的样子。
+	defer func() {
+		if err == nil {
+			return
+		}
+		for _, slot := range restore {
+			slot.Set(reflect.Zero(slot.Type()))
+		}
+	}()
 
 	if destType.Kind() == reflect.Slice {
 		// 切片：解所有行，解出来的行追加在已有内容后面。
@@ -1057,21 +1072,27 @@ func scanIntoMapAny(rows *sql.Rows, columns []*sql.ColumnType, dest any) error {
 	if !ok {
 		return fmt.Errorf("%+v is unsupported", dest)
 	}
-	// 目标 map 已经有内容时直接往里写。
-	// 写 map 发生在扫描成功之后，扫描失败时 map 一个 key 都不会被改。
-	if *mapValue != nil {
-		var targets = newMapAnyTargets(columns)
-		return scanIntoMapAnyValue(rows, targets, *mapValue)
-	}
-	// 目标 map 是 nil：先扫进临时 map，扫描成功了再交给调用方，
-	// 这样失败的时候目标 map 还是 nil，不会变成空 map。
+	// 先扫进临时 map，扫描成功了再写进目标 map，
+	// 这样失败的时候目标 map 完全不受影响。
+	//
+	// 这里不能用目标 map 直接扫：
+	// 写 map 是逐列写的，实现 driver.Valuer 的列在转换时会失败，
+	// 直接写目标 map 的话，失败之前已经写进去的列就留在目标里了。
 	// 列数是已知的，预先给足容量，省掉中途扩容。
 	var staged = make(map[string]any, len(columns))
 	var targets = newMapAnyTargets(columns)
 	if err := scanIntoMapAnyValue(rows, targets, staged); err != nil {
 		return err
 	}
-	*mapValue = staged
+	// 目标 map 是 nil 就直接接管临时 map。
+	if *mapValue == nil {
+		*mapValue = staged
+		return nil
+	}
+	// 目标 map 已经有内容，把这一行的值覆盖上去。
+	for name, value := range staged {
+		(*mapValue)[name] = value
+	}
 	return nil
 }
 
@@ -1247,10 +1268,19 @@ func fillMapAny(targets *mapAnyTargets, values []any, mapValue map[string]any, c
 // base 剥掉目标前面的指针，返回真正的目标类型和值。
 //
 // 目标是指针时会先分配好，保证后面的字段可以赋值。
-func base(destType reflect.Type, destValue reflect.Value) (reflect.Type, reflect.Value) {
+// 分配过的位置记在 restore 里返回，
+// 解码失败的时候要把它们还原成 nil：
+// 调用方传进来的是 nil 指针，解码失败之后它应该还是 nil，
+// 否则「没查到」和「查询失败」就分不出来了。
+func base(destType reflect.Type, destValue reflect.Value) (reflect.Type, reflect.Value, []reflect.Value) {
+	// restore 记着分配过的指针位置，失败的时候要还原。
+	var restore []reflect.Value
+
 	for {
 		// 指针是 nil 就先分配一个，保证后面能写值。
 		if destValue.Kind() == reflect.Pointer && destValue.IsNil() {
+			// 先记下这个位置，再分配。
+			restore = append(restore, destValue)
 			destValue.Set(reflect.New(destType.Elem()))
 		}
 
@@ -1262,7 +1292,7 @@ func base(destType reflect.Type, destValue reflect.Value) (reflect.Type, reflect
 		}
 		break
 	}
-	return destType, destValue
+	return destType, destValue, restore
 }
 
 // findFieldByIndex 按字段路径找到字段。
