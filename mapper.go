@@ -937,14 +937,24 @@ func scanIntoMap[T any](rows *sql.Rows, columns []*sql.ColumnType, dest any) err
 	if !ok {
 		return fmt.Errorf("%+v is unsupported", dest)
 	}
-	// 调用方传进来的是 nil map，这里建一个。
-	// 列数是已知的，预先给足容量，省掉中途扩容。
-	if *mapValue == nil {
-		*mapValue = make(map[string]T, len(columns))
+	// 目标 map 已经有内容时直接往里写。
+	// 写 map 发生在扫描成功之后，扫描失败时 map 一个 key 都不会被改。
+	if *mapValue != nil {
+		// 扫描目标在多行之间复用，这里只有一行。
+		var targets = mapValueTargets[T](columns)
+		return scanIntoMapValue[T](rows, targets, *mapValue)
 	}
+	// 目标 map 是 nil：先扫进临时 map，扫描成功了再交给调用方，
+	// 这样失败的时候目标 map 还是 nil，不会变成空 map。
+	// 列数是已知的，预先给足容量，省掉中途扩容。
+	var staged = make(map[string]T, len(columns))
 	// 扫描目标在多行之间复用，这里只有一行。
 	var targets = mapValueTargets[T](columns)
-	return scanIntoMapValue[T](rows, targets, *mapValue)
+	if err := scanIntoMapValue[T](rows, targets, staged); err != nil {
+		return err
+	}
+	*mapValue = staged
+	return nil
 }
 
 // scanIntoMaps 把查询结果解到 map 切片里，一行一个 map。
@@ -1047,13 +1057,22 @@ func scanIntoMapAny(rows *sql.Rows, columns []*sql.ColumnType, dest any) error {
 	if !ok {
 		return fmt.Errorf("%+v is unsupported", dest)
 	}
-	// 调用方传进来的是 nil map，这里建一个。
-	// 列数是已知的，预先给足容量，省掉中途扩容。
-	if *mapValue == nil {
-		*mapValue = make(map[string]any, len(columns))
+	// 目标 map 已经有内容时直接往里写。
+	// 写 map 发生在扫描成功之后，扫描失败时 map 一个 key 都不会被改。
+	if *mapValue != nil {
+		var targets = newMapAnyTargets(columns)
+		return scanIntoMapAnyValue(rows, targets, *mapValue)
 	}
+	// 目标 map 是 nil：先扫进临时 map，扫描成功了再交给调用方，
+	// 这样失败的时候目标 map 还是 nil，不会变成空 map。
+	// 列数是已知的，预先给足容量，省掉中途扩容。
+	var staged = make(map[string]any, len(columns))
 	var targets = newMapAnyTargets(columns)
-	return scanIntoMapAnyValue(rows, targets, *mapValue)
+	if err := scanIntoMapAnyValue(rows, targets, staged); err != nil {
+		return err
+	}
+	*mapValue = staged
+	return nil
 }
 
 // scanIntoMapsAny 把查询结果解到 map 切片里，一行一个 map。
